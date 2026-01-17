@@ -1,0 +1,23 @@
+.header {
+  height: 96px; /* Figma header: 1280x96 */
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+}
+
+.inner {
+  width: min(1280px, calc(100% - 32px));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand { font-weight: 600; }
+
+.nav {
+  display: flex;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}

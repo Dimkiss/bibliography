@@ -1,0 +1,35 @@
+.card {
+  height: 282px; /* высота блока графика в Figma */
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 12px;
+}
+
+.header {
+  height: 32px; /* header внутри графика */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.chipsMock {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.body {
+  margin-top: 10px;
+  height: 216px; /* graph-full */
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 14px;
+}
