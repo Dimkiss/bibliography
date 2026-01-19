@@ -1,4 +1,5 @@
-import styles from "./Header.module.css";
+import styles from './Header.module.css';
+import { NavButton } from '@/shared/ui/NavButton';
 
 export function Header() {
   return (
@@ -8,7 +9,11 @@ export function Header() {
         <nav className={styles.nav}>
           <a href="#">Публикации</a>
           <a href="#">Авторы</a>
-          <a href="#">О проекте</a>
+          <NavButton
+            label="О проекте"
+            icon="info-outline"
+            onClick={() => alert("О проекте нажато")}
+          />
         </nav>
       </div>
     </header>

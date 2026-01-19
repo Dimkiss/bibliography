@@ -13,7 +13,7 @@ export function SearchPanel() {
         <ButtonSplit className={styles.leftBtn}>Фильтр</ButtonSplit>
 
         <div className={styles.searchLine}>
-          <ButtonSplit className={styles.rightBtn}>Параметр</ButtonSplit>
+          <ButtonSplit className={styles.rightBtn}>Автор</ButtonSplit>
 
           <div className={styles.fieldWrap}>
             <TextField placeholder="Введите запрос…" />

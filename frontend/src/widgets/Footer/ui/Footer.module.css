@@ -1,13 +1,19 @@
 .footer {
-  height: 48px; /* Figma footer: 1280x48 */
-  border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
+  width: 100%;
+  background-color: #f8f8f8;  /* фон футера */
+  padding: 16px 0;            /* отступы */
+  font-family: Arial, sans-serif;
+  font-size: 14px;            /* размер шрифта */
+  color: #333;                /* цвет текста */
+  text-align: center;         /* выравнивание по центру */
 }
 
-.inner {
-  width: min(1280px, calc(100% - 32px));
+.container {
+  max-width: 1200px;
   margin: 0 auto;
-  color: var(--muted);
-  font-size: 14px;
+}
+
+.text {
+  font-weight: normal;
+  line-height: 1.5;
 }
