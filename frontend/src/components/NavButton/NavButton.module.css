@@ -1,0 +1,75 @@
+.navButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  flex-shrink: 0;
+}
+
+.container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.stateLayer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 20px;
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.label {
+  font-family: Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.default {
+  color: var(--article-menu);
+}
+
+.selected {
+  color: var(--Dot);
+}
+
+.selected .container {
+  background: var(--button-tonal);
+}
+
+.default:hover .stateLayer {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.default:active .stateLayer {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.selected:hover .stateLayer {
+  background: rgba(69, 70, 79, 0.08);
+}
+
+.selected:active .stateLayer {
+  background: var(--selected-yes-state-disable);
+}
