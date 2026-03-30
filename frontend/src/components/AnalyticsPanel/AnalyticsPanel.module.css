@@ -1,0 +1,226 @@
+.section {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel {
+  position: relative;
+  padding: 12px;
+  border: 1px solid var(--Text-field);
+  border-radius: var(--radius);
+  background: var(--article-menu);
+}
+
+.panelTitle {
+  margin: 0 0 10px;
+  color: var(--add_notes);
+  font-family: Roboto, sans-serif;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-height: 236px;
+  padding: 12px 12px 10px;
+  border: 1px solid var(--Text-field);
+  border-radius: var(--radius-sm);
+  background: var(--article-menu);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.cardTitle {
+  margin: 0;
+  color: var(--add_notes);
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0.5px;
+}
+
+.chartArea {
+  position: relative;
+  flex: 1;
+  min-height: 190px;
+  padding-left: 4px;
+}
+
+.donutWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 190px;
+}
+
+.selectWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.select {
+  height: 28px;
+  min-width: 62px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--Text-field);
+  border-radius: 10px;
+  outline: none;
+  background: var(--article-menu);
+  color: #5a696f;
+  font-family: Roboto, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  appearance: none;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #69797e 50%),
+    linear-gradient(135deg, #69797e 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 11px,
+    calc(100% - 9px) 11px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.doubleSelect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rangeDash {
+  color: #5a696f;
+  font-size: 12px;
+  line-height: 28px;
+}
+
+.legendRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding-top: 2px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.legendDot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legendText {
+  color: var(--article-add);
+  font-family: Roboto, sans-serif;
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.axisLabelVertical {
+  position: absolute;
+  top: 140px;
+  left: -2px;
+  transform: rotate(-90deg);
+  transform-origin: left top;
+  color: var(--article-add);
+  font-family: Roboto, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.donutValue {
+  fill: var(--add_notes);
+  font-family: Roboto, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.donutCaption {
+  fill: var(--article-add);
+  font-family: Roboto, sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.tooltip {
+  padding: 8px 10px;
+  border: 1px solid var(--Text-field);
+  border-radius: 8px;
+  background: var(--article-menu);
+  box-shadow: var(--shadow-sm);
+}
+
+.tooltipLabel {
+  margin-bottom: 4px;
+  color: var(--add_notes);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tooltipValue {
+  color: var(--article-add);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.state {
+  padding: 16px;
+  border: 1px solid var(--Text-field);
+  border-radius: var(--radius-sm);
+  background: var(--article-menu);
+  color: var(--article-add);
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    min-height: 260px;
+  }
+}
+
+@media (max-width: 640px) {
+  .cardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .doubleSelect {
+    flex-wrap: wrap;
+  }
+
+  .legendRow {
+    gap: 8px 10px;
+  }
+}
