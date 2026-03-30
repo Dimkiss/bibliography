@@ -7,6 +7,7 @@ from app.routers.auth import router as auth_router
 from app.routers.init import router as init_router
 from app.routers.admin_users import router as admin_users_router
 from app.routers import articles
+from app.routers.analytics import router as analytics_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -30,3 +31,4 @@ app.include_router(auth_router)
 app.include_router(init_router)
 app.include_router(admin_users_router)
 app.include_router(articles.router)
+app.include_router(analytics_router)

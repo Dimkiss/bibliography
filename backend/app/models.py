@@ -8,6 +8,7 @@ from app.db import Base
 
 class Role(Base):
     __tablename__ = "roles"
+    __table_args__ = {"mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_unicode_ci"}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, unique=True)
@@ -17,6 +18,7 @@ class Role(Base):
 
 class Department(Base):
     __tablename__ = "departments_new"
+    __table_args__ = {"mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_unicode_ci"}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, unique=True)
@@ -35,6 +37,7 @@ class Author(Base):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = {"mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_unicode_ci"}
 
     id = Column(Integer, primary_key=True, index=True)
     login = Column(String(100), unique=True, nullable=False)
