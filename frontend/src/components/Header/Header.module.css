@@ -182,3 +182,8 @@
     line-height: 28px;
   }
 }
+.headerLoginButton {
+  --outline-button-color: var(--article-menu);
+  --outline-button-hover-bg: rgba(255, 255, 255, 0.08);
+  --outline-button-active-bg: rgba(255, 255, 255, 0.16);
+}

@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { PublicationList } from "@/components/PublicationList";
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 
+
 export function MainPage() {
   return (
     <div className={styles.page}>
@@ -18,7 +19,6 @@ export function MainPage() {
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );

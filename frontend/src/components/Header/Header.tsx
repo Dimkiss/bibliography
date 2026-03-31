@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import styles from './Header.module.css';
-import { Icon } from '@/components/Icon';
-import { NavButton } from '@/components/NavButton';
-import { OutlineButton } from '@/components/OutlineButton';
+import { Icon } from '@/shared/ui/Icon';
+import { NavButton } from '@/shared/ui/NavButton';
+import { OutlineButton } from '@/shared/ui/OutlineButton';
 
 const navItems = [
   { id: 'home', label: 'Главная', iconName: 'main-page' },
@@ -42,11 +42,13 @@ export function Header({ title }: HeaderProps) {
           </nav>
 
           <div className={styles.actions}>
-            <OutlineButton
-              iconName="log-in"
-              label="Вход"
-              onClick={() => {}}
-            />
+          <OutlineButton
+            className={styles.headerLoginButton}
+            size="normal"
+            iconName="log-in"
+            label="Вход"
+            onClick={() => {}}
+          />
           </div>
         </div>
       </div>

@@ -16,7 +16,7 @@ export const Icon = ({
   className,
   colored = false,
 }: IconProps) => {
-  const src = `/src/assets/icons/${name}.svg`
+  const src = `/src/shared/assets/icons/${name}.svg`
 
   const sizeStyle: CSSProperties = {
     width:

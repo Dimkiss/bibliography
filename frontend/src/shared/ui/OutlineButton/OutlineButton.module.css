@@ -1,0 +1,91 @@
+.button {
+  color: var(--outline-button-color, var(--Scrollbar));
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 100px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  flex: 0 0 auto;
+
+  gap: 8px;
+  white-space: nowrap;
+  cursor: pointer;
+  font: inherit;
+
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-radius 0.12s ease,
+    opacity 0.15s ease;
+}
+
+.icon {
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.label {
+  color: inherit;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.large {
+  height: 56px;
+  padding: 0 24px;
+  gap: 12px;
+}
+
+.large .label {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.normal {
+  height: 40px;
+  padding: 0 16px;
+  gap: 8px;
+}
+
+.normal .label {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.small {
+  height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+}
+
+.small .label {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--outline-button-hover-bg, rgba(118, 118, 128, 0.08));
+  border-radius: 100px;
+}
+
+.button:active:not(:disabled) {
+  background: var(--outline-button-active-bg, rgba(118, 118, 128, 0.16));
+  border-radius: 8px;
+}
+
+.button:disabled {
+  color: rgba(29, 27, 32, 0.38);
+  border-color: rgba(29, 27, 32, 0.12);
+  background: transparent;
+  cursor: not-allowed;
+  border-radius: 100px;
+}
+
+.button:disabled .icon {
+  opacity: 0.7;
+}
