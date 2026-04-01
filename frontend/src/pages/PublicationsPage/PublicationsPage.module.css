@@ -1,0 +1,36 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  padding: 16px 0 32px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resultsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid var(--Text-field);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding-bottom: 24px;
+  }
+
+  .resultsBlock {
+    padding: 16px;
+  }
+}

@@ -1,0 +1,75 @@
+.root {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pageSizeWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pageSizeLabel {
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.pageSizeSelect {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--Text-field);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--blue);
+  font: inherit;
+}
+
+.controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pages {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iconButton,
+.pageButton {
+  min-width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid var(--Text-field);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--blue);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pageButtonActive {
+  background: var(--header-item);
+  border-color: transparent;
+}
+
+.iconButton:disabled,
+.pageButton:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.ellipsis {
+  color: var(--Scrollbar);
+  padding: 0 4px;
+}

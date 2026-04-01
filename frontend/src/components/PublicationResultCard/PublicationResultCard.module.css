@@ -1,0 +1,133 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--Text-field);
+  border-radius: 20px;
+  background: #ffffff;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.headerMeta {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.title {
+  margin: 0;
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 22px;
+  line-height: 30px;
+}
+
+.authors,
+.subtitle {
+  margin: 8px 0 0;
+  color: var(--article-add);
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.subtitle {
+  color: var(--Scrollbar);
+}
+
+.yearBadge,
+.stateBadge,
+.tag,
+.quartileBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-family: Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.yearBadge {
+  background: var(--header-item);
+  color: var(--blue);
+}
+
+.stateBadge {
+  background: rgba(80, 173, 118, 0.14);
+  color: #226640;
+}
+
+.tag {
+  background: rgba(78, 91, 146, 0.08);
+  color: var(--blue);
+}
+
+.quartileBadge {
+  background: rgba(90, 132, 239, 0.12);
+  color: var(--icon);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.metaBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metaLabel {
+  color: var(--Scrollbar);
+  font-family: Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.doiLink {
+  color: var(--Vector);
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 22px;
+  word-break: break-all;
+}
+
+.placeholder {
+  color: var(--Scrollbar);
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@media (max-width: 760px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .headerMeta {
+    justify-content: flex-start;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

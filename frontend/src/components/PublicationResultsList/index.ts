@@ -1,0 +1,1 @@
+export { PublicationResultsList } from './PublicationResultsList';

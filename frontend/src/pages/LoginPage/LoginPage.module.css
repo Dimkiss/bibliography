@@ -1,0 +1,148 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 32px 0 48px;
+}
+
+.card {
+  width: min(100%, 480px);
+  margin: 0 auto;
+  padding: 32px;
+  border: 1px solid var(--Text-field);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 12px 40px rgba(14, 26, 53, 0.08);
+}
+
+.cardHeader {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.title {
+  margin: 0;
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 40px;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--Scrollbar);
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.label {
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--Text-field);
+  border-radius: 12px;
+  outline: none;
+  background: #ffffff;
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.input:hover {
+  border-color: var(--Scrollbar);
+}
+
+.input:focus {
+  border-color: var(--bkg);
+  box-shadow: 0 0 0 1px var(--bkg);
+}
+
+.errorText {
+  color: var(--error);
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.submitButton {
+  height: 48px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 100px;
+  background: var(--bkg);
+  color: #ffffff;
+  cursor: pointer;
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  transition:
+    background-color 0.15s ease,
+    border-radius 0.12s ease,
+    opacity 0.15s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #5b6aa8;
+}
+
+.submitButton:active:not(:disabled) {
+  background: #445181;
+  border-radius: 8px;
+}
+
+.submitButton:disabled {
+  background: #d9d9d9;
+  color: #9a9a9a;
+  cursor: not-allowed;
+}
+.actions {
+  display: flex;
+  justify-content: center;
+}
+@media (max-width: 640px) {
+  .main {
+    padding: 20px 0 32px;
+  }
+
+  .card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+}

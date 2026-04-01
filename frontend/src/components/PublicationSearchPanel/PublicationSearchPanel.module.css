@@ -1,0 +1,144 @@
+.section {
+  width: 100%;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid var(--Text-field);
+  border-radius: 20px;
+  background: #ffffff;
+}
+
+.row,
+.criteriaRow {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--header-item);
+  color: var(--blue);
+}
+
+.labelText {
+  min-width: 0;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.fieldSelect {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--blue);
+  font: inherit;
+  outline: none;
+}
+
+.inputWrap {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 44px 0 14px;
+  border: 1px solid var(--Text-field);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--blue);
+  font: inherit;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--Vector);
+  box-shadow: 0 0 0 3px rgba(90, 132, 239, 0.14);
+}
+
+.removeButton {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--Scrollbar);
+  cursor: pointer;
+}
+
+.actionsRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.addParamButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--bkg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.addParamButton:disabled {
+  color: rgba(29, 27, 32, 0.38);
+  cursor: not-allowed;
+}
+
+.filtersWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.submitActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+@media (max-width: 960px) {
+  .row,
+  .criteriaRow,
+  .actionsRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .filtersWrap,
+  .submitActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

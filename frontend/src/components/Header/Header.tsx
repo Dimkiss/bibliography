@@ -1,23 +1,133 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
 import styles from './Header.module.css';
 import { Icon } from '@/shared/ui/Icon';
 import { NavButton } from '@/shared/ui/NavButton';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
+import { useAuth } from '@/features/auth';
+import { navigateTo } from '@/shared/lib/navigation';
 
-const navItems = [
-  { id: 'home', label: 'Главная', iconName: 'main-page' },
-  { id: 'articles', label: 'Публикации', iconName: 'article-outline' },
-  { id: 'journals', label: 'Издания', iconName: 'journal-outline' },
-  { id: 'help', label: 'Справка', iconName: 'help-outline' },
-  { id: 'about', label: 'О проекте', iconName: 'info-outline' },
+const baseNavItems = [
+  { id: 'home', label: 'Главная', iconName: 'main-page', path: '/' },
+  {
+    id: 'articles',
+    label: 'Публикации',
+    iconName: 'article-outline',
+    path: '/articles',
+  },
+  {
+    id: 'journals',
+    label: 'Издания',
+    iconName: 'journal-outline',
+    path: '/journals',
+  },
+  { id: 'help', label: 'Справка', iconName: 'help-outline', path: '/help' },
+  { id: 'about', label: 'О проекте', iconName: 'info-outline', path: '/about' },
 ] as const;
+
+const adminNavItem = {
+  id: 'user-management',
+  label: 'Управление пользователями',
+  iconName: 'gmail_groups',
+  path: '/user-management',
+} as const;
+
+type HeaderActionVariant = 'default' | 'hidden' | 'logout';
 
 type HeaderProps = {
   title: string;
+  authActionVariant?: HeaderActionVariant;
 };
 
-export function Header({ title }: HeaderProps) {
-  const [activeItem, setActiveItem] = useState<string>('home');
+function getActiveNavItem(
+  pathname: string,
+  navItems: ReadonlyArray<{
+    id: string;
+    path: string;
+  }>,
+): string {
+  if (pathname === '/') {
+    return 'home';
+  }
+
+  const matchedItem = navItems.find((item) => item.path === pathname);
+  return matchedItem?.id ?? 'home';
+}
+
+export function Header({
+  title,
+  authActionVariant = 'default',
+}: HeaderProps) {
+  const [pathname, setPathname] = useState(window.location.pathname);
+  const { user, isAuthenticated, isInitializing, logout } = useAuth();
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setPathname(window.location.pathname);
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, []);
+
+  const isAdmin = isAuthenticated && user?.role_id === 5;
+
+  const navItems = useMemo(() => {
+    return isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
+  }, [isAdmin]);
+
+  const activeItem = useMemo(
+    () => getActiveNavItem(pathname, navItems),
+    [pathname, navItems],
+  );
+
+  const handleLogout = () => {
+    logout();
+    navigateTo('/');
+  };
+
+  const renderAuthAction = () => {
+    if (isInitializing || authActionVariant === 'hidden') {
+      return null;
+    }
+
+    if (authActionVariant === 'logout') {
+      return (
+        <OutlineButton
+          className={styles.headerAuthButton}
+          size="normal"
+          iconName="log-in"
+          label="Выход"
+          onClick={handleLogout}
+        />
+      );
+    }
+
+    if (isAuthenticated && user) {
+      return (
+        <OutlineButton
+          className={styles.headerAuthButton}
+          size="normal"
+          iconName="person"
+          label={user.login}
+          onClick={() => navigateTo('/profile')}
+        />
+      );
+    }
+
+    return (
+      <OutlineButton
+        className={styles.headerAuthButton}
+        size="normal"
+        iconName="log-in"
+        label="Вход"
+        onClick={() => navigateTo('/login')}
+      />
+    );
+  };
 
   return (
     <header className={styles.header}>
@@ -36,20 +146,12 @@ export function Header({ title }: HeaderProps) {
                 iconName={item.iconName}
                 label={item.label}
                 selected={activeItem === item.id}
-                onClick={() => setActiveItem(item.id)}
+                onClick={() => navigateTo(item.path)}
               />
             ))}
           </nav>
 
-          <div className={styles.actions}>
-          <OutlineButton
-            className={styles.headerLoginButton}
-            size="normal"
-            iconName="log-in"
-            label="Вход"
-            onClick={() => {}}
-          />
-          </div>
+          <div className={styles.actions}>{renderAuthAction()}</div>
         </div>
       </div>
 

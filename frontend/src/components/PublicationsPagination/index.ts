@@ -1,0 +1,1 @@
+export { PublicationsPagination } from './PublicationsPagination';

@@ -25,6 +25,9 @@ def read_me(current_user: User = Depends(get_current_user)):
         "login": current_user.login,
         "full_name": current_user.full_name,
         "role_id": current_user.role_id,
+        "role_name": current_user.role.name if current_user.role else None,
         "department_id": current_user.department_id,
+        "department_name": current_user.department.name if current_user.department else None,
         "author_id": current_user.author_id,
+        "author_name": current_user.author.authorName if current_user.author else None,
     }

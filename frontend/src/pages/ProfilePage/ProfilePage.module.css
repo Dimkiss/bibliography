@@ -1,0 +1,94 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  padding: 32px 0 48px;
+}
+
+.card {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 32px;
+  border: 1px solid var(--Text-field);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 12px 40px rgba(14, 26, 53, 0.08);
+}
+
+.cardHeader {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.title {
+  margin: 0;
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 40px;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--Scrollbar);
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.infoGrid {
+  display: grid;
+  gap: 16px;
+}
+
+.item {
+  display: grid;
+  gap: 6px;
+  padding: 16px 20px;
+  border: 1px solid var(--Text-field);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.itemLabel {
+  color: var(--Scrollbar);
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.itemValue {
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 18px;
+  line-height: 28px;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 20px 0 32px;
+  }
+
+  .card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .itemValue {
+    font-size: 16px;
+    line-height: 24px;
+  }
+}

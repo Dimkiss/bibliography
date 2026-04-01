@@ -1,26 +1,18 @@
 import { useEffect, useState } from 'react';
 import { PublicationCard } from '@/components/PublicationCard';
-import { getLatestPublications, type PublicationDto } from '@/shared/api/publications';
+import {
+  getLatestPublications,
+  type PublicationPreviewDto,
+} from '@/shared/api/publications';
 import { normalizeJournalName } from '@/shared/lib/publications';
 import styles from './PublicationList.module.css';
 
-type PublicationViewModel = {
-  id: number;
-  title: string;
-  authors: string;
-  journal: string;
-  year: number;
-  doi: string;
-};
+type PublicationViewModel = PublicationPreviewDto;
 
-function mapPublication(dto: PublicationDto): PublicationViewModel {
+function mapPublication(dto: PublicationPreviewDto): PublicationViewModel {
   return {
-    id: dto.Record_ID,
-    title: dto.title,
-    authors: dto.authors,
+    ...dto,
     journal: normalizeJournalName(dto.journal),
-    year: dto.year,
-    doi: dto.DOI,
   };
 }
 
@@ -37,13 +29,13 @@ export function PublicationList() {
         setIsLoading(true);
         setError(null);
 
-        const data = await getLatestPublications();
+        const data = await getLatestPublications(5);
 
         if (!isMounted) {
           return;
         }
 
-        setItems(data.slice(0, 5).map(mapPublication));
+        setItems(data.map(mapPublication));
       } catch {
         if (!isMounted) {
           return;
@@ -57,7 +49,7 @@ export function PublicationList() {
       }
     }
 
-    loadLatestPublications();
+    void loadLatestPublications();
 
     return () => {
       isMounted = false;

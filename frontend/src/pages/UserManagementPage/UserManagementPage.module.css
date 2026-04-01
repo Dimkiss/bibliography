@@ -1,0 +1,274 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  padding: 32px 0 48px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 420px);
+  gap: 24px;
+  align-items: start;
+}
+
+.panel,
+.formPanel {
+  background: #ffffff;
+  border: 1px solid var(--Text-field);
+  border-radius: 24px;
+  box-shadow: 0 12px 40px rgba(14, 26, 53, 0.08);
+}
+
+.panel {
+  padding: 24px;
+}
+
+.formPanel {
+  padding: 24px;
+  position: sticky;
+  top: 24px;
+}
+
+.panelHeader,
+.formHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panelHeader {
+  margin-bottom: 20px;
+}
+
+.title {
+  margin: 0;
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 40px;
+}
+
+.subtitle,
+.formSubtitle {
+  margin: 0;
+  color: var(--Scrollbar);
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.formTitle {
+  margin: 0;
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 32px;
+}
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--Text-field);
+  border-radius: 20px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+.table th,
+.table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--Text-field);
+  vertical-align: middle;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.table th {
+  background: #f8f8fc;
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.table tbody tr {
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+.table tbody tr:hover {
+  background: rgba(78, 91, 146, 0.04);
+}
+
+.rowSelected {
+  background: rgba(78, 91, 146, 0.08);
+}
+
+.emptyCell {
+  text-align: center;
+  color: var(--Scrollbar);
+  padding: 28px 16px;
+}
+
+.rowActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.fieldBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selectLabel {
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.select {
+  width: 100%;
+  height: 56px;
+  padding: 0 16px;
+  border: 1px solid var(--Text-field);
+  border-radius: 16px;
+  background: #ffffff;
+  color: var(--blue);
+  font: inherit;
+  outline: none;
+}
+
+.select:focus {
+  border-color: var(--Vector);
+  box-shadow: 0 0 0 3px rgba(90, 132, 239, 0.14);
+}
+
+.formActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.errorBanner,
+.successBanner {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.errorBanner {
+  background: rgba(186, 26, 26, 0.08);
+  color: var(--error);
+  border: 1px solid rgba(186, 26, 26, 0.18);
+}
+
+.successBanner {
+  background: rgba(80, 173, 118, 0.12);
+  color: #1d6b3b;
+  border: 1px solid rgba(80, 173, 118, 0.24);
+}
+
+.detailsCard {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--Text-field);
+}
+
+.detailsTitle {
+  margin: 0 0 16px;
+  color: var(--blue);
+  font-family: Roboto, sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+}
+
+.detailsGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detailLabel {
+  color: var(--Scrollbar);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.detailValue {
+  color: var(--blue);
+  font-size: 15px;
+  line-height: 22px;
+  word-break: break-word;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .formPanel {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 20px 0 32px;
+  }
+
+  .panel,
+  .formPanel {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .formTitle {
+    font-size: 22px;
+    line-height: 30px;
+  }
+
+  .formActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rowActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
