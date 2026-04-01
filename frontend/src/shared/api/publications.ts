@@ -42,6 +42,16 @@ export type PublicationFiltersDto = {
   original_translation_modes: FilterOptionDto[];
 };
 
+export type PublicationSortField =
+  | 'authors'
+  | 'title'
+  | 'journal'
+  | 'year'
+  | 'doi'
+  | 'quartile';
+
+export type PublicationSortOrder = 'asc' | 'desc';
+
 export type GetPublicationsParams = {
   page?: number;
   pageSize?: number;
@@ -54,6 +64,8 @@ export type GetPublicationsParams = {
   publicationTypes?: string[];
   databases?: string[];
   originalTranslationMode?: string;
+  sortBy?: PublicationSortField;
+  sortOrder?: PublicationSortOrder;
 };
 
 type RawLatestPublicationDto = {
@@ -185,6 +197,14 @@ export async function getPublications(
       'original_translation_mode',
       params.originalTranslationMode.trim(),
     );
+  }
+
+  if (params.sortBy) {
+    searchParams.set('sort_by', params.sortBy);
+  }
+
+  if (params.sortOrder) {
+    searchParams.set('sort_order', params.sortOrder);
   }
 
   const queryString = searchParams.toString();

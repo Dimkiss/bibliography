@@ -1,0 +1,134 @@
+.root {
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.buttonPart {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease,
+    border-radius 0.12s ease;
+}
+
+.leftPart {
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.rightPart {
+  flex-shrink: 0;
+}
+
+.leadingIcon,
+.arrowIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  color: inherit;
+}
+
+.small .leftPart {
+  min-height: 40px;
+  padding: 0 14px;
+  gap: 8px;
+  border-radius: 18px 6px 6px 18px;
+}
+
+.small .rightPart {
+  min-width: 52px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 6px 18px 18px 6px;
+}
+
+.small .label {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.small .leadingIcon,
+.small .arrowIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.normal .leftPart {
+  min-height: 48px;
+  padding: 0 16px;
+  gap: 10px;
+  border-radius: 22px 8px 8px 22px;
+}
+
+.normal .rightPart {
+  min-width: 64px;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 8px 22px 22px 8px;
+}
+
+.normal .label {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.normal .leadingIcon,
+.normal .arrowIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.filled .buttonPart {
+  background: var(--bkg);
+  color: #ffffff;
+}
+
+.filled .buttonPart:hover:not(:disabled) {
+  background: #5b6aa8;
+}
+
+.filled .buttonPart:active:not(:disabled) {
+  background: #445181;
+}
+
+.tonal .buttonPart {
+  background: var(--header-item);
+  color: var(--Value-indicator);
+}
+
+.tonal .buttonPart:hover:not(:disabled) {
+  background: #d4d9fb;
+}
+
+.tonal .buttonPart:active:not(:disabled) {
+  background: #c8cef4;
+}
+
+.buttonPart:disabled {
+  cursor: not-allowed;
+}
+
+.disabled .buttonPart {
+  background: #d9d9d9;
+  color: #9a9a9a;
+}

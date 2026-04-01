@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
@@ -12,11 +12,13 @@ import {
   type PublicationFiltersDto,
   type PublicationListItemDto,
   type PublicationsPaginationDto,
+  type PublicationSortOrder,
 } from '@/shared/api/publications';
 import {
   buildPublicationsQueryFromForm,
   INITIAL_PUBLICATION_SEARCH_FORM,
   type PublicationSearchFormState,
+  type PublicationsSortFieldValue,
   type SearchFieldKey,
 } from '@/shared/lib/publications';
 import styles from './PublicationsPage.module.css';
@@ -56,6 +58,8 @@ export function PublicationsPage() {
   const [appliedFields, setAppliedFields] = useState<SearchFieldKey[]>(
     DEFAULT_ACTIVE_FIELDS,
   );
+  const [sortField, setSortField] = useState<PublicationsSortFieldValue>('year');
+  const [sortOrder, setSortOrder] = useState<PublicationSortOrder>('desc');
   const [isFiltersLoading, setIsFiltersLoading] = useState(true);
   const [isResultsLoading, setIsResultsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,6 +126,8 @@ export function PublicationsPage() {
           appliedFields,
           pagination.page,
           pagination.page_size,
+          sortField,
+          sortOrder,
         );
 
         const response = await getPublications(query);
@@ -154,7 +160,14 @@ export function PublicationsPage() {
     return () => {
       isMounted = false;
     };
-  }, [appliedFields, appliedForm, pagination.page, pagination.page_size]);
+  }, [
+    appliedFields,
+    appliedForm,
+    pagination.page,
+    pagination.page_size,
+    sortField,
+    sortOrder,
+  ]);
 
   const handleFieldChange = (field: SearchFieldKey, nextValue: string) => {
     setForm((prev) => ({
@@ -185,6 +198,8 @@ export function PublicationsPage() {
     });
     setActiveFields(DEFAULT_ACTIVE_FIELDS);
     setAppliedFields([...DEFAULT_ACTIVE_FIELDS]);
+    setSortField('year');
+    setSortOrder('desc');
     setPagination((prev) => ({
       ...prev,
       page: 1,
@@ -192,19 +207,9 @@ export function PublicationsPage() {
     }));
   };
 
-  const resultsTitle = useMemo(() => {
-    if (isResultsLoading) {
-      return 'Поиск публикаций';
-    }
-
-    return pagination.total
-      ? `Поиск публикаций · ${pagination.total} записей`
-      : 'Поиск публикаций';
-  }, [isResultsLoading, pagination.total]);
-
   return (
     <div className={styles.page}>
-      <Header title={resultsTitle} />
+      <Header title="Поиск публикаций" />
 
       <main className={styles.main}>
         <div className="container">
@@ -255,6 +260,22 @@ export function PublicationsPage() {
                 total={pagination.total}
                 isLoading={isResultsLoading}
                 error={error}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSortFieldChange={(value) => {
+                  setSortField(value);
+                  setPagination((prev) => ({
+                    ...prev,
+                    page: 1,
+                  }));
+                }}
+                onSortOrderChange={(value) => {
+                  setSortOrder(value);
+                  setPagination((prev) => ({
+                    ...prev,
+                    page: 1,
+                  }));
+                }}
               />
 
               <PublicationsPagination

@@ -1,6 +1,8 @@
 import type {
   GetPublicationsParams,
   PublicationListItemDto,
+  PublicationSortField,
+  PublicationSortOrder,
 } from '@/shared/api/publications';
 
 export type SearchFieldKey = 'author' | 'title' | 'journal' | 'keyword';
@@ -36,6 +38,20 @@ export const INITIAL_PUBLICATION_SEARCH_FORM: PublicationSearchFormState = {
   originalTranslationMode: 'all',
 };
 
+export type PublicationsSortFieldValue = PublicationSortField;
+
+export const PUBLICATIONS_SORT_FIELD_OPTIONS: Array<{
+  value: PublicationsSortFieldValue;
+  label: string;
+}> = [
+  { value: 'authors', label: 'Авторы' },
+  { value: 'title', label: 'Название' },
+  { value: 'journal', label: 'Издание' },
+  { value: 'year', label: 'Год' },
+  { value: 'doi', label: 'DOI' },
+  { value: 'quartile', label: 'Квартиль' },
+];
+
 export function normalizeJournalName(journal?: string | null): string {
   return (journal ?? '').replace(/^\/\//, '').trim();
 }
@@ -63,6 +79,8 @@ export function buildPublicationsQueryFromForm(
   activeFields: SearchFieldKey[],
   page: number,
   pageSize: number,
+  sortBy: PublicationSortField,
+  sortOrder: PublicationSortOrder,
 ): GetPublicationsParams {
   const query: GetPublicationsParams = {
     page,
@@ -70,6 +88,8 @@ export function buildPublicationsQueryFromForm(
     publicationTypes: form.publicationTypes,
     databases: form.databases,
     originalTranslationMode: form.originalTranslationMode,
+    sortBy,
+    sortOrder,
   };
 
   if (form.yearFrom.trim()) {

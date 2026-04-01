@@ -32,6 +32,25 @@ DATABASE_OPTIONS: list[DatabaseOption] = [
     DatabaseOption(value="vak", label="ВАК"),
 ]
 
+SORT_FIELD_MAP = {
+    "authors": """
+        COALESCE(
+            (
+                SELECT GROUP_CONCAT(DISTINCT au.authorName ORDER BY au.authorName SEPARATOR ', ')
+                FROM articlehasauthor aha
+                JOIN authors au ON au.authorID = aha.authorID_f
+                WHERE aha.Record_ID_f = a.Record_ID
+            ),
+            a.Author_Analitic_F1
+        )
+    """,
+    "title": "a.Title_Analitic_F4",
+    "journal": "COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, ''))",
+    "year": "a.Date_of_Publication_F20",
+    "doi": "a.DOI",
+    "quartile": "COALESCE(NULLIF(j.Quartile, ''), NULLIF(j.QuartileScopus, ''))",
+}
+
 
 def _build_in_clause(prefix: str, values: list[str], params: dict[str, Any]) -> str:
     placeholders: list[str] = []
@@ -213,10 +232,18 @@ def list_articles(
     publication_types: list[str] | None = Query(None),
     databases: list[str] | None = Query(None),
     original_translation_mode: str = Query("all"),
+    sort_by: str = Query("year"),
+    sort_order: str = Query("desc"),
     db: Session = Depends(get_db),
 ):
     publication_types = _normalize_str_list(publication_types)
     databases = _normalize_str_list(databases)
+
+    sort_by = (sort_by or "year").lower()
+    sort_order = (sort_order or "desc").lower()
+
+    sort_expr = SORT_FIELD_MAP.get(sort_by, SORT_FIELD_MAP["year"])
+    sort_dir = "ASC" if sort_order == "asc" else "DESC"
 
     params: dict[str, Any] = {}
     filters_sql = _build_common_filters(
@@ -294,7 +321,7 @@ def list_articles(
         LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
         WHERE 1 = 1
         {filters_sql}
-        ORDER BY a.Date_of_Publication_F20 DESC, a.Record_ID DESC
+        ORDER BY {sort_expr} {sort_dir}, a.Record_ID DESC
         LIMIT :limit OFFSET :offset
         """
     )
