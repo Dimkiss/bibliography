@@ -3,18 +3,21 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.schemas.article import (
+    ArticleDetailResponse,
     ArticleFiltersResponse,
     ArticleListItem,
     ArticleListResponse,
+    ArticleMetricItem,
     DatabaseOption,
     PaginationMeta,
     PublicationTypeOption,
+    RelatedArticleItem,
 )
 
 router = APIRouter(prefix="/articles", tags=["articles"])
@@ -217,6 +220,140 @@ def _build_common_filters(
         return ""
 
     return "\nAND " + "\nAND ".join(f"({condition.strip()})" for condition in conditions)
+
+
+def _build_metrics(row: dict[str, Any]) -> list[ArticleMetricItem]:
+    white_list_enabled = bool(row.get("white_list_flag"))
+    white_list_extra = None
+    if white_list_enabled and row.get("rinc_core_flag"):
+        white_list_extra = "УБС 1"
+
+    metrics = [
+        ArticleMetricItem(
+            label="«Белый список»",
+            value="Да" if white_list_enabled else None,
+            extra=white_list_extra,
+            enabled=white_list_enabled,
+        ),
+        ArticleMetricItem(
+            label="Web of Science",
+            value=row.get("quartile") if row.get("wos_flag") else None,
+            enabled=bool(row.get("wos_flag")),
+        ),
+        ArticleMetricItem(
+            label="Scopus",
+            value=row.get("quartile_scopus") if row.get("scopus_flag") else None,
+            enabled=bool(row.get("scopus_flag")),
+        ),
+        ArticleMetricItem(
+            label="РИНЦ",
+            value="Да" if row.get("rinc_flag") else None,
+            extra="core" if row.get("rinc_core_flag") else None,
+            enabled=bool(row.get("rinc_flag")),
+        ),
+        ArticleMetricItem(
+            label="ВАК",
+            value="Да" if row.get("vak_flag") else None,
+            enabled=bool(row.get("vak_flag")),
+        ),
+    ]
+
+    return metrics
+
+
+def _fetch_related_articles(db: Session, article_id: int) -> list[RelatedArticleItem]:
+    relation_rows = db.execute(
+        text(
+            """
+            SELECT
+                jaa.Record_ID_f,
+                jaa.OriginalVer_ID_f,
+                jaa.PerVer_ID_f
+            FROM journalarticlesattributes jaa
+            WHERE jaa.Record_ID_f = :article_id
+               OR jaa.OriginalVer_ID_f = :article_id
+               OR jaa.PerVer_ID_f = :article_id
+            """
+        ),
+        {"article_id": article_id},
+    ).mappings().all()
+
+    related_map: dict[int, str] = {}
+
+    for row in relation_rows:
+        record_id = row.get("Record_ID_f")
+        original_id = row.get("OriginalVer_ID_f")
+        translation_id = row.get("PerVer_ID_f")
+
+        if record_id == article_id:
+            if original_id:
+                related_map[int(original_id)] = "original"
+            if translation_id:
+                related_map[int(translation_id)] = "translation"
+
+        if original_id == article_id and record_id:
+            related_map[int(record_id)] = "translation"
+
+        if translation_id == article_id and record_id:
+            related_map[int(record_id)] = "original"
+
+    if not related_map:
+        return []
+
+    related_ids = list(related_map.keys())
+    placeholders = ", ".join(f":related_id_{index}" for index in range(len(related_ids)))
+    params: dict[str, Any] = {
+        f"related_id_{index}": value for index, value in enumerate(related_ids)
+    }
+
+    related_rows = db.execute(
+        text(
+            f"""
+            SELECT
+                a.Record_ID AS id,
+                a.Title_Analitic_F4 AS title,
+                COALESCE(
+                    (
+                        SELECT GROUP_CONCAT(DISTINCT au.authorName ORDER BY au.authorName SEPARATOR ', ')
+                        FROM articlehasauthor aha
+                        JOIN authors au ON au.authorID = aha.authorID_f
+                        WHERE aha.Record_ID_f = a.Record_ID
+                    ),
+                    a.Author_Analitic_F1
+                ) AS authors,
+                COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
+                a.Date_of_Publication_F20 AS year,
+                a.DOI AS doi
+            FROM articles a
+            LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
+            LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
+            WHERE a.Record_ID IN ({placeholders})
+            """
+        ),
+        params,
+    ).mappings().all()
+
+    items: list[RelatedArticleItem] = []
+
+    for row in related_rows:
+        relation_type = related_map.get(int(row["id"]))
+        if relation_type is None:
+            continue
+
+        items.append(
+            RelatedArticleItem(
+                id=row["id"],
+                title=row.get("title"),
+                authors=row.get("authors"),
+                journal=row.get("journal"),
+                year=row.get("year"),
+                doi=row.get("doi"),
+                relation_type=relation_type,
+            )
+        )
+
+    items.sort(key=lambda item: (0 if item.relation_type == "original" else 1, item.id))
+    return items
 
 
 @router.get("", response_model=ArticleListResponse)
@@ -439,3 +576,128 @@ def get_latest_articles(
 
     rows = db.execute(query, {"limit": limit}).mappings().all()
     return list(rows)
+
+
+@router.get("/{article_id}", response_model=ArticleDetailResponse)
+def get_article_detail(
+    article_id: int,
+    db: Session = Depends(get_db),
+):
+    article_row = db.execute(
+        text(
+            """
+            SELECT
+                a.Record_ID AS id,
+                a.Title_Analitic_F4 AS title,
+                a.Author_Analitic_F1 AS authors_fallback,
+                a.Abstract_F43 AS abstract,
+                a.DOI AS doi,
+                a.VolumeID_F22 AS volume,
+                a.IssueID_F24 AS issue,
+                a.Pages_F25 AS pages,
+                a.PublicationDate AS publication_date,
+                a.Date_of_Publication_F20 AS year,
+                a.InsertDate AS insert_date,
+                COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
+                NULLIF(j.Quartile, '') AS quartile,
+                NULLIF(j.QuartileScopus, '') AS quartile_scopus,
+                COALESCE(j.WOS, 0) AS wos_flag,
+                COALESCE(j.Scopus, 0) AS scopus_flag,
+                COALESCE(j.LWL, 0) AS white_list_flag,
+                COALESCE(j.Rints, 0) AS rinc_flag,
+                COALESCE(j.RintsCore, 0) AS rinc_core_flag,
+                COALESCE(j.RSCI, 0) AS rsci_flag,
+                COALESCE(j.BAK, 0) AS vak_flag
+            FROM articles a
+            LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
+            LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
+            WHERE a.Record_ID = :article_id
+            """
+        ),
+        {"article_id": article_id},
+    ).mappings().first()
+
+    if article_row is None:
+        raise HTTPException(status_code=404, detail="Публикация не найдена.")
+
+    authors_row = db.execute(
+        text(
+            """
+            SELECT
+                GROUP_CONCAT(au.authorName ORDER BY aha.AHA_ID SEPARATOR ', ') AS authors
+            FROM articlehasauthor aha
+            JOIN authors au ON au.authorID = aha.authorID_f
+            WHERE aha.Record_ID_f = :article_id
+            """
+        ),
+        {"article_id": article_id},
+    ).mappings().first()
+
+    keywords_rows = db.execute(
+        text(
+            """
+            SELECT
+                k.Keyword AS keyword
+            FROM articlehaskeywords ahk
+            JOIN keywords k ON k.K_ID = ahk.Keyword_ID_f
+            WHERE ahk.Record_ID_f = :article_id
+            ORDER BY k.Keyword
+            """
+        ),
+        {"article_id": article_id},
+    ).mappings().all()
+
+    publication_type_rows = db.execute(
+        text(
+            """
+            SELECT
+                top.TOP_Name AS label
+            FROM articlehastop aht
+            JOIN typesofpublications top ON top.TOP_Flag = aht.TypeOfPublication_f
+            WHERE aht.Record_ID_f = :article_id
+            ORDER BY top.TOP_Name
+            """
+        ),
+        {"article_id": article_id},
+    ).mappings().all()
+
+    related_articles = _fetch_related_articles(db, article_id)
+
+    article_dict = dict(article_row)
+    authors = None
+
+    if authors_row and authors_row.get("authors"):
+        authors = authors_row.get("authors")
+    elif article_dict.get("authors_fallback"):
+        authors = article_dict.get("authors_fallback")
+
+    return ArticleDetailResponse(
+        id=article_dict["id"],
+        title=article_dict.get("title"),
+        authors=authors,
+        abstract=article_dict.get("abstract"),
+        doi=article_dict.get("doi"),
+        journal=article_dict.get("journal"),
+        year=article_dict.get("year"),
+        volume=article_dict.get("volume"),
+        issue=article_dict.get("issue"),
+        pages=article_dict.get("pages"),
+        publication_date=(
+            article_dict.get("publication_date").isoformat()
+            if article_dict.get("publication_date")
+            else None
+        ),
+        insert_date=(
+            article_dict.get("insert_date").isoformat()
+            if article_dict.get("insert_date")
+            else None
+        ),
+        publication_types=[
+            row["label"] for row in publication_type_rows if row.get("label")
+        ],
+        keywords=[
+            row["keyword"] for row in keywords_rows if row.get("keyword")
+        ],
+        metrics=_build_metrics(article_dict),
+        related_articles=related_articles,
+    )

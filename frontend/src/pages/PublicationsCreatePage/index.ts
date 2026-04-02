@@ -1,0 +1,1 @@
+export { PublicationsCreatePage } from './PublicationsCreatePage';

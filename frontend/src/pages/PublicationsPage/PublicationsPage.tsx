@@ -21,6 +21,9 @@ import {
   type PublicationsSortFieldValue,
   type SearchFieldKey,
 } from '@/shared/lib/publications';
+import { Button } from '@/shared/ui/Button';
+import { navigateTo } from '@/shared/lib/navigation';
+import { useAuth } from '@/features/auth';
 import styles from './PublicationsPage.module.css';
 
 const DEFAULT_ACTIVE_FIELDS: SearchFieldKey[] = ['author'];
@@ -41,6 +44,7 @@ const EMPTY_FILTERS: PublicationFiltersDto = {
 };
 
 export function PublicationsPage() {
+  const { user, isAuthenticated } = useAuth();
   const [filters, setFilters] = useState<PublicationFiltersDto>(EMPTY_FILTERS);
   const [form, setForm] = useState<PublicationSearchFormState>(
     INITIAL_PUBLICATION_SEARCH_FORM,
@@ -64,6 +68,7 @@ export function PublicationsPage() {
   const [isResultsLoading, setIsResultsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+const canCreatePublication = Boolean(isAuthenticated && user?.role_id === 5);
   useEffect(() => {
     let isMounted = true;
 
@@ -213,6 +218,16 @@ export function PublicationsPage() {
 
       <main className={styles.main}>
         <div className="container">
+          {canCreatePublication ? (
+            <div className={styles.actionsRow}>
+              <Button
+                label="Добавить публикацию"
+                iconName="add"
+                size="normal"
+                onClick={() => navigateTo('/articles/create')}
+              />
+            </div>
+          ) : null}
           <div className={styles.content}>
             <PublicationSearchPanel
               value={form}

@@ -1,0 +1,410 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  padding: 18px 0 32px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 28px 38px 24px;
+  border: 1px solid var(--Text-field);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.state {
+  padding: 16px;
+  border: 1px solid var(--Text-field);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--article-add);
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.topBlock {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: start;
+}
+
+.fileIconWrap {
+  padding-top: 2px;
+}
+
+.fileIcon {
+  display: block;
+}
+
+.topContent {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  color: #1d1b20;
+  font-family: Roboto, sans-serif;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 36px;
+}
+
+.authors {
+  margin-top: 12px;
+  color: #2f3036;
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #c9c5d0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #44474f;
+  cursor: pointer;
+}
+
+.iconButton:hover:not(:disabled) {
+  background: rgba(78, 91, 146, 0.04);
+}
+
+.iconButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.copyMessage {
+  margin-top: -8px;
+  color: #226640;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: #1d1b20;
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.abstract {
+  max-width: 980px;
+  color: #2f3036;
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 30px;
+  white-space: pre-wrap;
+}
+
+.doiRow {
+  color: #1d1b20;
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.doiLabel {
+  font-weight: 500;
+}
+
+.doiLink {
+  color: #162b69;
+}
+
+.doiMuted {
+  color: var(--Scrollbar);
+}
+
+.journalName {
+  color: #162b69;
+  font-family: Roboto, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.journalMeta {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, auto));
+  gap: 28px;
+  align-items: start;
+}
+
+.metaItem {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.metaLabel {
+  color: #1d1b20;
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 22px;
+}
+
+.metaValue {
+  color: #2f3036;
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.keyword {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--header-item);
+  color: #44474f;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.emptyText {
+  color: var(--Scrollbar);
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.metricCard {
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f3f1f8;
+  color: #5f6368;
+}
+
+.metricCardActive {
+  background: #eef1ff;
+  color: #1d1b20;
+}
+
+.metricLabel {
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.metricValue {
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.relatedCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 24px;
+  align-items: start;
+}
+
+.relatedMain {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.relatedHeading {
+  color: #1d1b20;
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  margin-bottom: 4px;
+}
+
+.relatedTitleButton {
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  color: #162b69;
+  cursor: pointer;
+  font-family: Roboto, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 30px;
+}
+
+.relatedAuthors,
+.relatedDoi {
+  color: #2f3036;
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.relatedDoi {
+  color: #162b69;
+}
+
+.relatedSide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.relatedJournal,
+.relatedYear {
+  color: #2f3036;
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.relatedActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.bottomRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.systemMeta {
+  text-align: right;
+  color: #2f3036;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.systemMetaLabel {
+  font-weight: 600;
+}
+
+.systemMetaValue {
+  font-weight: 400;
+}
+
+@media (max-width: 1100px) {
+  .journalMeta {
+    grid-template-columns: repeat(3, minmax(0, auto));
+  }
+
+  .metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .card {
+    padding: 20px;
+  }
+
+  .topBlock {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: row;
+  }
+
+  .journalMeta {
+    grid-template-columns: repeat(2, minmax(0, auto));
+    gap: 16px;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .relatedCard {
+    grid-template-columns: 1fr;
+  }
+
+  .relatedSide {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .relatedActions {
+    flex-direction: row;
+    margin-top: 0;
+  }
+
+  .bottomRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .systemMeta {
+    text-align: left;
+  }
+}
+
+@media (max-width: 560px) {
+  .title {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .journalMeta,
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+}

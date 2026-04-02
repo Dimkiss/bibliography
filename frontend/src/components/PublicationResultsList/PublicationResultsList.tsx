@@ -10,6 +10,7 @@ import {
   PUBLICATIONS_SORT_FIELD_OPTIONS,
   type PublicationsSortFieldValue,
 } from '@/shared/lib/publications';
+import { navigateTo } from '@/shared/lib/navigation';
 import styles from './PublicationResultsList.module.css';
 
 type PublicationResultsListProps = {
@@ -137,7 +138,17 @@ export function PublicationResultsList({
       {!isLoading && !error && items.length ? (
         <div className={styles.list}>
           {items.map((item) => (
-            <PublicationResultCard key={item.id} item={item} />
+            <PublicationResultCard
+              key={item.id}
+              item={item}
+              onClick={() => navigateTo(`/articles/${item.id}`)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  navigateTo(`/articles/${item.id}`);
+                }
+              }}
+            />
           ))}
         </div>
       ) : null}

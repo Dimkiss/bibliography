@@ -1,61 +1,73 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  border-radius: var(--radius);
-  background: var(--article-menu);
-  border: 1px solid var(--detail);
+  gap: 10px;
+  padding: 18px 20px;
+  border: 1px solid var(--Text-field);
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.cardInteractive {
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.cardInteractive:hover {
+  transform: translateY(-1px);
+  border-color: rgba(78, 91, 146, 0.3);
+  box-shadow: 0 10px 24px rgba(14, 26, 53, 0.08);
+}
+
+.cardInteractive:focus-visible {
+  outline: none;
+  border-color: var(--Vector);
+  box-shadow: 0 0 0 3px rgba(90, 132, 239, 0.14);
 }
 
 .title {
   margin: 0;
-  color: var(--add_notes);
+  color: var(--blue);
   font-family: Roboto, sans-serif;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 500;
-  line-height: 24px;
+  line-height: 30px;
 }
 
 .authors {
   margin: 0;
   color: var(--article-add);
   font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
+  font-size: 15px;
+  line-height: 24px;
 }
 
 .meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
+  color: var(--Scrollbar);
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
 }
 
-.journal,
-.separator,
-.year {
-  color: var(--Dot);
-  font-family: Roboto, sans-serif;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 18px;
+.separator {
+  color: var(--Scrollbar);
 }
 
 .doi {
-  width: fit-content;
   color: var(--Vector);
   font-family: Roboto, sans-serif;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 18px;
-  text-decoration: none;
+  font-size: 14px;
+  line-height: 20px;
+  word-break: break-all;
 }
 
-.doi:hover {
-  text-decoration: underline;
-}
 .doiPlaceholder {
   color: var(--Scrollbar);
   font-family: Roboto, sans-serif;

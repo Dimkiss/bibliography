@@ -3,6 +3,7 @@ import type {
   PublicationListItemDto,
   PublicationSortField,
   PublicationSortOrder,
+  RelatedPublicationDto,
 } from '@/shared/api/publications';
 
 export type SearchFieldKey = 'author' | 'title' | 'journal' | 'keyword';
@@ -130,4 +131,25 @@ export function formatOriginalTranslationLabel(value?: string | null): string | 
     default:
       return null;
   }
+}
+
+export function formatDisplayDate(dateString?: string | null): string {
+  if (!dateString) {
+    return '—';
+  }
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
+  return new Intl.DateTimeFormat('ru-RU').format(date);
+}
+
+export function formatRelatedPublicationTitle(
+  item: RelatedPublicationDto,
+): string {
+  return item.relation_type === 'original'
+    ? 'Оригинальная версия'
+    : 'Переводная версия';
 }

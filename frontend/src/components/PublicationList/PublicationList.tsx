@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+
 import { PublicationCard } from '@/components/PublicationCard';
 import {
   getLatestPublications,
   type PublicationPreviewDto,
 } from '@/shared/api/publications';
+import { navigateTo } from '@/shared/lib/navigation';
 import { normalizeJournalName } from '@/shared/lib/publications';
 import styles from './PublicationList.module.css';
 
@@ -78,6 +80,13 @@ export function PublicationList() {
               journal={item.journal}
               year={item.year}
               doi={item.doi}
+              onClick={() => navigateTo(`/articles/${item.id}`)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  navigateTo(`/articles/${item.id}`);
+                }
+              }}
             />
           ))}
         </div>

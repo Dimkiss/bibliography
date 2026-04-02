@@ -8,6 +8,26 @@
   background: #ffffff;
 }
 
+.cardInteractive {
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.cardInteractive:hover {
+  transform: translateY(-1px);
+  border-color: rgba(78, 91, 146, 0.3);
+  box-shadow: 0 10px 24px rgba(14, 26, 53, 0.08);
+}
+
+.cardInteractive:focus-visible {
+  outline: none;
+  border-color: var(--Vector);
+  box-shadow: 0 0 0 3px rgba(90, 132, 239, 0.14);
+}
+
 .header {
   display: flex;
   justify-content: space-between;

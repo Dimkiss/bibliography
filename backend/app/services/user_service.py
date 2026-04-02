@@ -20,7 +20,7 @@ def serialize_user(user: User) -> dict:
         "role_id": user.role_id,
         "role_name": user.role.name if user.role else None,
         "department_id": user.department_id,
-        "department_name": user.department.name if user.department else None,
+        "department_name": user.department.DepartmentName if user.department else None,
         "author_id": user.author_id,
         "author_name": user.author.authorName if user.author else None,
         "created_at": user.created_at,
@@ -36,8 +36,9 @@ def serialize_role(role: Role) -> dict:
 
 def serialize_department(department: Department) -> dict:
     return {
-        "id": department.id,
-        "name": department.name,
+        "id": department.DepartmentCode,
+        "name": department.DepartmentName,
+        "name_eng": department.DepartmentNameEng,
     }
 
 
@@ -63,7 +64,7 @@ def list_roles(db: Session) -> list[dict]:
 
 
 def list_departments(db: Session) -> list[dict]:
-    departments = db.query(Department).order_by(Department.name.asc()).all()
+    departments = db.query(Department).order_by(Department.DepartmentName.asc()).all()
     return [serialize_department(department) for department in departments]
 
 
@@ -106,7 +107,11 @@ def create_user(db: Session, payload: UserCreate) -> dict:
     if not role:
         raise HTTPException(status_code=400, detail="Role not found")
 
-    department = db.query(Department).filter(Department.id == payload.department_id).first()
+    department = (
+        db.query(Department)
+        .filter(Department.DepartmentCode == payload.department_id)
+        .first()
+    )
     if not department:
         raise HTTPException(status_code=400, detail="Department not found")
 
@@ -154,7 +159,11 @@ def update_user(db: Session, user_id: int, payload: UserUpdate) -> dict:
         user.role_id = payload.role_id
 
     if payload.department_id is not None:
-        department = db.query(Department).filter(Department.id == payload.department_id).first()
+        department = (
+            db.query(Department)
+            .filter(Department.DepartmentCode == payload.department_id)
+            .first()
+        )
         if not department:
             raise HTTPException(status_code=400, detail="Department not found")
         user.department_id = payload.department_id

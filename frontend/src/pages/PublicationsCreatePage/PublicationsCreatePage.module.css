@@ -1,0 +1,324 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f3f0f7;
+}
+
+.main {
+  flex: 1;
+  padding: 16px 0 24px;
+}
+
+.card {
+  width: min(100%, 794px);
+  margin: 0 auto;
+  padding: 14px 24px 16px;
+  border: 1px solid #c9c7d0;
+  border-radius: 16px;
+  background: rgba(244, 244, 245, 0.92);
+}
+
+.typeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.typeLabel {
+  flex: 0 0 auto;
+  min-width: 138px;
+  color: var(--Value-indicator);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.primarySelect {
+  width: 192px;
+}
+
+.secondarySelect {
+  width: 192px;
+}
+
+.selectField,
+.textInput,
+.lookupInput,
+.textareaField,
+.queryInput {
+  width: 100%;
+  border: 1px solid #8f8b95;
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--Value-indicator);
+  font: inherit;
+}
+
+.selectField {
+  height: 40px;
+  padding: 0 40px 0 12px;
+  background: #dfe2f5;
+}
+
+.textInput,
+.lookupInput,
+.queryInput {
+  height: 40px;
+  padding: 0 14px;
+}
+
+.lookupInput {
+  background: #ececf6;
+}
+
+.textareaField {
+  min-height: 80px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.selectField:focus,
+.textInput:focus,
+.lookupInput:focus,
+.textareaField:focus,
+.queryInput:focus {
+  outline: 1px solid var(--bkg);
+  border-color: var(--bkg);
+}
+
+.formBody {
+  display: grid;
+  gap: 18px;
+}
+
+.lookupRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 168px;
+  gap: 24px;
+  align-items: center;
+}
+
+.rowTwo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.rowTwoLeft {
+  display: grid;
+  grid-template-columns: 168px 168px 1fr;
+  gap: 24px;
+}
+
+.rowThreeArticle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 134px 136px;
+  gap: 20px;
+}
+
+.rowThree {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.sideButton {
+  width: 168px;
+  justify-self: stretch;
+  background: #dfe2f5;
+  color: #4a4d60;
+}
+
+.sideButton:hover:not(:disabled) {
+  background: #d2d8f3;
+}
+
+.sideButton:active:not(:disabled) {
+  background: #c5cdea;
+}
+
+.selectorPanel {
+  margin-top: -4px;
+  padding: 12px;
+  border: 1px solid #d5d0dd;
+  border-radius: 12px;
+  background: #ffffff;
+  display: grid;
+  gap: 12px;
+}
+
+.selectorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.selectorTitle {
+  color: var(--Value-indicator);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.selectorClose {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: #edeaf7;
+  color: #4a4d60;
+  cursor: pointer;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.selectorResults {
+  max-height: 240px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.selectorItem {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dbd7e5;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--Value-indicator);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.selectorItem:hover {
+  border-color: var(--bkg);
+  background: #f8f8ff;
+}
+
+.selectorItemTitle {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.selectorItemMeta,
+.selectorHint {
+  color: #6e6975;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.relatedModeRow {
+  display: flex;
+  gap: 8px;
+}
+
+.relationToggle {
+  min-width: 112px;
+  height: 34px;
+  border: 1px solid #cfc9d8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #565a6d;
+  cursor: pointer;
+  font: inherit;
+}
+
+.relationToggleActive {
+  background: #e2e4f6;
+  border-color: #c8cee8;
+  color: #2f3036;
+}
+
+.actionsRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 24px;
+  margin-top: 2px;
+}
+
+.cancelButton,
+.submitButton {
+  width: 168px;
+  justify-content: center;
+}
+
+.cancelButton {
+  --outline-button-color: #696969;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.messageError,
+.messageSuccess,
+.statusBox {
+  width: min(100%, 794px);
+  margin: 0 auto 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #d6d3de;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.messageError {
+  color: var(--error);
+  border-color: rgba(186, 26, 26, 0.24);
+}
+
+.messageSuccess {
+  color: #2f7d32;
+  border-color: rgba(47, 125, 50, 0.24);
+}
+
+.statusBox {
+  color: var(--Value-indicator);
+}
+
+@media (max-width: 900px) {
+  .card,
+  .messageError,
+  .messageSuccess,
+  .statusBox {
+    width: min(100%, 100%);
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .typeRow,
+  .lookupRow,
+  .rowTwo,
+  .rowTwoLeft,
+  .rowThreeArticle,
+  .rowThree,
+  .actionsRow {
+    grid-template-columns: 1fr;
+    display: grid;
+    gap: 12px;
+  }
+
+  .typeRow {
+    align-items: stretch;
+  }
+
+  .primarySelect,
+  .secondarySelect,
+  .sideButton,
+  .cancelButton,
+  .submitButton {
+    width: 100%;
+  }
+
+  .actionsRow {
+    justify-content: stretch;
+  }
+}

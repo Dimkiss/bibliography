@@ -1,3 +1,5 @@
+import type { KeyboardEventHandler, MouseEventHandler } from 'react';
+
 import { buildDoiUrl } from '@/shared/lib/publications';
 import styles from './PublicationCard.module.css';
 
@@ -7,6 +9,8 @@ export type PublicationCardProps = {
   journal: string | null;
   year: number | null;
   doi: string | null;
+  onClick?: MouseEventHandler<HTMLElement>;
+  onKeyDown?: KeyboardEventHandler<HTMLElement>;
 };
 
 export function PublicationCard({
@@ -15,11 +19,25 @@ export function PublicationCard({
   journal,
   year,
   doi,
+  onClick,
+  onKeyDown,
 }: PublicationCardProps) {
   const doiUrl = buildDoiUrl(doi);
+  const isInteractive = Boolean(onClick);
 
   return (
-    <article className={styles.card}>
+    <article
+      className={[
+        styles.card,
+        isInteractive ? styles.cardInteractive : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+    >
       <h3 className={styles.title}>{title || 'Без названия'}</h3>
 
       <p className={styles.authors}>{authors || 'Авторы не указаны'}</p>
@@ -31,7 +49,13 @@ export function PublicationCard({
       </div>
 
       {doiUrl && doi ? (
-        <a className={styles.doi} href={doiUrl} target="_blank" rel="noreferrer">
+        <a
+          className={styles.doi}
+          href={doiUrl}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(event) => event.stopPropagation()}
+        >
           DOI: {doi}
         </a>
       ) : (

@@ -1,3 +1,5 @@
+import type { MouseEventHandler, KeyboardEventHandler } from 'react';
+
 import type { PublicationListItemDto } from '@/shared/api/publications';
 import {
   buildDoiUrl,
@@ -8,16 +10,34 @@ import styles from './PublicationResultCard.module.css';
 
 type PublicationResultCardProps = {
   item: PublicationListItemDto;
+  onClick?: MouseEventHandler<HTMLElement>;
+  onKeyDown?: KeyboardEventHandler<HTMLElement>;
 };
 
-export function PublicationResultCard({ item }: PublicationResultCardProps) {
+export function PublicationResultCard({
+  item,
+  onClick,
+  onKeyDown,
+}: PublicationResultCardProps) {
   const doiUrl = buildDoiUrl(item.doi);
   const originalTranslationLabel = formatOriginalTranslationLabel(
     item.original_translation,
   );
+  const isInteractive = Boolean(onClick);
 
   return (
-    <article className={styles.card}>
+    <article
+      className={[
+        styles.card,
+        isInteractive ? styles.cardInteractive : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+    >
       <div className={styles.header}>
         <div>
           <h3 className={styles.title}>{item.title || 'Без названия'}</h3>
@@ -86,7 +106,13 @@ export function PublicationResultCard({ item }: PublicationResultCardProps) {
         <div className={styles.metaBlock}>
           <span className={styles.metaLabel}>DOI</span>
           {doiUrl && item.doi ? (
-            <a className={styles.doiLink} href={doiUrl} target="_blank" rel="noreferrer">
+            <a
+              className={styles.doiLink}
+              href={doiUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(event) => event.stopPropagation()}
+            >
               {item.doi}
             </a>
           ) : (

@@ -1,26 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { MainPage } from '@/pages/MainPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { PublicationsPage } from '@/pages/PublicationsPage';
+import { PublicationDetailsPage } from '@/pages/PublicationDetailsPage';
+import { PublicationsCreatePage } from '@/pages/PublicationsCreatePage';
 import { UserManagementPage } from '@/pages/UserManagementPage';
 import { AuthProvider } from '@/features/auth';
+import { subscribeToNavigation } from '@/shared/lib/navigation';
 
 function AppRoutes() {
   const [pathname, setPathname] = useState(window.location.pathname);
 
   useEffect(() => {
-    const handleLocationChange = () => {
+    return subscribeToNavigation(() => {
       setPathname(window.location.pathname);
-    };
-
-    window.addEventListener('popstate', handleLocationChange);
-
-    return () => {
-      window.removeEventListener('popstate', handleLocationChange);
-    };
+    });
   }, []);
+
+  const isPublicationDetailsPage = useMemo(() => {
+    return /^\/articles\/\d+$/.test(pathname);
+  }, [pathname]);
 
   if (pathname === '/login') {
     return <LoginPage />;
@@ -34,8 +35,16 @@ function AppRoutes() {
     return <UserManagementPage />;
   }
 
+  if (pathname === '/articles/create') {
+    return <PublicationsCreatePage />;
+  }
+
   if (pathname === '/articles') {
     return <PublicationsPage />;
+  }
+
+  if (isPublicationDetailsPage) {
+    return <PublicationDetailsPage />;
   }
 
   return <MainPage />;

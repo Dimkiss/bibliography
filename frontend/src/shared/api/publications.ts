@@ -52,6 +52,42 @@ export type PublicationSortField =
 
 export type PublicationSortOrder = 'asc' | 'desc';
 
+export type PublicationMetricDto = {
+  label: string;
+  value: string | null;
+  extra: string | null;
+  enabled: boolean;
+};
+
+export type RelatedPublicationDto = {
+  id: number;
+  title: string | null;
+  authors: string | null;
+  journal: string | null;
+  year: number | null;
+  doi: string | null;
+  relation_type: 'original' | 'translation';
+};
+
+export type PublicationDetailDto = {
+  id: number;
+  title: string | null;
+  authors: string | null;
+  abstract: string | null;
+  doi: string | null;
+  journal: string | null;
+  year: number | null;
+  volume: string | null;
+  issue: string | null;
+  pages: string | null;
+  publication_date: string | null;
+  insert_date: string | null;
+  publication_types: string[];
+  keywords: string[];
+  metrics: PublicationMetricDto[];
+  related_articles: RelatedPublicationDto[];
+};
+
 export type GetPublicationsParams = {
   page?: number;
   pageSize?: number;
@@ -213,6 +249,21 @@ export async function getPublications(
     : `${API_BASE_URL}/articles`;
 
   const response = await fetch(url, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+
+  return response.json();
+}
+
+export async function getPublicationDetail(
+  articleId: number,
+): Promise<PublicationDetailDto> {
+  const response = await fetch(`${API_BASE_URL}/articles/${articleId}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
