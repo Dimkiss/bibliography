@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import os
 from typing import Any, Optional
 
 import jwt
@@ -6,7 +7,7 @@ from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-SECRET_KEY = "change_me_to_a_long_random_secret_key"
+SECRET_KEY = os.getenv("SECRET_KEY", "change_me_to_a_long_random_secret_key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = timedelta(days=7)
 
