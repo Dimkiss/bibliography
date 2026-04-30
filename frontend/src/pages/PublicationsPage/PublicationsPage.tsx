@@ -65,7 +65,8 @@ export function PublicationsPage() {
   const [sortField, setSortField] = useState<PublicationsSortFieldValue>('year');
   const [sortOrder, setSortOrder] = useState<PublicationSortOrder>('desc');
   const [isFiltersLoading, setIsFiltersLoading] = useState(true);
-  const [isResultsLoading, setIsResultsLoading] = useState(true);
+  const [isResultsLoading, setIsResultsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
 const canCreatePublication = Boolean(isAuthenticated && user?.role_id === 5);
@@ -119,6 +120,10 @@ const canCreatePublication = Boolean(isAuthenticated && user?.role_id === 5);
   }, []);
 
   useEffect(() => {
+    if (!hasSearched) {
+      return;
+    }
+
     let isMounted = true;
 
     async function loadResults() {
@@ -168,6 +173,7 @@ const canCreatePublication = Boolean(isAuthenticated && user?.role_id === 5);
   }, [
     appliedFields,
     appliedForm,
+    hasSearched,
     pagination.page,
     pagination.page_size,
     sortField,
@@ -182,6 +188,7 @@ const canCreatePublication = Boolean(isAuthenticated && user?.role_id === 5);
   };
 
   const handleSearch = () => {
+    setHasSearched(true);
     setAppliedForm({
       ...form,
       publicationTypes: [...form.publicationTypes],
@@ -205,11 +212,10 @@ const canCreatePublication = Boolean(isAuthenticated && user?.role_id === 5);
     setAppliedFields([...DEFAULT_ACTIVE_FIELDS]);
     setSortField('year');
     setSortOrder('desc');
-    setPagination((prev) => ({
-      ...prev,
-      page: 1,
-      page_size: 10,
-    }));
+    setItems([]);
+    setError(null);
+    setHasSearched(false);
+    setPagination(DEFAULT_PAGINATION);
   };
 
   return (
@@ -269,50 +275,52 @@ const canCreatePublication = Boolean(isAuthenticated && user?.role_id === 5);
               onReset={handleReset}
             />
 
-            <div className={styles.resultsBlock}>
-              <PublicationResultsList
-                items={items}
-                total={pagination.total}
-                isLoading={isResultsLoading}
-                error={error}
-                sortField={sortField}
-                sortOrder={sortOrder}
-                onSortFieldChange={(value) => {
-                  setSortField(value);
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: 1,
-                  }));
-                }}
-                onSortOrderChange={(value) => {
-                  setSortOrder(value);
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: 1,
-                  }));
-                }}
-              />
+            {hasSearched ? (
+              <div className={styles.resultsBlock}>
+                <PublicationResultsList
+                  items={items}
+                  total={pagination.total}
+                  isLoading={isResultsLoading}
+                  error={error}
+                  sortField={sortField}
+                  sortOrder={sortOrder}
+                  onSortFieldChange={(value) => {
+                    setSortField(value);
+                    setPagination((prev) => ({
+                      ...prev,
+                      page: 1,
+                    }));
+                  }}
+                  onSortOrderChange={(value) => {
+                    setSortOrder(value);
+                    setPagination((prev) => ({
+                      ...prev,
+                      page: 1,
+                    }));
+                  }}
+                />
 
-              <PublicationsPagination
-                page={pagination.page}
-                pageSize={pagination.page_size}
-                totalPages={pagination.total_pages}
-                total={pagination.total}
-                onPageChange={(nextPage) =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: nextPage,
-                  }))
-                }
-                onPageSizeChange={(nextPageSize) =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: 1,
-                    page_size: nextPageSize,
-                  }))
-                }
-              />
-            </div>
+                <PublicationsPagination
+                  page={pagination.page}
+                  pageSize={pagination.page_size}
+                  totalPages={pagination.total_pages}
+                  total={pagination.total}
+                  onPageChange={(nextPage) =>
+                    setPagination((prev) => ({
+                      ...prev,
+                      page: nextPage,
+                    }))
+                  }
+                  onPageSizeChange={(nextPageSize) =>
+                    setPagination((prev) => ({
+                      ...prev,
+                      page: 1,
+                      page_size: nextPageSize,
+                    }))
+                  }
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       </main>

@@ -65,7 +65,9 @@ export function PublicationResultsList({
   return (
     <section className={styles.section}>
       <div className={styles.summaryRow}>
-        <div className={styles.summary}>Найдено: {total} записей</div>
+        <div className={styles.summary}>
+          Найдено: {total} записей
+        </div>
 
         <div className={styles.sortControls}>
           <span className={styles.sortLabel}>Сортировать</span>
