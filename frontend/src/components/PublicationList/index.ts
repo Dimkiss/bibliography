@@ -1,1 +1,0 @@
-export { PublicationList } from './PublicationList';

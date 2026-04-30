@@ -1,1 +1,1 @@
-export { PublicationsCreatePage } from './PublicationsCreatePage';
+export { PublicationsCreatePage } from './ui/PublicationsCreatePage';
