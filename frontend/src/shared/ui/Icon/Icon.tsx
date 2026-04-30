@@ -1,6 +1,12 @@
 import type { CSSProperties } from 'react'
 import styles from './Icon.module.css'
 
+const iconUrls = import.meta.glob('@/shared/assets/icons/*.svg', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>
+
 type IconProps = {
   name: string
   size?: number | string
@@ -16,7 +22,11 @@ export const Icon = ({
   className,
   colored = false,
 }: IconProps) => {
-  const src = `/src/shared/assets/icons/${name}.svg`
+  const src = iconUrls[`/src/shared/assets/icons/${name}.svg`]
+
+  if (!src) {
+    return null
+  }
 
   const sizeStyle: CSSProperties = {
     width:

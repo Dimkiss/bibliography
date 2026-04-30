@@ -6,8 +6,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: bibl_new
-    ports:
-      - "3306:3306"
     volumes:
       - db-data:/var/lib/mysql
       - ./bibl_new.sql:/docker-entrypoint-initdb.d/001_bibl_new.sql:ro
