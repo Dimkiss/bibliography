@@ -23,6 +23,7 @@ import {
 } from '@/shared/lib/publications';
 import { Button } from '@/shared/ui/Button';
 import { navigateTo } from '@/shared/lib/navigation';
+import { ADMIN_ROLE_ID } from '@/shared/lib/roles';
 import { useAuth } from '@/features/auth';
 import styles from './PublicationsPage.module.css';
 
@@ -69,7 +70,7 @@ export function PublicationsPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-const canCreatePublication = Boolean(isAuthenticated && user?.role_id === 5);
+const canCreatePublication = Boolean(isAuthenticated && user?.role_id === ADMIN_ROLE_ID);
   useEffect(() => {
     let isMounted = true;
 

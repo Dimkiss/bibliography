@@ -16,6 +16,7 @@ import {
   type WorkFormTypeDto,
 } from '@/shared/api/adminPublications';
 import { navigateTo } from '@/shared/lib/navigation';
+import { ADMIN_ROLE_ID } from '@/shared/lib/roles';
 import { Button } from '@/shared/ui/Button';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import styles from './PublicationsCreatePage.module.css';
@@ -215,10 +216,10 @@ export function PublicationsCreatePage() {
 
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
 
-  const isRoleAllowed = Boolean(isAuthenticated && user?.role_id === 5);
+  const isRoleAllowed = Boolean(isAuthenticated && user?.role_id === ADMIN_ROLE_ID);
 
   useEffect(() => {
-    if (!isInitializing && (!isAuthenticated || user?.role_id !== 5)) {
+    if (!isInitializing && (!isAuthenticated || user?.role_id !== ADMIN_ROLE_ID)) {
       navigateTo('/articles');
     }
   }, [isAuthenticated, isInitializing, user?.role_id]);

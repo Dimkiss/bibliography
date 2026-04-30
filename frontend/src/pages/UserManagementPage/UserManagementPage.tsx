@@ -5,6 +5,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { useAuth } from '@/features/auth';
 import { navigateTo } from '@/shared/lib/navigation';
+import { ADMIN_ROLE_ID } from '@/shared/lib/roles';
 import { Button } from '@/shared/ui/Button';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import { TextField } from '@/shared/ui/TextField';
@@ -63,7 +64,7 @@ export function UserManagementPage() {
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(initialFormState);
 
-  const isAdmin = isAuthenticated && user?.role_id === 5;
+  const isAdmin = isAuthenticated && user?.role_id === ADMIN_ROLE_ID;
 
   useEffect(() => {
     if (!isInitializing && !isAuthenticated) {

@@ -1,16 +1,9 @@
 from sqlalchemy.orm import Session
 
 from app.models import Role, User, Department
+from app.roles import ADMIN_ROLE_ID, REQUIRED_ROLES
 from app.security import hash_password
 
-
-REQUIRED_ROLES = [
-    (1, "Гость"),
-    (2, "Сотрудник"),
-    (3, "Руководитель подразделения"),
-    (4, "Администрация"),
-    (5, "Администратор"),
-]
 
 REQUIRED_DEPARTMENTS = [
     "Информационно-аналитический отдел",
@@ -20,7 +13,7 @@ REQUIRED_DEPARTMENTS = [
 DEFAULT_ADMIN_LOGIN = "dimkiss"
 DEFAULT_ADMIN_FULL_NAME = "Шергин Дмитрий Артемович"
 DEFAULT_ADMIN_PASSWORD = "password"
-DEFAULT_ADMIN_ROLE_ID = 5
+DEFAULT_ADMIN_ROLE_ID = ADMIN_ROLE_ID
 DEFAULT_ADMIN_DEPARTMENT_NAME = "Информационно-аналитический отдел"
 
 

@@ -6,6 +6,7 @@ import { NavButton } from '@/shared/ui/NavButton';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import { useAuth } from '@/features/auth';
 import { navigateTo } from '@/shared/lib/navigation';
+import { ADMIN_ROLE_ID } from '@/shared/lib/roles';
 
 const baseNavItems = [
   { id: 'home', label: 'Главная', iconName: 'main-page', path: '/' },
@@ -73,7 +74,7 @@ export function Header({
     };
   }, []);
 
-  const isAdmin = isAuthenticated && user?.role_id === 5;
+  const isAdmin = isAuthenticated && user?.role_id === ADMIN_ROLE_ID;
 
   const navItems = useMemo(() => {
     return isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
