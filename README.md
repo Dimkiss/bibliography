@@ -36,7 +36,7 @@ docker compose up --build
 - Backend API: http://localhost:8000
 - Swagger: http://localhost:8000/docs
 
-При первом запуске MySQL импортирует дамп `bd/bibl_new.sql` в базу `bibl_new`. Данные сохраняются в Docker volume `db-data`.
+При первом запуске MySQL импортирует дамп `db/bibl_new.sql` в базу `bibl_new`. Данные сохраняются в Docker volume `db-data`.
 
 Чтобы пересоздать базу из дампа:
 
@@ -151,7 +151,7 @@ app -> pages -> widgets -> features -> entities -> shared
 POST /init-data
 ```
 
-Эндпоинт создает базовые роли, подразделения и администратора, если их еще нет.
+Эндпоинт создает базовые роли и администратора, если их еще нет.
 
 Доступ администратора по умолчанию:
 

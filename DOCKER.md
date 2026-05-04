@@ -18,12 +18,14 @@ Open:
 - Backend API: http://localhost:8000
 - Swagger: http://localhost:8000/docs
 
-On the first run, MySQL imports `bibl_new.sql` automatically into the `bibl_new`
-database. The imported data is then stored in the `db-data` Docker volume.
+On the first run, MySQL imports `db/bibl_new.sql` automatically into the
+`bibl_new` database. The imported data is then stored in the `db-data` Docker
+volume.
 
 ## Reset Database
 
-To import `bibl_new.sql` again, remove the database volume and start the stack:
+To import `db/bibl_new.sql` again, remove the database volume and start the
+stack:
 
 ```bash
 docker compose down -v
