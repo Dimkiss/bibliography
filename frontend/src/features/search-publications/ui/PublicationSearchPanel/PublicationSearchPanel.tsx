@@ -79,6 +79,12 @@ export function PublicationSearchPanel({
   );
 
   const periodLabel = useMemo(() => {
+    const hasSelectedPeriod = value.yearFrom.trim() || value.yearTo.trim();
+
+    if (!hasSelectedPeriod) {
+      return 'Год';
+    }
+
     const from = value.yearFrom || (yearMin ? String(yearMin) : 'Год от');
     const to = value.yearTo || (yearMax ? String(yearMax) : 'Год до');
     return `${from}–${to}`;

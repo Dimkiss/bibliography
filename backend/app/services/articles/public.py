@@ -208,11 +208,31 @@ def _build_common_filters(
             conditions.append("(" + " OR ".join(db_conditions) + ")")
 
     if original_translation_mode == "original_only":
-        conditions.append("jaa.PerVer_ID_f IS NOT NULL")
+        conditions.append(
+            """
+            NOT (
+                jaa.OriginalVer_ID_f IS NOT NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM journalarticlesattributes relation
+                    WHERE relation.PerVer_ID_f = a.Record_ID
+                )
+            )
+            """
+        )
     elif original_translation_mode == "translation_only":
-        conditions.append("jaa.OriginalVer_ID_f IS NOT NULL")
-    elif original_translation_mode == "linked_only":
-        conditions.append("(jaa.OriginalVer_ID_f IS NOT NULL OR jaa.PerVer_ID_f IS NOT NULL)")
+        conditions.append(
+            """
+            NOT (
+                jaa.PerVer_ID_f IS NOT NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM journalarticlesattributes relation
+                    WHERE relation.OriginalVer_ID_f = a.Record_ID
+                )
+            )
+            """
+        )
 
     if not conditions:
         return ""
@@ -445,8 +465,20 @@ def list_articles(
                 WHERE aht.Record_ID_f = a.Record_ID
             ) AS publication_types_csv,
             CASE
-                WHEN jaa.OriginalVer_ID_f IS NOT NULL THEN 'translation'
-                WHEN jaa.PerVer_ID_f IS NOT NULL THEN 'original'
+                WHEN jaa.OriginalVer_ID_f IS NOT NULL
+                    OR EXISTS (
+                        SELECT 1
+                        FROM journalarticlesattributes relation
+                        WHERE relation.PerVer_ID_f = a.Record_ID
+                    )
+                THEN 'translation'
+                WHEN jaa.PerVer_ID_f IS NOT NULL
+                    OR EXISTS (
+                        SELECT 1
+                        FROM journalarticlesattributes relation
+                        WHERE relation.OriginalVer_ID_f = a.Record_ID
+                    )
+                THEN 'original'
                 ELSE NULL
             END AS original_translation
         FROM articles a
@@ -533,9 +565,8 @@ def get_article_filters(db: Session) -> ArticleFiltersResponse:
         databases=DATABASE_OPTIONS,
         original_translation_modes=[
             {"value": "all", "label": "Все"},
-            {"value": "original_only", "label": "Только оригиналы"},
-            {"value": "translation_only", "label": "Только переводы"},
-            {"value": "linked_only", "label": "Только связанные оригинал/перевод"},
+            {"value": "original_only", "label": "Оригиналы"},
+            {"value": "translation_only", "label": "Переводы"},
         ],
     )
 

@@ -10,7 +10,6 @@ OriginalTranslationMode = Literal[
     "all",
     "original_only",
     "translation_only",
-    "linked_only",
 ]
 
 

@@ -25,12 +25,41 @@
   background: rgba(255, 255, 255, 0.78);
 }
 
+.emptySearchState {
+  padding: 32px 24px;
+  border: 1px dashed var(--Text-field);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.62);
+  text-align: center;
+}
+
+.emptySearchTitle {
+  margin: 0;
+  color: var(--Text);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.emptySearchText {
+  max-width: 560px;
+  margin: 10px auto 0;
+  color: var(--Grey);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
 @media (max-width: 640px) {
   .main {
     padding-bottom: 24px;
   }
 
-  .resultsBlock {
+  .resultsBlock,
+  .emptySearchState {
     padding: 16px;
+  }
+
+  .emptySearchTitle {
+    font-size: 18px;
   }
 }

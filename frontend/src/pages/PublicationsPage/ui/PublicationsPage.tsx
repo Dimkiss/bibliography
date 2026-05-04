@@ -11,6 +11,7 @@ import {
   buildPublicationsQueryFromForm,
   getPublicationFilters,
   getPublications,
+  hasPublicationSearchCriteria,
   INITIAL_PUBLICATION_SEARCH_FORM,
   type FilterOptionDto,
   type PublicationFiltersDto,
@@ -85,14 +86,23 @@ export function PublicationsPage() {
           return;
         }
 
-        const normalizedModes: FilterOptionDto[] = data.original_translation_modes.length
-          ? data.original_translation_modes
-          : [
-              { value: 'all', label: 'Все' },
-              { value: 'original_only', label: 'Только оригиналы' },
-              { value: 'translation_only', label: 'Только переводы' },
-              { value: 'linked_only', label: 'Комбинировать' },
-            ];
+        const normalizedModes: FilterOptionDto[] = (
+          data.original_translation_modes.length
+            ? data.original_translation_modes
+            : [
+                { value: 'all', label: 'Все' },
+                { value: 'original_only', label: 'Оригиналы' },
+                { value: 'translation_only', label: 'Переводы' },
+              ]
+        )
+          .filter((option) => option.value !== 'linked_only')
+          .map((option) =>
+            option.value === 'original_only'
+              ? { ...option, label: 'Оригиналы' }
+              : option.value === 'translation_only'
+                ? { ...option, label: 'Переводы' }
+                : option,
+          );
 
         setFilters({
           ...data,
@@ -191,6 +201,14 @@ export function PublicationsPage() {
   };
 
   const handleSearch = () => {
+    if (!hasPublicationSearchCriteria(form, activeFields)) {
+      setItems([]);
+      setError(null);
+      setHasSearched(false);
+      setPagination(DEFAULT_PAGINATION);
+      return;
+    }
+
     setHasSearched(true);
     setAppliedForm({
       ...form,
@@ -323,7 +341,15 @@ export function PublicationsPage() {
                   }
                 />
               </div>
-            ) : null}
+            ) : (
+              <div className={styles.emptySearchState}>
+                <h2 className={styles.emptySearchTitle}>Задайте параметры поиска</h2>
+                <p className={styles.emptySearchText}>
+                  Введите автора, название, ключевые слова или выберите фильтры, чтобы
+                  увидеть подходящие публикации.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </main>

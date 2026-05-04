@@ -75,6 +75,30 @@ export function formatSearchFieldLabel(field: SearchFieldKey): string {
   return SEARCH_FIELD_OPTIONS.find((option) => option.key === field)?.label ?? field;
 }
 
+export function hasPublicationSearchCriteria(
+  form: PublicationSearchFormState,
+  activeFields: SearchFieldKey[],
+): boolean {
+  if (form.yearFrom.trim() || form.yearTo.trim()) {
+    return true;
+  }
+
+  if (form.publicationTypes.some((value) => value.trim())) {
+    return true;
+  }
+
+  if (form.databases.some((value) => value.trim())) {
+    return true;
+  }
+
+  const originalTranslationMode = form.originalTranslationMode.trim();
+  if (originalTranslationMode && originalTranslationMode !== 'all') {
+    return true;
+  }
+
+  return activeFields.some((field) => form[field].trim());
+}
+
 export function buildPublicationsQueryFromForm(
   form: PublicationSearchFormState,
   activeFields: SearchFieldKey[],
