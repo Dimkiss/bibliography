@@ -1,12 +1,16 @@
 .root {
   display: inline-grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px;
-  width: fit-content;
+  gap: 4px;
+  width: 240px;
+  height: 40px;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 .buttonPart {
+  min-height: 40px;
+  height: 40px;
   border: none;
   cursor: pointer;
   font: inherit;
@@ -22,7 +26,7 @@
 
 .leftPart {
   min-width: 0;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .rightPart {
@@ -45,26 +49,22 @@
   white-space: nowrap;
   font-family: Roboto, sans-serif;
   font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
   color: inherit;
 }
 
 .small .leftPart {
-  min-height: 40px;
-  padding: 0 14px;
+  padding: 0 18px;
   gap: 8px;
-  border-radius: 18px 6px 6px 18px;
+  border-radius: 20px 4px 4px 20px;
 }
 
 .small .rightPart {
-  min-width: 52px;
-  min-height: 40px;
+  width: 56px;
   padding: 0 14px;
-  border-radius: 6px 18px 18px 6px;
-}
-
-.small .label {
-  font-size: 14px;
-  line-height: 20px;
+  border-radius: 4px 20px 20px 4px;
 }
 
 .small .leadingIcon,
@@ -74,28 +74,21 @@
 }
 
 .normal .leftPart {
-  min-height: 48px;
-  padding: 0 16px;
-  gap: 10px;
-  border-radius: 22px 8px 8px 22px;
+  padding: 0 18px;
+  gap: 8px;
+  border-radius: 20px 4px 4px 20px;
 }
 
 .normal .rightPart {
-  min-width: 64px;
-  min-height: 48px;
-  padding: 0 18px;
-  border-radius: 8px 22px 22px 8px;
-}
-
-.normal .label {
-  font-size: 16px;
-  line-height: 24px;
+  width: 56px;
+  padding: 0 14px;
+  border-radius: 4px 20px 20px 4px;
 }
 
 .normal .leadingIcon,
 .normal .arrowIcon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .filled .buttonPart {

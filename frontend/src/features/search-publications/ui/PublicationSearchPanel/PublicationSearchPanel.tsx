@@ -11,6 +11,7 @@ import {
 import {
   SEARCH_FIELD_OPTIONS,
   formatSearchFieldLabel,
+  getSearchFieldPlaceholder,
   type PublicationSearchFormState,
   type SearchFieldKey,
 } from '@/entities/publication';
@@ -297,7 +298,7 @@ export function PublicationSearchPanel({
                 className={styles.input}
                 value={value[field]}
                 onChange={(event) => onFieldChange(field, event.target.value)}
-                placeholder={`Введите: ${formatSearchFieldLabel(field).toLowerCase()}`}
+                placeholder={getSearchFieldPlaceholder(field)}
               />
               <button
                 type="button"

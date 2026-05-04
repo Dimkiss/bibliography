@@ -121,7 +121,14 @@ def _build_common_filters(
 
     if title and title.strip():
         params["title"] = f"%{title.strip()}%"
-        conditions.append("a.Title_Analitic_F4 LIKE :title")
+        conditions.append(
+            """
+            (
+                a.Title_Analitic_F4 LIKE :title
+                OR a.DOI LIKE :title
+            )
+            """
+        )
 
     if author and author.strip():
         params["author"] = f"%{author.strip()}%"
@@ -141,8 +148,12 @@ def _build_common_filters(
         params["journal"] = f"%{journal.strip()}%"
         conditions.append(
             """
-            COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, ''))
-            LIKE :journal
+            (
+                COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, ''))
+                LIKE :journal
+                OR a.ISSN_F40 LIKE :journal
+                OR a.ISBN_F41 LIKE :journal
+            )
             """
         )
 

@@ -15,7 +15,7 @@
 .row,
 .criteriaRow {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
 }
@@ -144,7 +144,7 @@
 }
 .dropdownWrap {
   position: relative;
-  width: fit-content;
+  width: 240px;
   max-width: 100%;
 }
 

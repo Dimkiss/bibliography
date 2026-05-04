@@ -75,6 +75,21 @@ export function formatSearchFieldLabel(field: SearchFieldKey): string {
   return SEARCH_FIELD_OPTIONS.find((option) => option.key === field)?.label ?? field;
 }
 
+export function getSearchFieldPlaceholder(field: SearchFieldKey): string {
+  switch (field) {
+    case 'author':
+      return 'Введите фамилию или имя автора';
+    case 'title':
+      return 'Введите название статьи или DOI';
+    case 'journal':
+      return 'Введите название издания, ISSN или ISBN';
+    case 'keyword':
+      return 'Введите ключевые слова';
+    default:
+      return 'Введите запрос';
+  }
+}
+
 export function hasPublicationSearchCriteria(
   form: PublicationSearchFormState,
   activeFields: SearchFieldKey[],
