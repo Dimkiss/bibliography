@@ -1,7 +1,11 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--Text-field);
+  border-radius: var(--radius);
+  background: var(--article-menu);
 }
 
 .header {
@@ -14,23 +18,23 @@
   margin: 0;
   color: var(--add_notes);
   font-family: Roboto, sans-serif;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 400;
-  line-height: 32px;
+  line-height: 28px;
   letter-spacing: 0;
 }
 
 .list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .state {
   padding: 16px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--article-menu);
-  border: 1px solid var(--detail);
+  border: 1px solid var(--Text-field);
   color: var(--article-add);
   font-family: Roboto, sans-serif;
   font-size: 14px;

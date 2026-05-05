@@ -57,6 +57,64 @@ def get_dashboard_analytics(
             "count": other_count,
         })
 
+    grouped_types_query = text("""
+        SELECT
+            aht.TypeOfPublication_f AS type_flag,
+            COUNT(*) AS count
+        FROM articlehastop aht
+        JOIN articles a
+            ON a.Record_ID = aht.Record_ID_f
+        WHERE a.Date_of_Publication_F20 = :types_year
+        GROUP BY aht.TypeOfPublication_f
+    """)
+
+    grouped_types_raw = db.execute(
+        grouped_types_query,
+        {"types_year": types_year},
+    ).mappings().all()
+
+    type_groups = {
+        "articles": {
+            "category": "\u0421\u0442\u0430\u0442\u044c\u0438",
+            "flags": {"ST"},
+            "count": 0,
+        },
+        "conference": {
+            "category": "\u041c\u0430\u0442\u0435\u0440\u0438\u0430\u043b\u044b \u043a\u043e\u043d\u0444\u0435\u0440\u0435\u043d\u0446\u0438\u0439 \u0438 \u0442\u0435\u0437\u0438\u0441\u044b",
+            "flags": {"MA", "TE"},
+            "count": 0,
+        },
+        "monographs": {
+            "category": "\u041c\u043e\u043d\u043e\u0433\u0440\u0430\u0444\u0438\u0438 \u0438 \u0433\u043b\u0430\u0432\u044b",
+            "flags": {"MO", "GL"},
+            "count": 0,
+        },
+        "other": {
+            "category": "\u0414\u0440\u0443\u0433\u043e\u0435",
+            "flags": set(),
+            "count": 0,
+        },
+    }
+
+    for row in grouped_types_raw:
+        type_flag = row["type_flag"]
+        count = row["count"]
+
+        if type_flag in type_groups["articles"]["flags"]:
+            type_groups["articles"]["count"] += count
+        elif type_flag in type_groups["conference"]["flags"]:
+            type_groups["conference"]["count"] += count
+        elif type_flag in type_groups["monographs"]["flags"]:
+            type_groups["monographs"]["count"] += count
+        else:
+            type_groups["other"]["count"] += count
+
+    types_distribution = [
+        {"category": group["category"], "count": group["count"]}
+        for group in type_groups.values()
+        if group["count"] > 0
+    ]
+
     lwl_query = text("""
         SELECT
             COALESCE(j.LWL, 0) AS level,

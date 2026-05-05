@@ -1,6 +1,9 @@
 :root {
   --container: 1128px;
 
+  --bg: #FBF8FF;
+  --text: #1A1B21;
+
   --add_notes: #1A1B21;
   --add-articles: #FBF8FF;
   --article-add: #444444;
