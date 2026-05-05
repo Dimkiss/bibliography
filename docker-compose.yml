@@ -33,14 +33,20 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        VITE_API_BASE_URL: http://127.0.0.1:8000
+      target: dev
     container_name: bibliography-frontend
     restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: http://127.0.0.1:8000
+      CHOKIDAR_USEPOLLING: "true"
     ports:
-      - "5173:80"
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
     depends_on:
       - backend
 
 volumes:
   db-data:
+  frontend-node-modules:
