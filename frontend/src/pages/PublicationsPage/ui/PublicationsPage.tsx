@@ -244,7 +244,7 @@ export function PublicationsPage() {
       <Header title="Поиск публикаций" />
 
       <main className={styles.main}>
-        <div className="container">
+        <div className="container app-block-group">
           {canCreatePublication ? (
             <div className={styles.actionsRow}>
               <Button

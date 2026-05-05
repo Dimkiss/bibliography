@@ -6,13 +6,12 @@
 
 .main {
   flex: 1;
-  padding: 16px 0 32px;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--app-block-gap);
 }
 
 .resultsBlock {
@@ -50,10 +49,6 @@
 }
 
 @media (max-width: 640px) {
-  .main {
-    padding-bottom: 24px;
-  }
-
   .resultsBlock,
   .emptySearchState {
     padding: 16px;

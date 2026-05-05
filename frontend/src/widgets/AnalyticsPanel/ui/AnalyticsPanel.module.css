@@ -7,10 +7,6 @@
   position: relative;
   width: 100%;
   min-height: 346px;
-  padding: 12px 16px;
-  border: 1px solid var(--outline);
-  border-radius: 12px;
-  background: var(--article-menu);
 }
 
 .panelTitle {

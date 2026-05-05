@@ -743,7 +743,7 @@ export function PublicationsCreatePage() {
       <div className={styles.page}>
         <Header title="Добавить публикацию" />
         <main className={styles.main}>
-          <div className="container">
+          <div className="container app-block-group">
             <div className={styles.statusBox}>Загрузка формы…</div>
           </div>
         </main>
@@ -757,7 +757,7 @@ export function PublicationsCreatePage() {
       <div className={styles.page}>
         <Header title="Добавить публикацию" />
         <main className={styles.main}>
-          <div className="container">
+          <div className="container app-block-group">
             <div className={styles.statusBox}>
               Доступ к странице добавления публикаций разрешён только пользователям с ролью 5.
             </div>
@@ -773,7 +773,7 @@ export function PublicationsCreatePage() {
       <Header title="Добавить публикацию" />
 
       <main className={styles.main}>
-        <div className="container">
+        <div className="container app-block-group">
           {error ? <div className={styles.messageError}>{error}</div> : null}
           {successMessage ? <div className={styles.messageSuccess}>{successMessage}</div> : null}
 

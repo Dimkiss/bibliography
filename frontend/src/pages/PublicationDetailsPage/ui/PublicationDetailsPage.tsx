@@ -203,7 +203,7 @@ export function PublicationDetailsPage() {
       <Header title="Информация о публикации" />
 
       <main className={styles.main}>
-        <div className="container">
+        <div className="container app-block-group">
           <section className={styles.card}>
             {isLoading ? (
               <div className={styles.state}>Загрузка публикации...</div>

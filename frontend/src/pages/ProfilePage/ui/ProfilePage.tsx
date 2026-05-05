@@ -28,7 +28,7 @@ export function ProfilePage() {
       <Header title="Профиль" authActionVariant="logout" />
 
       <main className={styles.main}>
-        <div className="container">
+        <div className="container app-block-group">
           <section className={styles.card}>
             <div className={styles.cardHeader}>
               <h1 className={styles.title}>Профиль пользователя</h1>

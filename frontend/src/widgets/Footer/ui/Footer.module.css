@@ -1,6 +1,6 @@
 .footer {
   width: 100%;
-  min-height: 72px;
+  height: 48px;
   background: transparent;
   display: flex;
   align-items: center;
@@ -11,6 +11,9 @@
 .inner {
   width: 100%;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--Value-indicator);
   font-family: Roboto, sans-serif;
   font-size: 12px;

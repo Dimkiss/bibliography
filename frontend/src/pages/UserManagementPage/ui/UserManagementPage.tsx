@@ -371,7 +371,7 @@ export function UserManagementPage() {
       <Header title="Управление пользователями" />
 
       <main className={styles.main}>
-        <div className="container">
+        <div className="container app-block-group">
           <section className={styles.layout}>
             <div className={styles.panel}>
               <div className={styles.panelHeader}>

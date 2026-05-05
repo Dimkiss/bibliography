@@ -12,11 +12,9 @@ export function MainPage() {
       <Header title="Библиография ЛИН СО РАН" />
 
       <main className={styles.main}>
-        <div className="container">
-          <div className={styles.content}>
-            <AnalyticsPanel />
-            <PublicationList />
-          </div>
+        <div className="container app-block-group">
+          <AnalyticsPanel />
+          <PublicationList />
         </div>
       </main>
       <Footer />

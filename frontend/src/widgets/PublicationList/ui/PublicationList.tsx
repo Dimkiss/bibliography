@@ -59,7 +59,10 @@ export function PublicationList() {
   }, []);
 
   return (
-    <section className={styles.section} aria-labelledby="latest-publications-title">
+    <section
+      className={`app-surface ${styles.section}`}
+      aria-labelledby="latest-publications-title"
+    >
       <div className={styles.header}>
         <h2 id="latest-publications-title" className={styles.title}>
           Последние публикации

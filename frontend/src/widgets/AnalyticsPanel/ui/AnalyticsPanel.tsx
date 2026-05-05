@@ -80,7 +80,7 @@ export function AnalyticsPanel({
 
   return (
     <section className={styles.section} aria-labelledby="analytics-panel-title">
-      <div className={styles.panel}>
+      <div className={`app-surface ${styles.panel}`}>
         <h2 id="analytics-panel-title" className={styles.panelTitle}>
           Аналитическая панель
         </h2>

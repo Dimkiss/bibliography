@@ -57,7 +57,7 @@ export function LoginPage() {
       <Header title="Авторизация" authActionVariant="hidden" />
 
       <main className={styles.main}>
-        <div className="container">
+        <div className="container app-block-group">
           <section className={styles.card}>
             <div className={styles.cardHeader}>
               <h1 className={styles.title}>Вход в систему</h1>

@@ -6,7 +6,6 @@
 
 .main {
   flex: 1;
-  padding: 32px 0 48px;
 }
 
 .layout {
@@ -242,10 +241,6 @@
 }
 
 @media (max-width: 640px) {
-  .main {
-    padding: 20px 0 32px;
-  }
-
   .panel,
   .formPanel {
     padding: 20px;

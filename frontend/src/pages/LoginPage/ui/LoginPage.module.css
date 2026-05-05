@@ -6,9 +6,6 @@
 
 .main {
   flex: 1;
-  display: flex;
-  align-items: center;
-  padding: 32px 0 48px;
 }
 
 .card {
@@ -132,10 +129,6 @@
   justify-content: center;
 }
 @media (max-width: 640px) {
-  .main {
-    padding: 20px 0 32px;
-  }
-
   .card {
     padding: 20px;
     border-radius: 20px;
