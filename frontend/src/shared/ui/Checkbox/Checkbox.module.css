@@ -1,0 +1,97 @@
+.root {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 48px;
+  color: #45464f;
+}
+
+.stateLayer {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.box {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid currentColor;
+  border-radius: 2px;
+  color: currentColor;
+}
+
+.checkIcon {
+  width: 12px;
+  height: 10px;
+  display: block;
+}
+
+.indeterminateIcon {
+  width: 12px;
+  height: 2px;
+  background: currentColor;
+}
+
+.primary.selected {
+  color: var(--bkg);
+}
+
+.error {
+  color: var(--error);
+}
+
+.selected .box {
+  border-color: currentColor;
+  background: currentColor;
+}
+
+.selected .checkIcon,
+.selected .indeterminateIcon {
+  color: #ffffff;
+}
+
+.hovered .stateLayer {
+  background: rgba(26, 27, 33, 0.08);
+}
+
+.primary.selected.hovered .stateLayer {
+  background: rgba(78, 91, 146, 0.08);
+}
+
+.error.hovered .stateLayer,
+.error.selected.hovered .stateLayer {
+  background: rgba(186, 26, 26, 0.08);
+}
+
+.pressed .stateLayer {
+  background: rgba(26, 27, 33, 0.1);
+}
+
+.primary.selected.pressed .stateLayer {
+  background: rgba(78, 91, 146, 0.1);
+}
+
+.error.pressed .stateLayer,
+.error.selected.pressed .stateLayer {
+  background: rgba(186, 26, 26, 0.1);
+}
+
+.disabled {
+  color: rgba(26, 27, 33, 0.38);
+}
+
+.disabled.selected {
+  color: rgba(26, 27, 33, 0.38);
+}
+
+.disabled .stateLayer {
+  background: transparent;
+}
