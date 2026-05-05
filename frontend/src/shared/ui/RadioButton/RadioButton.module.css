@@ -1,0 +1,52 @@
+.root {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 48px;
+  color: #45464f;
+}
+
+.stateLayer {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.checked {
+  color: var(--bkg);
+}
+
+.hovered .stateLayer {
+  background: rgba(26, 27, 33, 0.08);
+}
+
+.checked.hovered .stateLayer {
+  background: rgba(78, 91, 146, 0.08);
+}
+
+.pressed .stateLayer {
+  background: rgba(26, 27, 33, 0.1);
+}
+
+.checked.pressed .stateLayer {
+  background: rgba(78, 91, 146, 0.1);
+}
+
+.disabled {
+  color: rgba(26, 27, 33, 0.38);
+}
+
+.disabled .stateLayer {
+  background: transparent;
+}
