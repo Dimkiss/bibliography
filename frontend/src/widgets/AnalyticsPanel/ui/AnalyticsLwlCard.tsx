@@ -29,7 +29,7 @@ export function AnalyticsLwlCard({
   onYearChange,
 }: AnalyticsLwlCardProps) {
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${styles.lwlCard}`}>
       <div className={styles.cardHeader}>
         <h3 className={styles.cardTitle}>Распределение по уровням БС</h3>
 
@@ -41,23 +41,37 @@ export function AnalyticsLwlCard({
         />
       </div>
 
-      <div className={styles.chartArea}>
+      <div className={`${styles.chartArea} ${styles.lwlChartArea}`}>
         <div className={styles.axisLabelVertical}>Количество статей</div>
 
         <ResponsiveContainer width="100%" height={216}>
-          <BarChart data={data} margin={{ top: 8, right: 8, left: 22, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 0, right: 0, left: 20, bottom: 0 }}>
             <CartesianGrid stroke={GRID_COLOR} vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 11, fill: AXIS_COLOR }}
+              height={16}
+              tick={{
+                dy: -2,
+                fill: AXIS_COLOR,
+                fontFamily: 'Roboto, sans-serif',
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: 0.5,
+              }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: AXIS_COLOR }}
+              tick={{
+                fill: AXIS_COLOR,
+                fontFamily: 'Roboto, sans-serif',
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: 0.5,
+              }}
               tickLine={false}
               axisLine={false}
-              width={38}
+              width={28}
             />
             <Tooltip content={<AnalyticsTooltip />} />
             <Bar dataKey="count" fill={BAR_COLOR} maxBarSize={28}>

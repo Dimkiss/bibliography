@@ -8,7 +8,7 @@
   width: 100%;
   min-height: 346px;
   padding: 12px 16px;
-  border: 1px solid var(--Text-field);
+  border: 1px solid var(--outline);
   border-radius: 12px;
   background: var(--article-menu);
 }
@@ -37,21 +37,22 @@
   width: 344px;
   height: 282px;
   padding: 12px;
-  border: 1px solid #c6c5d0;
+  border: 1px solid var(--outline);
   border-radius: 8px;
   background: var(--article-menu);
 }
 
 .cardHeader {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  width: 320px;
-  min-height: 32px;
-  gap: 12px;
+  width: 100%;
+  min-height: 30px;
+  gap: 0;
 }
 
 .cardTitle {
+  min-width: 0;
   margin: 0;
   color: var(--add_notes);
   font-family: Roboto, sans-serif;
@@ -59,14 +60,49 @@
   font-weight: 400;
   line-height: 24px;
   letter-spacing: 0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chartArea {
   position: relative;
   flex: 1;
-  width: 320px;
+  width: 100%;
   min-height: 216px;
-  padding-left: 4px;
+  padding-left: 0;
+}
+
+.typesCard {
+  gap: 10px;
+}
+
+.yearsCard {
+  gap: 10px;
+}
+
+.lwlCard {
+  gap: 10px;
+}
+
+.typesChartArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-left: 0;
+}
+
+.lwlChartArea {
+  width: 320px;
+  height: 216px;
+  min-height: 216px;
+}
+
+.yearsChartArea {
+  width: 320px;
+  height: 216px;
+  min-height: 216px;
 }
 
 .donutWrap {
@@ -75,12 +111,13 @@
   align-items: center;
   justify-content: center;
   width: 320px;
-  min-height: 170px;
+  min-height: 160px;
 }
 
 .donutCenter {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -150,8 +187,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 6px 12px;
-  padding-top: 2px;
+  padding-top: 0;
 }
 
 .legendItem {
@@ -162,14 +200,14 @@
 }
 
 .legendDot {
-  width: 11px;
-  height: 11px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .legendText {
-  color: var(--article-add);
+  color: var(--add_notes);
   font-family: Roboto, sans-serif;
   font-size: 11px;
   line-height: 14px;
@@ -177,11 +215,15 @@
 
 .axisLabelVertical {
   position: absolute;
-  top: 140px;
-  left: -2px;
-  transform: rotate(-90deg);
-  transform-origin: left top;
-  color: var(--article-add);
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: sideways-lr;
+  color: var(--add_notes);
   font-family: Roboto, sans-serif;
   font-size: 11px;
   font-weight: 500;
@@ -192,22 +234,23 @@
 }
 
 .donutValue {
-  display: none;
   fill: var(--add_notes);
   font-family: Roboto, sans-serif;
-  font-size: 18px;
-  font-weight: 500;
-}
-
-.donutCaption {
-  display: none;
-  fill: var(--article-add);
-  font-family: Roboto, sans-serif;
-  font-size: 10px;
+  font-size: 28px;
   font-weight: 400;
 }
 
+.donutCaption {
+  fill: var(--add_notes);
+  font-family: Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
 .tooltip {
+  position: relative;
+  z-index: 10;
   padding: 8px 10px;
   border: 1px solid var(--Text-field);
   border-radius: 8px;

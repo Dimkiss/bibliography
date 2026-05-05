@@ -3,9 +3,9 @@
   grid-template-columns: minmax(0, 1fr) minmax(180px, 31%);
   gap: 6px 24px;
   min-height: 64px;
-  padding: 10px 12px;
-  border: 1px solid var(--Text-field);
-  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
   background: #ffffff;
 }
 
@@ -34,17 +34,19 @@
   color: var(--add_notes);
   font-family: Roboto, sans-serif;
   font-size: 16px;
-  font-weight: 600;
-  line-height: 22px;
-  letter-spacing: 0;
+  font-weight: 500;
+  line-height: 24px;
+  letter-spacing: 0.15px;
 }
 
 .authors {
   margin: 0;
-  color: var(--article-add);
+  color: var(--add_notes);
   font-family: Roboto, sans-serif;
   font-size: 12px;
+  font-weight: 400;
   line-height: 16px;
+  letter-spacing: 0.4px;
 }
 
 .meta {
@@ -56,8 +58,10 @@
   gap: 4px;
   color: var(--add_notes);
   font-family: Roboto, sans-serif;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.25px;
 }
 
 .separator {
@@ -65,19 +69,33 @@
 }
 
 .doi {
-  color: var(--blue);
   font-family: Roboto, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 16px;
+  line-height: 20px;
   word-break: break-all;
 }
 
+.doiLabel {
+  color: var(--add_notes);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.25px;
+}
+
+.doiValue {
+  color: #06164b;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+}
+
 .doiPlaceholder {
-  color: var(--Scrollbar);
+  color: var(--add_notes);
   font-family: Roboto, sans-serif;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.25px;
 }
 
 @media (max-width: 720px) {

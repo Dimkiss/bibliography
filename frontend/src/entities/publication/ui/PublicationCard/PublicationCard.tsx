@@ -56,7 +56,8 @@ export function PublicationCard({
           rel="noreferrer"
           onClick={(event) => event.stopPropagation()}
         >
-          DOI: {doi}
+          <span className={styles.doiLabel}>DOI:</span>{' '}
+          <span className={styles.doiValue}>{doi}</span>
         </a>
       ) : (
         <span className={styles.doiPlaceholder}>DOI не указан</span>

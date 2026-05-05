@@ -34,7 +34,7 @@ export function AnalyticsYearsCard({
   const chartData = [...data].sort((a, b) => a.year - b.year);
 
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${styles.yearsCard}`}>
       <div className={styles.cardHeader}>
         <h3 className={styles.cardTitle}>Распределение по годам</h3>
 
@@ -50,31 +50,45 @@ export function AnalyticsYearsCard({
         />
       </div>
 
-      <div className={styles.chartArea}>
+      <div className={`${styles.chartArea} ${styles.yearsChartArea}`}>
         <div className={styles.axisLabelVertical}>Количество публикаций</div>
 
         <ResponsiveContainer width="100%" height={216}>
-          <LineChart data={chartData} margin={{ top: 8, right: 8, left: 22, bottom: 0 }}>
+          <LineChart data={chartData} margin={{ top: 0, right: 8, left: 20, bottom: 0 }}>
             <CartesianGrid stroke={GRID_COLOR} vertical={false} />
             <XAxis
               dataKey="year"
-              tick={{ fontSize: 11, fill: AXIS_COLOR }}
+              height={16}
+              tick={{
+                dy: -2,
+                fill: AXIS_COLOR,
+                fontFamily: 'Roboto, sans-serif',
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: 0.5,
+              }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: AXIS_COLOR }}
+              tick={{
+                fill: AXIS_COLOR,
+                fontFamily: 'Roboto, sans-serif',
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: 0.5,
+              }}
               tickLine={false}
               axisLine={false}
-              width={36}
+              width={28}
             />
             <Tooltip content={<AnalyticsTooltip />} />
             <Line
-              type="monotone"
+              type="linear"
               dataKey="count"
               stroke={LINE_COLOR}
               strokeWidth={2}
-              dot={{ r: 3, strokeWidth: 2, fill: '#ffffff' }}
+              dot={false}
               activeDot={{ r: 4 }}
             />
           </LineChart>

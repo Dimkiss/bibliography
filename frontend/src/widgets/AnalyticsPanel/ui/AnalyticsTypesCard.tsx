@@ -1,6 +1,5 @@
 import {
   Cell,
-  Label,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -30,7 +29,7 @@ export function AnalyticsTypesCard({
   onYearChange,
 }: AnalyticsTypesCardProps) {
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${styles.typesCard}`}>
       <div className={styles.cardHeader}>
         <h3 className={styles.cardTitle}>Распределение по типам</h3>
 
@@ -42,11 +41,14 @@ export function AnalyticsTypesCard({
         />
       </div>
 
-      <div className={styles.chartArea}>
+      <div className={`${styles.chartArea} ${styles.typesChartArea}`}>
         <div className={styles.donutWrap}>
-          <ResponsiveContainer width="100%" height={170}>
+          <ResponsiveContainer width="100%" height={160}>
             <PieChart>
-              <Tooltip content={<AnalyticsTooltip />} />
+              <Tooltip
+                content={<AnalyticsTooltip />}
+                wrapperStyle={{ zIndex: 20 }}
+              />
               <Pie
                 data={data}
                 dataKey="count"
@@ -63,36 +65,6 @@ export function AnalyticsTypesCard({
                     fill={PIE_COLORS[index % PIE_COLORS.length]}
                   />
                 ))}
-
-                <Label
-                  content={({ viewBox }) => {
-                    if (!viewBox || !('cx' in viewBox) || !('cy' in viewBox)) {
-                      return null;
-                    }
-
-                    return (
-                      <g>
-                        <text
-                          x={viewBox.cx}
-                          y={viewBox.cy - 2}
-                          textAnchor="middle"
-                          className={styles.donutValue}
-                        >
-                          {total}
-                        </text>
-                        <text
-                          x={viewBox.cx}
-                          y={viewBox.cy + 18}
-                          textAnchor="middle"
-                          className={styles.donutCaption}
-                        >
-                          публикаций
-                        </text>
-                      </g>
-                    );
-                  }}
-                  position="center"
-                />
               </Pie>
             </PieChart>
           </ResponsiveContainer>
