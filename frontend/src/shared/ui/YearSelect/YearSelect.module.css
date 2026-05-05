@@ -1,0 +1,96 @@
+.root {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 75px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #c8c6d2;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #42434d;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  cursor: pointer;
+}
+
+.trigger:focus-visible {
+  outline: none;
+  border-color: var(--Vector);
+  box-shadow: 0 0 0 3px rgba(90, 132, 239, 0.14);
+}
+
+.chevron {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #42434d;
+  margin-left: 8px;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: 112px;
+  max-height: 296px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e4e0ea;
+  border-radius: 4px;
+  background: #f8f5ff;
+  box-shadow: 0 2px 8px rgba(29, 27, 32, 0.22);
+  list-style: none;
+}
+
+.menu::-webkit-scrollbar {
+  width: 12px;
+}
+
+.menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.menu::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: #777680;
+  background-clip: content-box;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 56px;
+  padding: 0 16px;
+  text-align: left;
+  color: var(--add_notes);
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
+.option:hover,
+.optionFocused {
+  background: rgba(78, 91, 146, 0.08);
+}
+
+.optionSelected {
+  color: var(--blue);
+  font-weight: 500;
+}

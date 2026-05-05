@@ -1,0 +1,152 @@
+.root {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 116px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #c8c6d2;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #42434d;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  cursor: pointer;
+}
+
+.trigger:focus-visible {
+  outline: none;
+  border-color: var(--Vector);
+  box-shadow: 0 0 0 3px rgba(90, 132, 239, 0.14);
+}
+
+.chevron {
+  width: 0;
+  height: 0;
+  margin-left: 8px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #42434d;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: 240px;
+  height: 120px;
+  margin: 0;
+  padding: 20px 12px 4px;
+  border: 1px solid #e4e0ea;
+  border-radius: 4px;
+  background: #f8f5ff;
+  box-shadow: 0 2px 8px rgba(29, 27, 32, 0.22);
+}
+
+.inputRow {
+  display: grid;
+  grid-template-columns: 98.5px 10px 98.5px;
+  align-items: center;
+  gap: 4px;
+}
+
+.rangeDash {
+  color: var(--add_notes);
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  text-align: center;
+}
+
+.input {
+  width: 98.5px;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid #777680;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--add_notes);
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.input:disabled {
+  border-color: #d7d3dd;
+  color: #a5a1aa;
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: var(--Vector);
+  box-shadow: 0 0 0 2px rgba(90, 132, 239, 0.14);
+}
+
+.sliderWrap {
+  position: relative;
+  width: 100%;
+  height: 44px;
+  margin-top: 12px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.track {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  height: 24px;
+  border-radius: 8px;
+  background: #fbf8ff;
+}
+
+.track::before,
+.track::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #424659;
+}
+
+.track::before {
+  left: 4px;
+}
+
+.track::after {
+  right: 4px;
+}
+
+.selection {
+  position: absolute;
+  top: 10px;
+  height: 24px;
+  border-radius: 2px;
+  background: #4e5b92;
+}
+
+.handle {
+  position: absolute;
+  top: 0;
+  width: 4px;
+  height: 44px;
+  border-radius: 999px;
+  background: #4e5b92;
+  transform: translateX(-2px);
+}
