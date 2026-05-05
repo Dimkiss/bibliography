@@ -2,15 +2,12 @@
   display: inline-grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 4px;
-  width: 240px;
-  height: 40px;
+  width: max-content;
   max-width: 100%;
   box-sizing: border-box;
 }
 
 .buttonPart {
-  min-height: 40px;
-  height: 40px;
   border: none;
   cursor: pointer;
   font: inherit;
@@ -56,15 +53,24 @@
 }
 
 .small .leftPart {
-  padding: 0 18px;
+  min-height: 32px;
+  height: 32px;
+  padding: 6px 12px 6px 16px;
   gap: 8px;
-  border-radius: 20px 4px 4px 20px;
+  border-radius: 100px 4px 4px 100px;
 }
 
 .small .rightPart {
-  width: 56px;
-  padding: 0 14px;
-  border-radius: 4px 20px 20px 4px;
+  width: 48px;
+  min-height: 32px;
+  height: 32px;
+  padding: 6px 14px 6px 12px;
+  border-radius: 4px 100px 100px 4px;
+}
+
+.small.opened .rightPart {
+  padding: 6px 13px;
+  border-radius: 100px;
 }
 
 .small .leadingIcon,
@@ -74,15 +80,24 @@
 }
 
 .normal .leftPart {
-  padding: 0 18px;
+  min-height: 40px;
+  height: 40px;
+  padding: 10px 12px 10px 16px;
   gap: 8px;
-  border-radius: 20px 4px 4px 20px;
+  border-radius: 100px 4px 4px 100px;
 }
 
 .normal .rightPart {
-  width: 56px;
-  padding: 0 14px;
-  border-radius: 4px 20px 20px 4px;
+  width: 48px;
+  min-height: 40px;
+  height: 40px;
+  padding: 10px 14px 10px 12px;
+  border-radius: 4px 100px 100px 4px;
+}
+
+.normal.opened .rightPart {
+  padding: 10px 13px;
+  border-radius: 100px;
 }
 
 .normal .leadingIcon,
@@ -105,7 +120,7 @@
 }
 
 .tonal .buttonPart {
-  background: var(--header-item);
+  background: var(--button-tonal);
   color: var(--Value-indicator);
 }
 

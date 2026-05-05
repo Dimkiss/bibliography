@@ -12,12 +12,19 @@
   background: #ffffff;
 }
 
-.row,
+.topRow,
 .criteriaRow {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
+}
+
+.topRow {
+  grid-template-columns: 248px 248px minmax(0, 1fr);
+}
+
+.criteriaRow {
+  grid-template-columns: 248px minmax(0, 1fr);
 }
 
 .fieldLabel {
@@ -124,7 +131,7 @@
 }
 
 @media (max-width: 960px) {
-  .row,
+  .topRow,
   .criteriaRow,
   .actionsRow {
     grid-template-columns: 1fr;
@@ -144,7 +151,7 @@
 }
 .dropdownWrap {
   position: relative;
-  width: 240px;
+  width: 248px;
   max-width: 100%;
 }
 

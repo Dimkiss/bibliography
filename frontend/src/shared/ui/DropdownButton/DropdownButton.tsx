@@ -1,4 +1,9 @@
-import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from 'react';
+import type {
+  ButtonHTMLAttributes,
+  CSSProperties,
+  MouseEventHandler,
+  ReactNode,
+} from 'react';
 import { Icon } from '@/shared/ui/Icon';
 import styles from './DropdownButton.module.css';
 
@@ -11,6 +16,7 @@ type DropdownButtonProps = {
   isOpen?: boolean;
   size?: DropdownButtonSize;
   variant?: DropdownButtonVariant;
+  width?: number | string;
   disabled?: boolean;
   className?: string;
   leftButtonProps?: Omit<
@@ -41,6 +47,7 @@ export const DropdownButton = ({
   isOpen = false,
   size = 'normal',
   variant = 'filled',
+  width,
   disabled = false,
   className = '',
   leftButtonProps,
@@ -49,6 +56,12 @@ export const DropdownButton = ({
   onArrowClick,
 }: DropdownButtonProps) => {
   const arrowIconName = isOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down';
+  const rootStyle: CSSProperties | undefined =
+    width === undefined
+      ? undefined
+      : {
+          width: typeof width === 'number' ? `${width}px` : width,
+        };
 
   return (
     <div
@@ -56,11 +69,13 @@ export const DropdownButton = ({
         styles.root,
         sizeClassMap[size],
         variantClassMap[variant],
+        isOpen ? styles.opened : '',
         disabled ? styles.disabled : '',
         className,
       ]
         .filter(Boolean)
         .join(' ')}
+      style={rootStyle}
     >
       <button
         type="button"

@@ -78,6 +78,8 @@ export function PublicationSearchPanel({
   const availableFields = SEARCH_FIELD_OPTIONS.filter(
     (option) => !activeFields.includes(option.key),
   );
+  const firstActiveField = activeFields[0];
+  const restActiveFields = activeFields.slice(1);
 
   const periodLabel = useMemo(() => {
     const hasSelectedPeriod = value.yearFrom.trim() || value.yearTo.trim();
@@ -149,16 +151,80 @@ export function PublicationSearchPanel({
     onSubmit();
   };
 
+  const renderSearchCriterion = (field: SearchFieldKey, index: number) => (
+    <>
+      <div
+        ref={(node) => {
+          fieldDropdownsRef.current[index] = node;
+        }}
+        className={styles.dropdownWrap}
+      >
+        <DropdownButton
+          label={formatSearchFieldLabel(field)}
+          icon={<Icon name={getFieldIconName(field)} size={18} />}
+          size="normal"
+          variant="tonal"
+          width={248}
+          isOpen={openFieldIndex === index}
+          onClick={() =>
+            setOpenFieldIndex((prev) => (prev === index ? null : index))
+          }
+        />
+
+        {openFieldIndex === index ? (
+          <div className={styles.menu}>
+            <div className={styles.optionsList}>
+              {SEARCH_FIELD_OPTIONS.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  className={styles.optionButton}
+                  onClick={() => {
+                    handleCriterionChange(index, option.key);
+                    setOpenFieldIndex(null);
+                  }}
+                >
+                  <span className={styles.optionButtonIcon}>
+                    <Icon name={getFieldIconName(option.key)} size={18} />
+                  </span>
+                  <span>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className={styles.inputWrap}>
+        <input
+          className={styles.input}
+          value={value[field]}
+          onChange={(event) => onFieldChange(field, event.target.value)}
+          placeholder={getSearchFieldPlaceholder(field)}
+        />
+        <button
+          type="button"
+          className={styles.removeButton}
+          onClick={() => handleRemoveCriterion(index)}
+          aria-label={`РЈРґР°Р»РёС‚СЊ РєСЂРёС‚РµСЂРёР№ ${formatSearchFieldLabel(field)}`}
+        >
+          <Icon name="close" size={18} />
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <section className={styles.section}>
       <form className={styles.panel} onSubmit={handleSubmit}>
-        <div className={styles.row}>
+        <div className={styles.topRow}>
           <div ref={yearDropdownRef} className={styles.dropdownWrap}>
             <DropdownButton
               label={periodLabel}
               icon={<Icon name="calendar_month" size={18} />}
-              size="small"
+              size="normal"
               variant="tonal"
+              width={248}
               isOpen={isYearOpen}
               onClick={() => setIsYearOpen((prev) => !prev)}
             />
@@ -245,9 +311,14 @@ export function PublicationSearchPanel({
               </div>
             ) : null}
           </div>
+
+          {firstActiveField ? renderSearchCriterion(firstActiveField, 0) : null}
         </div>
 
-        {activeFields.map((field, index) => (
+        {restActiveFields.map((field, restIndex) => {
+          const index = restIndex + 1;
+
+          return (
           <div key={`${field}-${index}`} className={styles.criteriaRow}>
             <div
               ref={(node) => {
@@ -260,6 +331,7 @@ export function PublicationSearchPanel({
                 icon={<Icon name={getFieldIconName(field)} size={18} />}
                 size="normal"
                 variant="tonal"
+                width={248}
                 isOpen={openFieldIndex === index}
                 onClick={() =>
                   setOpenFieldIndex((prev) => (prev === index ? null : index))
@@ -310,7 +382,8 @@ export function PublicationSearchPanel({
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         <div className={styles.actionsRow}>
           <button
