@@ -91,16 +91,16 @@ export function PublicationsPage() {
             ? data.original_translation_modes
             : [
                 { value: 'all', label: 'Все' },
-                { value: 'original_only', label: 'Оригиналы' },
-                { value: 'translation_only', label: 'Переводы' },
+                { value: 'original_only', label: 'Только оригиналы' },
+                { value: 'translation_only', label: 'Только переводы' },
               ]
         )
           .filter((option) => option.value !== 'linked_only')
           .map((option) =>
             option.value === 'original_only'
-              ? { ...option, label: 'Оригиналы' }
+              ? { ...option, label: 'Только оригиналы' }
               : option.value === 'translation_only'
-                ? { ...option, label: 'Переводы' }
+                ? { ...option, label: 'Только переводы' }
                 : option,
           );
 

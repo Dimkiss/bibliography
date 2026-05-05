@@ -28,10 +28,31 @@ DATABASE_OPTIONS: list[DatabaseOption] = [
     DatabaseOption(value="scopus", label="Scopus"),
     DatabaseOption(value="white_list", label="Белый список"),
     DatabaseOption(value="rinc", label="РИНЦ"),
-    DatabaseOption(value="rinc_core", label="Ядро РИНЦ"),
-    DatabaseOption(value="rsci", label="RSCI"),
     DatabaseOption(value="vak", label="ВАК"),
 ]
+
+PUBLICATION_TYPE_OPTIONS: list[PublicationTypeOption] = [
+    PublicationTypeOption(value="article", label="Статья"),
+    PublicationTypeOption(value="conference", label="Конференция"),
+    PublicationTypeOption(value="monograph", label="Монография"),
+    PublicationTypeOption(value="chapter", label="Глава"),
+    PublicationTypeOption(value="patent_method", label="Патент/методика"),
+    PublicationTypeOption(value="other", label="Другое"),
+]
+
+PUBLICATION_TYPE_CATEGORY_FLAGS: dict[str, tuple[str, ...]] = {
+    "article": ("ST",),
+    "conference": ("MA", "DO", "PD", "SD", "TE", "TR"),
+    "monograph": ("MO",),
+    "chapter": ("GL",),
+    "patent_method": ("PA", "MP", "AS", "LI"),
+}
+
+PUBLICATION_TYPE_PRIMARY_FLAGS: tuple[str, ...] = tuple(
+    flag
+    for flags in PUBLICATION_TYPE_CATEGORY_FLAGS.values()
+    for flag in flags
+)
 
 SORT_FIELD_MAP = {
     "authors": """
@@ -75,6 +96,66 @@ def _normalize_str_list(values: list[str] | None) -> list[str]:
             normalized.append(stripped)
 
     return normalized
+
+
+def _build_publication_type_condition(
+    publication_types: list[str],
+    params: dict[str, Any],
+) -> str | None:
+    category_conditions: list[str] = []
+    direct_values: list[str] = []
+
+    for publication_type in publication_types:
+        value = publication_type.strip()
+        if not value:
+            continue
+
+        flags = PUBLICATION_TYPE_CATEGORY_FLAGS.get(value)
+        if flags:
+            in_clause = _build_in_clause(
+                f"pub_type_{value}",
+                list(flags),
+                params,
+            )
+            category_conditions.append(f"aht.TypeOfPublication_f IN ({in_clause})")
+            continue
+
+        if value == "other":
+            in_clause = _build_in_clause(
+                "pub_type_primary",
+                list(PUBLICATION_TYPE_PRIMARY_FLAGS),
+                params,
+            )
+            category_conditions.append(f"aht.TypeOfPublication_f NOT IN ({in_clause})")
+            continue
+
+        direct_values.append(value)
+
+    if direct_values:
+        in_clause = _build_in_clause("pub_type_direct", direct_values, params)
+        category_conditions.append(
+            f"(top.TOP_Flag IN ({in_clause}) OR top.TOP_Name IN ({in_clause}))"
+        )
+
+    if not category_conditions:
+        return None
+
+    return (
+        """
+        EXISTS (
+            SELECT 1
+            FROM articlehastop aht
+            JOIN typesofpublications top
+              ON top.TOP_Flag = aht.TypeOfPublication_f
+            WHERE aht.Record_ID_f = a.Record_ID
+              AND (
+        """
+        + " OR ".join(f"({condition})" for condition in category_conditions)
+        + """
+              )
+        )
+        """
+    )
 
 
 def _extract_databases(row: dict[str, Any]) -> list[str]:
@@ -180,19 +261,12 @@ def _build_common_filters(
         conditions.append("a.Date_of_Publication_F20 <= :year_to")
 
     if publication_types:
-        in_clause = _build_in_clause("pub_type", publication_types, params)
-        conditions.append(
-            f"""
-            EXISTS (
-                SELECT 1
-                FROM articlehastop aht
-                JOIN typesofpublications top
-                  ON top.TOP_Flag = aht.TypeOfPublication_f
-                WHERE aht.Record_ID_f = a.Record_ID
-                  AND (top.TOP_Flag IN ({in_clause}) OR top.TOP_Name IN ({in_clause}))
-            )
-            """
+        publication_type_condition = _build_publication_type_condition(
+            publication_types,
+            params,
         )
+        if publication_type_condition:
+            conditions.append(publication_type_condition)
 
     if databases:
         db_conditions: list[str] = []
@@ -551,33 +625,15 @@ def get_article_filters(db: Session) -> ArticleFiltersResponse:
         )
     ).mappings().first()
 
-    publication_type_rows = db.execute(
-        text(
-            """
-            SELECT
-                TOP_Flag AS value,
-                TOP_Name AS label
-            FROM typesofpublications
-            ORDER BY
-                CASE WHEN Priority IS NULL THEN 1 ELSE 0 END,
-                Priority ASC,
-                TOP_Name ASC
-            """
-        )
-    ).mappings().all()
-
     return ArticleFiltersResponse(
         year_min=years_row["year_min"] if years_row else None,
         year_max=years_row["year_max"] if years_row else None,
-        publication_types=[
-            PublicationTypeOption(value=row["value"], label=row["label"])
-            for row in publication_type_rows
-        ],
+        publication_types=PUBLICATION_TYPE_OPTIONS,
         databases=DATABASE_OPTIONS,
         original_translation_modes=[
             {"value": "all", "label": "Все"},
-            {"value": "original_only", "label": "Оригиналы"},
-            {"value": "translation_only", "label": "Переводы"},
+            {"value": "original_only", "label": "Только оригиналы"},
+            {"value": "translation_only", "label": "Только переводы"},
         ],
     )
 
