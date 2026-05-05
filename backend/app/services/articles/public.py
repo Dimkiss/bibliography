@@ -603,11 +603,16 @@ def get_latest_articles(
             COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
             a.Date_of_Publication_F20 AS year,
             a.DOI AS doi
-        FROM articles a
+        FROM (
+            SELECT Record_ID
+            FROM articles
+            ORDER BY PublicationDate DESC, Record_ID DESC
+            LIMIT :limit
+        ) latest
+        JOIN articles a ON a.Record_ID = latest.Record_ID
         LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
         LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
         ORDER BY a.PublicationDate DESC, a.Record_ID DESC
-        LIMIT :limit
         """
     )
 
