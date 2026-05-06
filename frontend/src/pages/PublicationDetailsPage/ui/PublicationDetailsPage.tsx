@@ -5,6 +5,10 @@ import { Header } from '@/widgets/Header';
 import { Icon } from '@/shared/ui/Icon';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import {
+  QuartilesDropdown,
+  type QuartilesDropdownItem,
+} from '@/shared/ui/QuartilesDropdown';
+import {
   getPublicationDetail,
   getPublicationPdfUrl,
   type PublicationDetailDto,
@@ -33,6 +37,54 @@ function getArticleIdFromPathname(pathname: string): number | null {
 function formatMetricValue(metric: PublicationMetricDto): string {
   const parts = [metric.value, metric.extra].filter(Boolean);
   return parts.length ? parts.join(' ') : '—';
+}
+
+function isQuartileValue(value?: string | null): boolean {
+  return Boolean(value?.trim().match(/^q?[1-4]$/i));
+}
+
+function findMetricByLabel(
+  metrics: PublicationMetricDto[],
+  matcher: (label: string) => boolean,
+): PublicationMetricDto | undefined {
+  return metrics.find((metric) => matcher(metric.label.toLowerCase()));
+}
+
+function buildQuartileItems(metrics: PublicationMetricDto[]): QuartilesDropdownItem[] {
+  const webOfScience = findMetricByLabel(
+    metrics,
+    (label) => label === 'web of science',
+  );
+  const scopus = findMetricByLabel(metrics, (label) => label === 'scopus');
+  const whiteList = findMetricByLabel(
+    metrics,
+    (label) =>
+      label.includes('бел') ||
+      label.includes('спис') ||
+      label.includes('white') ||
+      label.includes('list'),
+  );
+
+  return [
+    {
+      label: 'Web of Science',
+      value: isQuartileValue(webOfScience?.value) ? webOfScience?.value : null,
+    },
+    {
+      label: 'Scopus',
+      value: isQuartileValue(scopus?.value) ? scopus?.value : null,
+    },
+    {
+      label: 'Белый список',
+      value: isQuartileValue(whiteList?.value) ? whiteList?.value : null,
+    },
+  ];
+}
+
+function getPrimaryQuartileValue(
+  items: QuartilesDropdownItem[],
+): string | number | null {
+  return items.find((item) => item.value)?.value ?? null;
 }
 
 function RelatedPublicationCard({
@@ -184,6 +236,8 @@ export function PublicationDetailsPage() {
   }, [copyMessage]);
 
   const doiUrl = buildDoiUrl(item?.doi);
+  const quartileItems = item ? buildQuartileItems(item.metrics) : [];
+  const primaryQuartileValue = getPrimaryQuartileValue(quartileItems);
 
   const handleCopyMain = async () => {
     if (!item) {
@@ -227,7 +281,14 @@ export function PublicationDetailsPage() {
                   </div>
 
                   <div className={styles.topContent}>
-                    <h1 className={styles.title}>{item.title || 'Без названия'}</h1>
+                    <div className={styles.titleRow}>
+                      <h1 className={styles.title}>{item.title || 'Без названия'}</h1>
+                      <QuartilesDropdown
+                        value={primaryQuartileValue}
+                        items={quartileItems}
+                        className={styles.quartilesDropdown}
+                      />
+                    </div>
                     <div className={styles.authors}>
                       {item.authors || 'Авторы не указаны'}
                     </div>

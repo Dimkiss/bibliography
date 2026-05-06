@@ -18,7 +18,10 @@ import {
 } from '@/entities/publication';
 import { Icon } from '@/shared/ui/Icon';
 import { Checkbox } from '@/shared/ui/Checkbox';
-import { Quartile } from '@/shared/ui/Quartile';
+import {
+  QuartilesDropdown,
+  type QuartilesDropdownItem,
+} from '@/shared/ui/QuartilesDropdown';
 import {
   PUBLICATIONS_SORT_FIELD_OPTIONS,
   type PublicationsSortFieldValue,
@@ -111,8 +114,41 @@ function DoiValue({ doi }: { doi: string | null }) {
   );
 }
 
+function isQuartileValue(value?: string | null): boolean {
+  return Boolean(value?.trim().match(/^q?[1-4]$/i));
+}
+
+function buildQuartileItems(item: PublicationListItemDto): QuartilesDropdownItem[] {
+  return [
+    {
+      label: 'Web of Science',
+      value: isQuartileValue(item.quartile) ? item.quartile : null,
+    },
+    {
+      label: 'Scopus',
+      value: isQuartileValue(item.quartile_scopus) ? item.quartile_scopus : null,
+    },
+    {
+      label: 'Белый список',
+      value: null,
+    },
+  ];
+}
+
 function QuartileBadge({ item }: { item: PublicationListItemDto }) {
-  return <Quartile value={item.quartile || item.quartile_scopus} />;
+  const items = buildQuartileItems(item);
+  const value = items.find((quartileItem) => quartileItem.value)?.value ?? null;
+
+  return (
+    <div onClick={stopInteractiveEvent}>
+      <QuartilesDropdown
+        value={value}
+        items={items}
+        menuAlign="right"
+        ariaLabel="Показать квартили публикации"
+      />
+    </div>
+  );
 }
 
 function RowActions({
