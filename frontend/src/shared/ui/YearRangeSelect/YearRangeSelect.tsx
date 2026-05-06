@@ -54,8 +54,6 @@ export function YearRangeSelect({
       return;
     }
 
-    setDraftEndYear(selectedEndYear);
-
     function handlePointerDown(event: PointerEvent) {
       if (!rootRef.current?.contains(event.target as Node)) {
         setIsOpen(false);
@@ -125,7 +123,15 @@ export function YearRangeSelect({
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-controls={isOpen ? menuId : undefined}
-        onClick={() => setIsOpen((currentValue) => !currentValue)}
+        onClick={() => {
+          setIsOpen((currentValue) => {
+            if (!currentValue) {
+              setDraftEndYear(selectedEndYear);
+            }
+
+            return !currentValue;
+          });
+        }}
       >
         <span>
           {selectedStartYear}-{selectedEndYear}

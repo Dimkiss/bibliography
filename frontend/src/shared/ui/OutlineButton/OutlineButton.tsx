@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, CSSProperties } from "react";
 import styles from "./OutlineButton.module.css";
 import { Icon } from "@/shared/ui/Icon";
 
@@ -12,6 +12,7 @@ type OutlineButtonProps = Omit<
   iconName?: string;
   iconSize?: number;
   size?: OutlineButtonSize;
+  width?: number | string;
   className?: string;
 };
 
@@ -26,13 +27,22 @@ export const OutlineButton = ({
   iconName,
   iconSize,
   size = "normal",
+  width,
   className = "",
   type = "button",
   disabled = false,
+  style,
   ...props
 }: OutlineButtonProps) => {
   const resolvedIconSize =
     iconSize ?? (size === "large" ? 24 : size === "normal" ? 20 : 18);
+  const rootStyle: CSSProperties | undefined =
+    width === undefined
+      ? style
+      : {
+          ...style,
+          width: typeof width === "number" ? `${width}px` : width,
+        };
 
   return (
     <button
@@ -41,6 +51,7 @@ export const OutlineButton = ({
         .filter(Boolean)
         .join(" ")}
       disabled={disabled}
+      style={rootStyle}
       {...props}
     >
       {iconName ? (

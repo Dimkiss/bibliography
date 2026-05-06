@@ -13,6 +13,7 @@ import {
   getPublications,
   hasPublicationSearchCriteria,
   INITIAL_PUBLICATION_SEARCH_FORM,
+  SEARCH_FIELD_OPTIONS,
   type FilterOptionDto,
   type PublicationFiltersDto,
   type PublicationListItemDto,
@@ -45,30 +46,59 @@ const EMPTY_FILTERS: PublicationFiltersDto = {
   original_translation_modes: [],
 };
 
+function getInitialSearchStateFromUrl(): {
+  form: PublicationSearchFormState;
+  activeFields: SearchFieldKey[];
+  hasSearched: boolean;
+} {
+  const searchParams = new URLSearchParams(window.location.search);
+  const requestedField = searchParams.get('field');
+  const field = SEARCH_FIELD_OPTIONS.some((option) => option.key === requestedField)
+    ? (requestedField as SearchFieldKey)
+    : DEFAULT_ACTIVE_FIELDS[0];
+  const query = searchParams.get('q') ?? '';
+  const yearFrom = searchParams.get('yearFrom') ?? '';
+  const yearTo = searchParams.get('yearTo') ?? '';
+  const form: PublicationSearchFormState = {
+    ...INITIAL_PUBLICATION_SEARCH_FORM,
+    yearFrom,
+    yearTo,
+    [field]: query,
+  };
+  const activeFields = [field];
+
+  return {
+    form,
+    activeFields,
+    hasSearched: hasPublicationSearchCriteria(form, activeFields),
+  };
+}
+
 export function PublicationsPage() {
   const { user, isAuthenticated } = useAuth();
+  const initialSearchState = useState(getInitialSearchStateFromUrl)[0];
   const [filters, setFilters] = useState<PublicationFiltersDto>(EMPTY_FILTERS);
   const [form, setForm] = useState<PublicationSearchFormState>(
-    INITIAL_PUBLICATION_SEARCH_FORM,
+    initialSearchState.form,
   );
   const [activeFields, setActiveFields] = useState<SearchFieldKey[]>(
-    DEFAULT_ACTIVE_FIELDS,
+    initialSearchState.activeFields,
   );
   const [items, setItems] = useState<PublicationListItemDto[]>([]);
   const [pagination, setPagination] = useState<PublicationsPaginationDto>(
     DEFAULT_PAGINATION,
   );
   const [appliedForm, setAppliedForm] = useState<PublicationSearchFormState>(
-    INITIAL_PUBLICATION_SEARCH_FORM,
+    initialSearchState.form,
   );
   const [appliedFields, setAppliedFields] = useState<SearchFieldKey[]>(
-    DEFAULT_ACTIVE_FIELDS,
+    initialSearchState.activeFields,
   );
   const [sortField, setSortField] = useState<PublicationsSortFieldValue>('year');
   const [sortOrder, setSortOrder] = useState<PublicationSortOrder>('desc');
   const [isFiltersLoading, setIsFiltersLoading] = useState(true);
   const [isResultsLoading, setIsResultsLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(initialSearchState.hasSearched);
   const [error, setError] = useState<string | null>(null);
 
   const canCreatePublication = Boolean(

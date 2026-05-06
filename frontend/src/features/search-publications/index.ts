@@ -1,4 +1,5 @@
 export { PublicationResultsList } from './ui/PublicationResultsList';
+export { PublicationQuickSearchPanel } from './ui/PublicationQuickSearchPanel';
 export { PublicationSearchPanel } from './ui/PublicationSearchPanel';
 export { PublicationsFilterDropdown } from './ui/PublicationsFilterDropdown';
 export type {

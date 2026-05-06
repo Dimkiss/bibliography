@@ -22,7 +22,7 @@
 .triggerActive {
   border-color: transparent;
   background: var(--button-tonal);
-  color: var(--Dot);
+  color: #45464f;
 }
 
 .trigger:disabled {
@@ -73,7 +73,7 @@
   padding: 8px 12px 8px 0;
   border: none;
   background: transparent;
-  color: var(--add_notes);
+  color: #45464f;
   cursor: pointer;
   font: inherit;
   text-align: left;
@@ -105,8 +105,10 @@
 .optionLabel {
   min-width: 0;
   padding-right: 12px;
-  color: var(--add_notes);
-  font-family: 'Noto Sans', Roboto, sans-serif;
-  font-size: 15px;
-  line-height: 16px;
+  color: #45464f;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0.1px;
 }

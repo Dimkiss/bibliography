@@ -1,0 +1,58 @@
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.root .field {
+  position: relative;
+  padding-right: 44px;
+  cursor: text;
+}
+
+.input {
+  min-width: 32px;
+}
+
+.inputActive {
+  min-width: 160px;
+}
+
+.chipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.measureRow {
+  position: fixed;
+  top: -10000px;
+  left: -10000px;
+  z-index: -1;
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  max-width: none;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.removeCriterionButton {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--Scrollbar);
+  cursor: pointer;
+}

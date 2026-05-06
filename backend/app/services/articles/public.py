@@ -98,6 +98,30 @@ def _normalize_str_list(values: list[str] | None) -> list[str]:
     return normalized
 
 
+def _parse_keyword_terms(value: str | list[str] | None) -> list[str]:
+    if not value:
+        return []
+
+    terms: list[str] = []
+    seen_terms: set[str] = set()
+    raw_values = value if isinstance(value, list) else [value]
+
+    for raw_value in raw_values:
+        for raw_term in raw_value.replace(";", ",").replace("\n", ",").split(","):
+            term = raw_term.strip()
+            if not term:
+                continue
+
+            normalized_term = term.lower()
+            if normalized_term in seen_terms:
+                continue
+
+            seen_terms.add(normalized_term)
+            terms.append(term)
+
+    return terms
+
+
 def _build_publication_type_condition(
     publication_types: list[str],
     params: dict[str, Any],
@@ -191,7 +215,7 @@ def _build_common_filters(
     title: str | None,
     author: str | None,
     journal: str | None,
-    keyword: str | None,
+    keyword: str | list[str] | None,
     year_from: int | None,
     year_to: int | None,
     publication_types: list[str],
@@ -238,16 +262,18 @@ def _build_common_filters(
             """
         )
 
-    if keyword and keyword.strip():
-        params["keyword"] = f"%{keyword.strip()}%"
+    keyword_terms = _parse_keyword_terms(keyword)
+    for index, keyword_term in enumerate(keyword_terms):
+        param_name = f"keyword_{index}"
+        params[param_name] = f"%{keyword_term}%"
         conditions.append(
-            """
+            f"""
             EXISTS (
                 SELECT 1
                 FROM articlehaskeywords ahk
                 JOIN keywords k ON k.K_ID = ahk.Keyword_ID_f
                 WHERE ahk.Record_ID_f = a.Record_ID
-                  AND k.Keyword LIKE :keyword
+                  AND k.Keyword LIKE :{param_name}
             )
             """
         )
@@ -466,7 +492,7 @@ def list_articles(
     title: str | None = None,
     author: str | None = None,
     journal: str | None = None,
-    keyword: str | None = None,
+    keyword: str | list[str] | None = None,
     year_from: int | None = None,
     year_to: int | None = None,
     publication_types: list[str] | None = None,

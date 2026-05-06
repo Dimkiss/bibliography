@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, CSSProperties } from "react";
 import styles from "./Button.module.css";
 import { Icon } from "@/shared/ui/Icon";
 
@@ -9,6 +9,7 @@ type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
   iconName?: string;
   iconSize?: number;
   size?: ButtonSize;
+  width?: number | string;
   className?: string;
 };
 
@@ -23,13 +24,22 @@ export const Button = ({
   iconName,
   iconSize,
   size = "normal",
+  width,
   className = "",
   type = "button",
   disabled = false,
+  style,
   ...props
 }: ButtonProps) => {
   const resolvedIconSize =
     iconSize ?? (size === "large" ? 24 : size === "normal" ? 20 : 18);
+  const rootStyle: CSSProperties | undefined =
+    width === undefined
+      ? style
+      : {
+          ...style,
+          width: typeof width === "number" ? `${width}px` : width,
+        };
 
   return (
     <button
@@ -38,6 +48,7 @@ export const Button = ({
         .filter(Boolean)
         .join(" ")}
       disabled={disabled}
+      style={rootStyle}
       {...props}
     >
       {iconName ? (

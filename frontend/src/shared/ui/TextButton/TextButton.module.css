@@ -1,0 +1,80 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  flex: 0 0 auto;
+
+  gap: 8px;
+  border: none;
+  border-radius: 100px;
+  background: transparent;
+  color: var(--bkg);
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
+
+  transition:
+    background-color 0.15s ease,
+    border-radius 0.12s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.icon {
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.label {
+  color: inherit;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+}
+
+.normal {
+  height: 40px;
+  padding: 0 16px;
+  gap: 8px;
+}
+
+.normal .label {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.small {
+  height: 32px;
+  padding: 0 12px;
+  gap: 4px;
+}
+
+.small .label {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.button:hover:not(:disabled),
+.active {
+  background: rgba(78, 91, 146, 0.08);
+  border-radius: 100px;
+}
+
+.button:active:not(:disabled) {
+  background: rgba(78, 91, 146, 0.16);
+  border-radius: 8px;
+}
+
+.button:disabled {
+  background: rgba(26, 27, 33, 0.1);
+  color: rgba(26, 27, 33, 0.38);
+  cursor: not-allowed;
+  border-radius: 100px;
+}
+
+.button:disabled .icon {
+  opacity: 1;
+}

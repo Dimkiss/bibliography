@@ -25,7 +25,7 @@ def list_articles(
     title: str | None = Query(None),
     author: str | None = Query(None),
     journal: str | None = Query(None),
-    keyword: str | None = Query(None),
+    keyword: list[str] | None = Query(None),
     year_from: int | None = Query(None, ge=0),
     year_to: int | None = Query(None, ge=0),
     publication_types: list[str] | None = Query(None),

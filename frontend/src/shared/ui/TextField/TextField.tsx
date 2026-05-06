@@ -1,19 +1,44 @@
 import { forwardRef, useId } from "react";
-import type { InputHTMLAttributes, MouseEventHandler } from "react";
+import type {
+  CSSProperties,
+  InputHTMLAttributes,
+  MouseEventHandler,
+  ReactNode,
+} from "react";
 
 import styles from "./TextField.module.css";
 import { Icon } from "@/shared/ui/Icon";
 
+type TextFieldVariant = "floating" | "plain";
+
 type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
-  label: string;
+  label?: string;
   supportingText?: string;
   error?: boolean;
   errorText?: string;
   leadingIcon?: string;
   trailingIcon?: string;
   onTrailingIconClick?: MouseEventHandler<HTMLButtonElement>;
+  width?: number | string;
+  height?: number | string;
+  radius?: number | string;
+  startContent?: ReactNode;
+  endContent?: ReactNode;
   rootClassName?: string;
+  fieldClassName?: string;
+  inputClassName?: string;
+  onRootClick?: MouseEventHandler<HTMLDivElement>;
+  variant?: TextFieldVariant;
+  wrapContent?: boolean;
 };
+
+function toCssSize(value: number | string | undefined): string | undefined {
+  if (typeof value === "number") {
+    return `${value}px`;
+  }
+
+  return value;
+}
 
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
   (
@@ -25,8 +50,20 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
       leadingIcon,
       trailingIcon,
       onTrailingIconClick,
+      width,
+      height,
+      radius,
+      startContent,
+      endContent,
       rootClassName = "",
+      fieldClassName = "",
+      inputClassName = "",
+      onRootClick,
+      variant = "floating",
+      wrapContent = false,
       className = "",
+      placeholder,
+      style,
       id,
       disabled = false,
       type = "text",
@@ -42,9 +79,19 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
       : supportingText;
 
     const resolvedTrailingIcon = error ? "error-filled" : trailingIcon;
+    const isPlain = variant === "plain";
+
+    const rootStyle: CSSProperties = {
+      ...style,
+      "--text-field-width": toCssSize(width),
+      "--text-field-height": toCssSize(height),
+      "--text-field-radius": toCssSize(radius),
+    } as CSSProperties;
 
     const rootClasses = [
       styles.root,
+      isPlain ? styles.plain : "",
+      wrapContent ? styles.wrapContent : "",
       error ? styles.error : "",
       disabled ? styles.disabled : "",
       rootClassName,
@@ -55,7 +102,8 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
     const inputClasses = [
       styles.input,
       leadingIcon ? styles.inputWithLeadingIcon : "",
-      resolvedTrailingIcon ? styles.inputWithTrailingIcon : "",
+      resolvedTrailingIcon || endContent ? styles.inputWithTrailingIcon : "",
+      inputClassName,
       className,
     ]
       .filter(Boolean)
@@ -75,8 +123,10 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
       !disabled;
 
     return (
-      <div className={rootClasses}>
-        <div className={styles.field}>
+      <div className={rootClasses} style={rootStyle} onClick={onRootClick}>
+        <div className={[styles.field, fieldClassName].filter(Boolean).join(" ")}>
+          {startContent}
+
           {leadingIcon ? (
             <span className={styles.leadingIcon} aria-hidden="true">
               <Icon name={leadingIcon} size={24} />
@@ -88,17 +138,21 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
             id={inputId}
             type={type}
             className={inputClasses}
-            placeholder=" "
+            placeholder={isPlain ? placeholder : " "}
             disabled={disabled}
             aria-invalid={error || undefined}
             {...props}
           />
 
-          <label htmlFor={inputId} className={labelClasses}>
-            {label}
-          </label>
+          {!isPlain && label ? (
+            <label htmlFor={inputId} className={labelClasses}>
+              {label}
+            </label>
+          ) : null}
 
-          {resolvedTrailingIcon ? (
+          {endContent}
+
+          {!endContent && resolvedTrailingIcon ? (
             showTrailingButton ? (
               <button
                 type="button"

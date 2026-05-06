@@ -5,8 +5,8 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 24px;
+  gap: 8px;
+  padding: 12px 16px;
   border: 1px solid var(--Text-field);
   border-radius: 20px;
   background: #ffffff;
@@ -16,7 +16,7 @@
 .criteriaRow {
   display: grid;
   gap: 12px;
-  align-items: center;
+  align-items: start;
 }
 
 .topRow {
@@ -60,6 +60,10 @@
   position: relative;
 }
 
+.inputWrap .searchInputField {
+  padding-right: 44px;
+}
+
 .input {
   width: 100%;
   min-height: 48px;
@@ -100,27 +104,13 @@
 }
 
 .addParamButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--bkg);
-  font: inherit;
-  cursor: pointer;
-}
-
-.addParamButton:disabled {
-  color: rgba(29, 27, 32, 0.38);
-  cursor: not-allowed;
+  align-self: center;
 }
 
 .filtersWrap {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
 }
 
@@ -139,10 +129,6 @@
 }
 
 @media (max-width: 640px) {
-  .panel {
-    padding: 16px;
-  }
-
   .filtersWrap,
   .submitActions {
     flex-direction: column;

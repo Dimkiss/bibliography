@@ -1,13 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
-import { Button } from '@/shared/ui/Button';
-import { OutlineButton } from '@/shared/ui/OutlineButton';
-import { Icon } from '@/shared/ui/Icon';
-import { DropdownButton } from '@/shared/ui/DropdownButton';
-import {
-  PublicationsFilterDropdown,
-  type PublicationsFilterOption,
-} from '../PublicationsFilterDropdown';
 import {
   SEARCH_FIELD_OPTIONS,
   formatSearchFieldLabel,
@@ -15,6 +7,17 @@ import {
   type PublicationSearchFormState,
   type SearchFieldKey,
 } from '@/entities/publication';
+import { Button } from '@/shared/ui/Button';
+import { DropdownButton } from '@/shared/ui/DropdownButton';
+import { Icon } from '@/shared/ui/Icon';
+import { OutlineButton } from '@/shared/ui/OutlineButton';
+import { TextField } from '@/shared/ui/TextField';
+import { TextButton } from '@/shared/ui/TextButton';
+import { KeywordSearchInput } from '../KeywordSearchInput';
+import {
+  PublicationsFilterDropdown,
+  type PublicationsFilterOption,
+} from '../PublicationsFilterDropdown';
 import styles from './PublicationSearchPanel.module.css';
 
 type PublicationSearchPanelProps = {
@@ -90,17 +93,14 @@ export function PublicationSearchPanel({
 
     const from = value.yearFrom || (yearMin ? String(yearMin) : 'Год от');
     const to = value.yearTo || (yearMax ? String(yearMax) : 'Год до');
-    return `${from}–${to}`;
+    return `${from}-${to}`;
   }, [value.yearFrom, value.yearTo, yearMin, yearMax]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
 
-      if (
-        yearDropdownRef.current &&
-        !yearDropdownRef.current.contains(target)
-      ) {
+      if (yearDropdownRef.current && !yearDropdownRef.current.contains(target)) {
         setIsYearOpen(false);
       }
 
@@ -151,66 +151,91 @@ export function PublicationSearchPanel({
     onSubmit();
   };
 
-  const renderSearchCriterion = (field: SearchFieldKey, index: number) => (
-    <>
-      <div
-        ref={(node) => {
-          fieldDropdownsRef.current[index] = node;
-        }}
-        className={styles.dropdownWrap}
-      >
-        <DropdownButton
-          label={formatSearchFieldLabel(field)}
-          icon={<Icon name={getFieldIconName(field)} size={18} />}
-          size="normal"
-          variant="tonal"
-          width={248}
-          isOpen={openFieldIndex === index}
-          onClick={() =>
-            setOpenFieldIndex((prev) => (prev === index ? null : index))
-          }
-        />
+  const renderCriterionSelector = (field: SearchFieldKey, index: number) => (
+    <div
+      ref={(node) => {
+        fieldDropdownsRef.current[index] = node;
+      }}
+      className={styles.dropdownWrap}
+    >
+      <DropdownButton
+        label={formatSearchFieldLabel(field)}
+        icon={<Icon name={getFieldIconName(field)} size={18} />}
+        size="normal"
+        variant="tonal"
+        width={248}
+        isOpen={openFieldIndex === index}
+        onClick={() =>
+          setOpenFieldIndex((prev) => (prev === index ? null : index))
+        }
+      />
 
-        {openFieldIndex === index ? (
-          <div className={styles.menu}>
-            <div className={styles.optionsList}>
-              {SEARCH_FIELD_OPTIONS.map((option) => (
-                <button
-                  key={option.key}
-                  type="button"
-                  className={styles.optionButton}
-                  onClick={() => {
-                    handleCriterionChange(index, option.key);
-                    setOpenFieldIndex(null);
-                  }}
-                >
-                  <span className={styles.optionButtonIcon}>
-                    <Icon name={getFieldIconName(option.key)} size={18} />
-                  </span>
-                  <span>{option.label}</span>
-                </button>
-              ))}
-            </div>
+      {openFieldIndex === index ? (
+        <div className={styles.menu}>
+          <div className={styles.optionsList}>
+            {SEARCH_FIELD_OPTIONS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                className={styles.optionButton}
+                onClick={() => {
+                  handleCriterionChange(index, option.key);
+                  setOpenFieldIndex(null);
+                }}
+              >
+                <span className={styles.optionButtonIcon}>
+                  <Icon name={getFieldIconName(option.key)} size={18} />
+                </span>
+                <span>{option.label}</span>
+              </button>
+            ))}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
+    </div>
+  );
 
+  const renderFieldInput = (field: SearchFieldKey, index: number) => {
+    if (field === 'keyword') {
+      return (
+        <KeywordSearchInput
+          value={value.keyword}
+          placeholder={getSearchFieldPlaceholder(field)}
+          onChange={(nextValue) => onFieldChange(field, nextValue)}
+          onRemoveCriterion={() => handleRemoveCriterion(index)}
+        />
+      );
+    }
+
+    return (
       <div className={styles.inputWrap}>
-        <input
-          className={styles.input}
+        <TextField
+          variant="plain"
           value={value[field]}
           onChange={(event) => onFieldChange(field, event.target.value)}
           placeholder={getSearchFieldPlaceholder(field)}
+          height={40}
+          radius={4}
+          fieldClassName={styles.searchInputField}
+          endContent={
+            <button
+              type="button"
+              className={styles.removeButton}
+              onClick={() => handleRemoveCriterion(index)}
+              aria-label={`Удалить критерий ${formatSearchFieldLabel(field)}`}
+            >
+              <Icon name="close" size={18} />
+            </button>
+          }
         />
-        <button
-          type="button"
-          className={styles.removeButton}
-          onClick={() => handleRemoveCriterion(index)}
-          aria-label={`РЈРґР°Р»РёС‚СЊ РєСЂРёС‚РµСЂРёР№ ${formatSearchFieldLabel(field)}`}
-        >
-          <Icon name="close" size={18} />
-        </button>
       </div>
+    );
+  };
+
+  const renderSearchCriterion = (field: SearchFieldKey, index: number) => (
+    <>
+      {renderCriterionSelector(field, index)}
+      {renderFieldInput(field, index)}
     </>
   );
 
@@ -221,7 +246,7 @@ export function PublicationSearchPanel({
           <div ref={yearDropdownRef} className={styles.dropdownWrap}>
             <DropdownButton
               label={periodLabel}
-              icon={<Icon name="calendar_month" size={18} />}
+              icon={<Icon name="calendar_renge" size={18} />}
               size="normal"
               variant="tonal"
               width={248}
@@ -247,7 +272,7 @@ export function PublicationSearchPanel({
                       }
                     />
 
-                    <span className={styles.yearSeparator}>—</span>
+                    <span className={styles.yearSeparator}>-</span>
 
                     <input
                       className={styles.yearInput}
@@ -319,76 +344,19 @@ export function PublicationSearchPanel({
           const index = restIndex + 1;
 
           return (
-          <div key={`${field}-${index}`} className={styles.criteriaRow}>
-            <div
-              ref={(node) => {
-                fieldDropdownsRef.current[index] = node;
-              }}
-              className={styles.dropdownWrap}
-            >
-              <DropdownButton
-                label={formatSearchFieldLabel(field)}
-                icon={<Icon name={getFieldIconName(field)} size={18} />}
-                size="normal"
-                variant="tonal"
-                width={248}
-                isOpen={openFieldIndex === index}
-                onClick={() =>
-                  setOpenFieldIndex((prev) => (prev === index ? null : index))
-                }
-              />
-
-              {openFieldIndex === index ? (
-                <div className={styles.menu}>
-                  <div className={styles.optionsList}>
-                    {SEARCH_FIELD_OPTIONS.map((option) => (
-                      <button
-                        key={option.key}
-                        type="button"
-                        className={styles.optionButton}
-                        onClick={() => {
-                          handleCriterionChange(index, option.key);
-                          setOpenFieldIndex(null);
-                        }}
-                      >
-                        <span className={styles.optionButtonIcon}>
-                          <Icon
-                            name={getFieldIconName(option.key)}
-                            size={18}
-                          />
-                        </span>
-                        <span>{option.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+            <div key={`${field}-${index}`} className={styles.criteriaRow}>
+              {renderSearchCriterion(field, index)}
             </div>
-
-            <div className={styles.inputWrap}>
-              <input
-                className={styles.input}
-                value={value[field]}
-                onChange={(event) => onFieldChange(field, event.target.value)}
-                placeholder={getSearchFieldPlaceholder(field)}
-              />
-              <button
-                type="button"
-                className={styles.removeButton}
-                onClick={() => handleRemoveCriterion(index)}
-                aria-label={`Удалить критерий ${formatSearchFieldLabel(field)}`}
-              >
-                <Icon name="close" size={18} />
-              </button>
-            </div>
-          </div>
           );
         })}
 
         <div className={styles.actionsRow}>
-          <button
-            type="button"
+          <TextButton
             className={styles.addParamButton}
+            label="Добавить параметр поиска"
+            iconName="add"
+            size="normal"
+            width={248}
             disabled={!availableFields.length}
             onClick={() => {
               if (!availableFields.length) {
@@ -397,10 +365,7 @@ export function PublicationSearchPanel({
 
               onActiveFieldsChange([...activeFields, availableFields[0].key]);
             }}
-          >
-            <Icon name="add" size={18} />
-            <span>Добавить параметр поиска</span>
-          </button>
+          />
 
           <div className={styles.filtersWrap}>
             <PublicationsFilterDropdown
@@ -429,11 +394,17 @@ export function PublicationSearchPanel({
           </div>
 
           <div className={styles.submitActions}>
-            <OutlineButton label="Сброс" size="normal" onClick={onReset} />
+            <OutlineButton
+              label="Сброс"
+              size="normal"
+              width={118}
+              onClick={onReset}
+            />
             <Button
               type="submit"
               label={isLoading ? 'Поиск...' : 'Поиск'}
               size="normal"
+              width={118}
               iconName="search"
               disabled={isLoading}
             />

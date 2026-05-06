@@ -4,6 +4,7 @@ import { Header } from "@/widgets/Header";
 import { Footer } from "@/widgets/Footer";
 import { PublicationList } from "@/widgets/PublicationList";
 import { AnalyticsPanel } from "@/widgets/AnalyticsPanel";
+import { PublicationQuickSearchPanel } from "@/features/search-publications";
 
 
 export function MainPage() {
@@ -13,6 +14,7 @@ export function MainPage() {
 
       <main className={styles.main}>
         <div className="container app-block-group">
+          <PublicationQuickSearchPanel />
           <AnalyticsPanel />
           <PublicationList />
         </div>

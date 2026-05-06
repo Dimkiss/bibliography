@@ -94,7 +94,7 @@ export type GetPublicationsParams = {
   title?: string;
   author?: string;
   journal?: string;
-  keyword?: string;
+  keyword?: string | string[];
   yearFrom?: number | null;
   yearTo?: number | null;
   publicationTypes?: string[];
@@ -103,6 +103,17 @@ export type GetPublicationsParams = {
   sortBy?: PublicationSortField;
   sortOrder?: PublicationSortOrder;
 };
+
+function splitSearchValues(value: string): string[] {
+  return value
+    .split(/[;,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter(
+      (item, index, array) =>
+        array.findIndex((entry) => entry.toLowerCase() === item.toLowerCase()) === index,
+    );
+}
 
 type RawLatestPublicationDto = {
   id?: number;
@@ -204,9 +215,15 @@ export async function getPublications(
     searchParams.set('journal', params.journal.trim());
   }
 
-  if (params.keyword?.trim()) {
-    searchParams.set('keyword', params.keyword.trim());
-  }
+  const keywordValues = Array.isArray(params.keyword)
+    ? params.keyword
+    : splitSearchValues(params.keyword ?? '');
+
+  keywordValues.forEach((value) => {
+    if (value.trim()) {
+      searchParams.append('keyword', value.trim());
+    }
+  });
 
   if (typeof params.yearFrom === 'number') {
     searchParams.set('year_from', String(params.yearFrom));

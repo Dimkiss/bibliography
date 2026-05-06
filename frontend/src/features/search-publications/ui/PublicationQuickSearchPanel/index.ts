@@ -1,0 +1,1 @@
+export { PublicationQuickSearchPanel } from './PublicationQuickSearchPanel';
