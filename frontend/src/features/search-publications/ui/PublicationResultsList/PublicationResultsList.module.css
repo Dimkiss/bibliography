@@ -373,26 +373,6 @@
   justify-content: center;
 }
 
-.quartileBadge {
-  min-width: 36px;
-  min-height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 9px;
-  border: 1px solid var(--outline);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--blue);
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  line-height: 22px;
-}
-
-.emptyBadge {
-  color: var(--Scrollbar);
-}
-
 .rowActions {
   display: inline-flex;
   flex-direction: column;

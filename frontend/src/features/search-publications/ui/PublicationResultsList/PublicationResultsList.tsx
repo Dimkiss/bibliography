@@ -18,6 +18,7 @@ import {
 } from '@/entities/publication';
 import { Icon } from '@/shared/ui/Icon';
 import { Checkbox } from '@/shared/ui/Checkbox';
+import { Quartile } from '@/shared/ui/Quartile';
 import {
   PUBLICATIONS_SORT_FIELD_OPTIONS,
   type PublicationsSortFieldValue,
@@ -43,16 +44,6 @@ type PublicationResultsListProps = {
   onSortFieldChange: (value: PublicationsSortFieldValue) => void;
   onSortOrderChange: (value: PublicationSortOrder) => void;
 };
-
-function getQuartileValue(item: PublicationListItemDto): string {
-  const rawValue = (item.quartile || item.quartile_scopus || '').trim();
-
-  if (!rawValue || rawValue === '-') {
-    return '—';
-  }
-
-  return rawValue.toLowerCase().startsWith('q') ? rawValue.toUpperCase() : `Q${rawValue}`;
-}
 
 function formatRecordsCountLabel(count: number): string {
   const mod10 = Math.abs(count) % 10;
@@ -121,16 +112,7 @@ function DoiValue({ doi }: { doi: string | null }) {
 }
 
 function QuartileBadge({ item }: { item: PublicationListItemDto }) {
-  const value = getQuartileValue(item);
-
-  return (
-    <span className={[styles.quartileBadge, value === '—' ? styles.emptyBadge : '']
-      .filter(Boolean)
-      .join(' ')}
-    >
-      {value}
-    </span>
-  );
+  return <Quartile value={item.quartile || item.quartile_scopus} />;
 }
 
 function RowActions({
