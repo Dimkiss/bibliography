@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Footer } from '@/widgets/Footer';
 import { Header } from '@/widgets/Header';
@@ -6,6 +6,7 @@ import {
   PublicationResultsList,
   PublicationSearchPanel,
   PublicationsPagination,
+  type PublicationResultsViewMode,
 } from '@/features/search-publications';
 import {
   buildPublicationsQueryFromForm,
@@ -19,6 +20,7 @@ import {
   type PublicationListItemDto,
   type PublicationSearchFormState,
   type PublicationsPaginationDto,
+  type PublicationsResponseDto,
   type PublicationsSortFieldValue,
   type PublicationSortOrder,
   type SearchFieldKey,
@@ -45,6 +47,143 @@ const EMPTY_FILTERS: PublicationFiltersDto = {
   databases: [],
   original_translation_modes: [],
 };
+
+const PUBLICATIONS_SEARCH_STATE_KEY = 'publications:search-state';
+
+type PublicationsPageSearchState = {
+  form: PublicationSearchFormState;
+  activeFields: SearchFieldKey[];
+  appliedForm: PublicationSearchFormState;
+  appliedFields: SearchFieldKey[];
+  items: PublicationListItemDto[];
+  pagination: PublicationsPaginationDto;
+  selectedPublicationIds: number[];
+  viewMode: PublicationResultsViewMode;
+  sortField: PublicationsSortFieldValue;
+  sortOrder: PublicationSortOrder;
+  hasSearched: boolean;
+  restoredFromStorage?: boolean;
+};
+
+function cloneSearchForm(
+  form: PublicationSearchFormState,
+): PublicationSearchFormState {
+  return {
+    ...form,
+    publicationTypes: [...form.publicationTypes],
+    databases: [...form.databases],
+  };
+}
+
+function isSearchFieldKey(value: string): value is SearchFieldKey {
+  return SEARCH_FIELD_OPTIONS.some((option) => option.key === value);
+}
+
+function isSortFieldValue(value: string): value is PublicationsSortFieldValue {
+  return ['authors', 'title', 'journal', 'year', 'doi', 'quartile'].includes(value);
+}
+
+function isPublicationResultsViewMode(value: unknown): value is PublicationResultsViewMode {
+  return value === 'list' || value === 'table';
+}
+
+function normalizeSelectedPublicationIds(value: unknown): number[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const ids = value.filter(
+    (item): item is number =>
+      typeof item === 'number' && Number.isInteger(item) && item > 0,
+  );
+
+  return Array.from(new Set(ids));
+}
+
+function normalizeSearchFields(value: unknown): SearchFieldKey[] {
+  if (!Array.isArray(value)) {
+    return [...DEFAULT_ACTIVE_FIELDS];
+  }
+
+  const fields = value.filter(
+    (item): item is SearchFieldKey => typeof item === 'string' && isSearchFieldKey(item),
+  );
+
+  return fields.length ? fields : [...DEFAULT_ACTIVE_FIELDS];
+}
+
+function normalizeSearchForm(value: unknown): PublicationSearchFormState {
+  if (!value || typeof value !== 'object') {
+    return cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM);
+  }
+
+  const form = value as Partial<Record<keyof PublicationSearchFormState, unknown>>;
+
+  return {
+    yearFrom: typeof form.yearFrom === 'string' ? form.yearFrom : '',
+    yearTo: typeof form.yearTo === 'string' ? form.yearTo : '',
+    author: typeof form.author === 'string' ? form.author : '',
+    title: typeof form.title === 'string' ? form.title : '',
+    journal: typeof form.journal === 'string' ? form.journal : '',
+    keyword: typeof form.keyword === 'string' ? form.keyword : '',
+    publicationTypes: Array.isArray(form.publicationTypes)
+      ? form.publicationTypes.filter((item): item is string => typeof item === 'string')
+      : [],
+    databases: Array.isArray(form.databases)
+      ? form.databases.filter((item): item is string => typeof item === 'string')
+      : [],
+    originalTranslationMode:
+      typeof form.originalTranslationMode === 'string'
+        ? form.originalTranslationMode
+        : 'all',
+  };
+}
+
+function normalizePagination(value: unknown): PublicationsPaginationDto {
+  if (!value || typeof value !== 'object') {
+    return DEFAULT_PAGINATION;
+  }
+
+  const pagination = value as Partial<Record<keyof PublicationsPaginationDto, unknown>>;
+
+  return {
+    page: typeof pagination.page === 'number' ? pagination.page : DEFAULT_PAGINATION.page,
+    page_size:
+      typeof pagination.page_size === 'number'
+        ? pagination.page_size
+        : DEFAULT_PAGINATION.page_size,
+    total:
+      typeof pagination.total === 'number' ? pagination.total : DEFAULT_PAGINATION.total,
+    total_pages:
+      typeof pagination.total_pages === 'number'
+        ? pagination.total_pages
+        : DEFAULT_PAGINATION.total_pages,
+  };
+}
+
+function areStringArraysEqual(first: string[], second: string[]): boolean {
+  return (
+    first.length === second.length &&
+    first.every((value, index) => value === second[index])
+  );
+}
+
+function areSearchFormsEqual(
+  first: PublicationSearchFormState,
+  second: PublicationSearchFormState,
+): boolean {
+  return (
+    first.yearFrom === second.yearFrom &&
+    first.yearTo === second.yearTo &&
+    first.author === second.author &&
+    first.title === second.title &&
+    first.journal === second.journal &&
+    first.keyword === second.keyword &&
+    first.originalTranslationMode === second.originalTranslationMode &&
+    areStringArraysEqual(first.publicationTypes, second.publicationTypes) &&
+    areStringArraysEqual(first.databases, second.databases)
+  );
+}
 
 function getInitialSearchStateFromUrl(): {
   form: PublicationSearchFormState;
@@ -74,9 +213,112 @@ function getInitialSearchStateFromUrl(): {
   };
 }
 
+function getStoredSearchState(): PublicationsPageSearchState | null {
+  try {
+    const storedValue = window.sessionStorage.getItem(PUBLICATIONS_SEARCH_STATE_KEY);
+
+    if (!storedValue) {
+      return null;
+    }
+
+    const parsed = JSON.parse(storedValue) as Partial<PublicationsPageSearchState>;
+    const form = normalizeSearchForm(parsed.form);
+    const activeFields = normalizeSearchFields(parsed.activeFields);
+    const appliedForm = normalizeSearchForm(parsed.appliedForm);
+    const appliedFields = normalizeSearchFields(parsed.appliedFields);
+    const sortField =
+      typeof parsed.sortField === 'string' && isSortFieldValue(parsed.sortField)
+        ? parsed.sortField
+        : 'year';
+    const sortOrder = parsed.sortOrder === 'asc' ? 'asc' : 'desc';
+
+    return {
+      form,
+      activeFields,
+      appliedForm,
+      appliedFields,
+      items: Array.isArray(parsed.items) ? parsed.items : [],
+      pagination: normalizePagination(parsed.pagination),
+      selectedPublicationIds: normalizeSelectedPublicationIds(
+        parsed.selectedPublicationIds,
+      ),
+      viewMode: isPublicationResultsViewMode(parsed.viewMode)
+        ? parsed.viewMode
+        : 'list',
+      sortField,
+      sortOrder,
+      hasSearched:
+        typeof parsed.hasSearched === 'boolean'
+          ? parsed.hasSearched
+          : hasPublicationSearchCriteria(appliedForm, appliedFields),
+    };
+  } catch {
+    window.sessionStorage.removeItem(PUBLICATIONS_SEARCH_STATE_KEY);
+    return null;
+  }
+}
+
+function getInitialSearchState(): PublicationsPageSearchState {
+  if (window.location.search) {
+    const stateFromUrl = getInitialSearchStateFromUrl();
+    const storedState = getStoredSearchState();
+
+    if (
+      storedState?.hasSearched &&
+      areSearchFormsEqual(storedState.appliedForm, stateFromUrl.form) &&
+      areStringArraysEqual(storedState.appliedFields, stateFromUrl.activeFields)
+    ) {
+      return {
+        ...storedState,
+        restoredFromStorage: true,
+      };
+    }
+
+    return {
+      form: cloneSearchForm(stateFromUrl.form),
+      activeFields: [...stateFromUrl.activeFields],
+      appliedForm: cloneSearchForm(stateFromUrl.form),
+      appliedFields: [...stateFromUrl.activeFields],
+      items: [],
+      pagination: DEFAULT_PAGINATION,
+      selectedPublicationIds: [],
+      viewMode: 'list',
+      sortField: 'year',
+      sortOrder: 'desc',
+      hasSearched: stateFromUrl.hasSearched,
+    };
+  }
+
+  const storedState = getStoredSearchState();
+
+  if (storedState) {
+    return {
+      ...storedState,
+      restoredFromStorage: true,
+    };
+  }
+
+  return {
+    form: cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM),
+    activeFields: [...DEFAULT_ACTIVE_FIELDS],
+    appliedForm: cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM),
+    appliedFields: [...DEFAULT_ACTIVE_FIELDS],
+    items: [],
+    pagination: DEFAULT_PAGINATION,
+    selectedPublicationIds: [],
+    viewMode: 'list',
+    sortField: 'year',
+    sortOrder: 'desc',
+    hasSearched: false,
+  };
+}
+
 export function PublicationsPage() {
   const { user, isAuthenticated } = useAuth();
-  const initialSearchState = useState(getInitialSearchStateFromUrl)[0];
+  const initialSearchState = useState(getInitialSearchState)[0];
+  const shouldSkipInitialResultsFetch = useRef(
+    Boolean(initialSearchState.restoredFromStorage && initialSearchState.hasSearched),
+  );
   const [filters, setFilters] = useState<PublicationFiltersDto>(EMPTY_FILTERS);
   const [form, setForm] = useState<PublicationSearchFormState>(
     initialSearchState.form,
@@ -84,18 +326,30 @@ export function PublicationsPage() {
   const [activeFields, setActiveFields] = useState<SearchFieldKey[]>(
     initialSearchState.activeFields,
   );
-  const [items, setItems] = useState<PublicationListItemDto[]>([]);
+  const [items, setItems] = useState<PublicationListItemDto[]>(
+    initialSearchState.items,
+  );
   const [pagination, setPagination] = useState<PublicationsPaginationDto>(
-    DEFAULT_PAGINATION,
+    initialSearchState.pagination,
+  );
+  const [selectedPublicationIds, setSelectedPublicationIds] = useState<number[]>(
+    initialSearchState.selectedPublicationIds,
+  );
+  const [viewMode, setViewMode] = useState<PublicationResultsViewMode>(
+    initialSearchState.viewMode,
   );
   const [appliedForm, setAppliedForm] = useState<PublicationSearchFormState>(
-    initialSearchState.form,
+    initialSearchState.appliedForm,
   );
   const [appliedFields, setAppliedFields] = useState<SearchFieldKey[]>(
-    initialSearchState.activeFields,
+    initialSearchState.appliedFields,
   );
-  const [sortField, setSortField] = useState<PublicationsSortFieldValue>('year');
-  const [sortOrder, setSortOrder] = useState<PublicationSortOrder>('desc');
+  const [sortField, setSortField] = useState<PublicationsSortFieldValue>(
+    initialSearchState.sortField,
+  );
+  const [sortOrder, setSortOrder] = useState<PublicationSortOrder>(
+    initialSearchState.sortOrder,
+  );
   const [isFiltersLoading, setIsFiltersLoading] = useState(true);
   const [isResultsLoading, setIsResultsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(initialSearchState.hasSearched);
@@ -104,6 +358,7 @@ export function PublicationsPage() {
   const canCreatePublication = Boolean(
     isAuthenticated && user?.role_id === ADMIN_ROLE_ID,
   );
+
   useEffect(() => {
     let isMounted = true;
 
@@ -163,7 +418,45 @@ export function PublicationsPage() {
   }, []);
 
   useEffect(() => {
+    const stateToStore: PublicationsPageSearchState = {
+      form: cloneSearchForm(form),
+      activeFields: [...activeFields],
+      appliedForm: cloneSearchForm(appliedForm),
+      appliedFields: [...appliedFields],
+      items,
+      pagination,
+      selectedPublicationIds,
+      viewMode,
+      sortField,
+      sortOrder,
+      hasSearched,
+    };
+
+    window.sessionStorage.setItem(
+      PUBLICATIONS_SEARCH_STATE_KEY,
+      JSON.stringify(stateToStore),
+    );
+  }, [
+    activeFields,
+    appliedFields,
+    appliedForm,
+    form,
+    hasSearched,
+    items,
+    pagination,
+    selectedPublicationIds,
+    sortField,
+    sortOrder,
+    viewMode,
+  ]);
+
+  useEffect(() => {
     if (!hasSearched) {
+      return;
+    }
+
+    if (shouldSkipInitialResultsFetch.current) {
+      shouldSkipInitialResultsFetch.current = false;
       return;
     }
 
@@ -183,7 +476,7 @@ export function PublicationsPage() {
           sortOrder,
         );
 
-        const response = await getPublications(query);
+        const response: PublicationsResponseDto = await getPublications(query);
 
         if (!isMounted) {
           return;
@@ -236,10 +529,12 @@ export function PublicationsPage() {
       setError(null);
       setHasSearched(false);
       setPagination(DEFAULT_PAGINATION);
+      setSelectedPublicationIds([]);
       return;
     }
 
     setHasSearched(true);
+    setSelectedPublicationIds([]);
     setAppliedForm({
       ...form,
       publicationTypes: [...form.publicationTypes],
@@ -253,6 +548,7 @@ export function PublicationsPage() {
   };
 
   const handleReset = () => {
+    window.sessionStorage.removeItem(PUBLICATIONS_SEARCH_STATE_KEY);
     setForm(INITIAL_PUBLICATION_SEARCH_FORM);
     setAppliedForm({
       ...INITIAL_PUBLICATION_SEARCH_FORM,
@@ -264,9 +560,37 @@ export function PublicationsPage() {
     setSortField('year');
     setSortOrder('desc');
     setItems([]);
+    setSelectedPublicationIds([]);
     setError(null);
     setHasSearched(false);
     setPagination(DEFAULT_PAGINATION);
+  };
+
+  const handleToggleItemSelection = (id: number) => {
+    setSelectedPublicationIds((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id],
+    );
+  };
+
+  const handleTogglePageSelection = (ids: number[], shouldSelect: boolean) => {
+    if (!ids.length) {
+      return;
+    }
+
+    setSelectedPublicationIds((prev) => {
+      const idSet = new Set(prev);
+
+      ids.forEach((id) => {
+        if (shouldSelect) {
+          idSet.add(id);
+          return;
+        }
+
+        idSet.delete(id);
+      });
+
+      return Array.from(idSet);
+    });
   };
 
   return (
@@ -327,14 +651,20 @@ export function PublicationsPage() {
             />
 
             {hasSearched ? (
-              <div className={styles.resultsBlock}>
+              <div className={`app-surface ${styles.resultsBlock}`}>
                 <PublicationResultsList
                   items={items}
                   total={pagination.total}
+                  startIndex={(pagination.page - 1) * pagination.page_size}
                   isLoading={isResultsLoading}
                   error={error}
+                  selectedIds={selectedPublicationIds}
+                  viewMode={viewMode}
                   sortField={sortField}
                   sortOrder={sortOrder}
+                  onViewModeChange={setViewMode}
+                  onToggleItemSelection={handleToggleItemSelection}
+                  onTogglePageSelection={handleTogglePageSelection}
                   onSortFieldChange={(value) => {
                     setSortField(value);
                     setPagination((prev) => ({

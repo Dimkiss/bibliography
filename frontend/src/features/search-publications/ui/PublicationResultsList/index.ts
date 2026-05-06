@@ -1,1 +1,4 @@
-export { PublicationResultsList } from './PublicationResultsList';
+export {
+  PublicationResultsList,
+  type PublicationResultsViewMode,
+} from './PublicationResultsList';
