@@ -128,7 +128,10 @@ export function PublicationQuickSearchPanel() {
   };
 
   return (
-    <section className={styles.section} aria-labelledby="quick-search-title">
+    <section
+      className={`app-surface ${styles.section}`}
+      aria-labelledby="quick-search-title"
+    >
       <h2 id="quick-search-title" className={styles.title}>
         Поиск публикаций
       </h2>

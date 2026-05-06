@@ -241,7 +241,7 @@ export function PublicationSearchPanel({
 
   return (
     <section className={styles.section}>
-      <form className={styles.panel} onSubmit={handleSubmit}>
+      <form className={`app-surface ${styles.panel}`} onSubmit={handleSubmit}>
         <div className={styles.topRow}>
           <div ref={yearDropdownRef} className={styles.dropdownWrap}>
             <DropdownButton

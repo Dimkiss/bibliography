@@ -40,7 +40,8 @@
   --app-block-gap: 12px;
   --app-block-group-offset: 16px;
   --app-surface-padding: 12px 16px;
-  --app-surface-border: 1px solid var(--outline);
+  --app-surface-border: 1px solid var(--Text-field);
+  --app-surface-radius: 16px;
   --app-surface-background: var(--article-menu);
 }
 
@@ -80,6 +81,6 @@ a {
 .app-surface {
   padding: var(--app-surface-padding);
   border: var(--app-surface-border);
-  border-radius: var(--radius);
+  border-radius: var(--app-surface-radius);
   background: var(--app-surface-background);
 }
