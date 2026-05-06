@@ -1,7 +1,26 @@
+import { useEffect, useRef, useState } from 'react';
+
 import { Icon } from '@/shared/ui/Icon';
 import styles from './Pagination.module.css';
 
 type PageItem = number | 'ellipsis';
+
+type PaginationButtonProps = {
+  iconName?: string;
+  text?: string;
+  variant?: 'nav' | 'page' | 'top';
+  isActive?: boolean;
+  disabled?: boolean;
+  ariaLabel?: string;
+  onClick?: () => void;
+};
+
+type PageSizeSelectProps = {
+  id: string;
+  value: number;
+  options: number[];
+  onChange: (nextPageSize: number) => void;
+};
 
 export type PaginationProps = {
   page: number;
@@ -36,7 +55,106 @@ function buildPages(currentPage: number, totalPages: number): PageItem[] {
     ];
   }
 
-  return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages];
+  return [
+    1,
+    'ellipsis',
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    'ellipsis',
+    totalPages,
+  ];
+}
+
+function PaginationButton({
+  iconName,
+  text,
+  variant = 'nav',
+  isActive = false,
+  disabled = false,
+  ariaLabel,
+  onClick,
+}: PaginationButtonProps) {
+  return (
+    <button
+      type="button"
+      className={[
+        styles.button,
+        variant === 'page' ? styles.buttonPage : '',
+        variant === 'top' ? styles.buttonTop : '',
+        isActive ? styles.buttonActive : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      {iconName ? <Icon name={iconName} size={18} /> : null}
+      {text ? <span className={styles.buttonText}>{text}</span> : null}
+    </button>
+  );
+}
+
+function PageSizeSelect({ id, value, options, onChange }: PageSizeSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <div ref={rootRef} className={styles.pageSizeSelectWrap}>
+      <button
+        id={id}
+        type="button"
+        className={styles.pageSizeSelect}
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <span>{value}</span>
+        <Icon name="arrow_drop_down" size={18} />
+      </button>
+
+      {isOpen ? (
+        <div className={styles.pageSizeMenu} role="listbox" aria-labelledby={id}>
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={[
+                styles.pageSizeOption,
+                option === value ? styles.pageSizeOptionActive : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => {
+                onChange(option);
+                setIsOpen(false);
+              }}
+              role="option"
+              aria-selected={option === value}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function Pagination({
@@ -55,6 +173,12 @@ export function Pagination({
   }
 
   const pages = buildPages(page, totalPages);
+  const handleScrollTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
 
   return (
     <div className={styles.root}>
@@ -62,79 +186,77 @@ export function Pagination({
         <label className={styles.pageSizeLabel} htmlFor={pageSizeSelectId}>
           {itemLabel} на странице:
         </label>
-        <select
+        <PageSizeSelect
           id={pageSizeSelectId}
-          className={styles.pageSizeSelect}
           value={pageSize}
-          onChange={(event) => onPageSizeChange(Number(event.target.value))}
-        >
-          {pageSizeOptions.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </select>
+          options={pageSizeOptions}
+          onChange={onPageSizeChange}
+        />
       </div>
 
       <div className={styles.controls}>
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={() => onPageChange(1)}
-          disabled={page <= 1}
-          aria-label="Первая страница"
-        >
-          <Icon name="first-page" size={18} />
-        </button>
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={() => onPageChange(page - 1)}
-          disabled={page <= 1}
-          aria-label="Предыдущая страница"
-        >
-          <Icon name="chevron_backward" size={18} />
-        </button>
+        <div className={styles.navGroup}>
+          <PaginationButton
+            iconName="first-page"
+            onClick={() => onPageChange(1)}
+            disabled={page <= 1}
+            ariaLabel="Первая страница"
+          />
+          <PaginationButton
+            iconName="chevron_backward"
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 1}
+            ariaLabel="Предыдущая страница"
+          />
+        </div>
 
         <div className={styles.pages}>
           {pages.map((item, index) =>
             item === 'ellipsis' ? (
-              <span key={`ellipsis-${index}`} className={styles.ellipsis}>
-                ...
-              </span>
+              <PaginationButton
+                key={`ellipsis-${index}`}
+                variant="page"
+                text="..."
+                disabled
+                ariaLabel="Скрытые страницы"
+              />
             ) : (
-              <button
+              <PaginationButton
                 key={item}
-                type="button"
-                className={[styles.pageButton, item === page ? styles.pageButtonActive : '']
-                  .filter(Boolean)
-                  .join(' ')}
+                variant="page"
+                text={String(item)}
+                isActive={item === page}
                 onClick={() => onPageChange(item)}
-              >
-                {item}
-              </button>
+                ariaLabel={`Страница ${item}`}
+              />
             ),
           )}
         </div>
 
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={() => onPageChange(page + 1)}
-          disabled={page >= totalPages}
-          aria-label="Следующая страница"
-        >
-          <Icon name="chevron_forward" size={18} />
-        </button>
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={() => onPageChange(totalPages)}
-          disabled={page >= totalPages}
-          aria-label="Последняя страница"
-        >
-          <Icon name="last-page" size={18} />
-        </button>
+        <div className={styles.navGroup}>
+          <PaginationButton
+            iconName="chevron_forward"
+            onClick={() => onPageChange(page + 1)}
+            disabled={page >= totalPages}
+            ariaLabel="Следующая страница"
+          />
+          <PaginationButton
+            iconName="last-page"
+            onClick={() => onPageChange(totalPages)}
+            disabled={page >= totalPages}
+            ariaLabel="Последняя страница"
+          />
+        </div>
+      </div>
+
+      <div className={styles.topAction}>
+        <PaginationButton
+          variant="top"
+          iconName="arrow-upward"
+          text="Наверх"
+          ariaLabel="Наверх страницы"
+          onClick={handleScrollTop}
+        />
       </div>
     </div>
   );
