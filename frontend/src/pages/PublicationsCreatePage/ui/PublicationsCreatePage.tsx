@@ -10,6 +10,7 @@ import {
   searchAdminArticles,
   searchAdminJournals,
   searchAdminPublishers,
+  uploadAdminArticlePdf,
   type AdminOptionDto,
   type ArticleSearchItemDto,
   type PublicationTypeDto,
@@ -47,6 +48,7 @@ type FormState = {
   extentOfWork: string;
   notes: string;
   pdfFileName: string;
+  pdfFile: File | null;
 };
 
 const INITIAL_FORM: FormState = {
@@ -71,6 +73,7 @@ const INITIAL_FORM: FormState = {
   extentOfWork: '',
   notes: '',
   pdfFileName: '',
+  pdfFile: null,
 };
 
 function getWorkFormLabel(item: WorkFormTypeDto): string {
@@ -512,9 +515,16 @@ export function PublicationsCreatePage() {
 
     try {
       const createdArticle = await createAdminArticle(payload);
+
+      if (form.pdfFile) {
+        await uploadAdminArticlePdf(createdArticle.id, form.pdfFile);
+      }
       setSuccessMessage(`Публикация успешно добавлена. ID: ${createdArticle.id}`);
       setSelectorMode(null);
       setForm((prev) => buildEmptyForm(prev, prev.workFormType, prev.publicationTypeFlag));
+      if (pdfInputRef.current) {
+        pdfInputRef.current.value = '';
+      }
 
       window.setTimeout(() => {
         navigateTo('/articles');
@@ -1112,6 +1122,7 @@ export function PublicationsCreatePage() {
                     setForm((prev) => ({
                       ...prev,
                       pdfFileName: file?.name ?? '',
+                      pdfFile: file,
                     }));
                   }}
                 />

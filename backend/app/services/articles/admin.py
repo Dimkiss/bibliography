@@ -26,6 +26,7 @@ from app.services.articles.pagination import (
     build_pagination_meta,
 )
 from app.services.articles import public as public_service
+from app.services.articles import pdf_files
 
 
 def _payload_to_dict(payload: Any, *, exclude_unset: bool = False) -> dict[str, Any]:
@@ -1078,6 +1079,7 @@ def delete_article(
         )
 
         db.commit()
+        pdf_files.delete_article_pdf(article_id)
     except IntegrityError as exc:
         db.rollback()
         raise ArticleConflictError(

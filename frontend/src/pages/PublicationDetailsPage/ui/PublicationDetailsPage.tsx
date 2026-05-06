@@ -6,6 +6,7 @@ import { Icon } from '@/shared/ui/Icon';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import {
   getPublicationDetail,
+  getPublicationPdfUrl,
   type PublicationDetailDto,
   type PublicationMetricDto,
   type RelatedPublicationDto,
@@ -253,14 +254,25 @@ export function PublicationDetailsPage() {
                       <Icon name="copy" size={20} />
                     </button>
 
-                    <button
-                      type="button"
-                      className={styles.iconButton}
-                      disabled
-                      aria-label="PDF недоступен"
-                    >
-                      <Icon name="pdf-color" size={20} colored />
-                    </button>
+                    {item.has_pdf ? (
+                      <a
+                        className={styles.iconButton}
+                        href={getPublicationPdfUrl(item.id)}
+                        download
+                        aria-label="Скачать PDF"
+                      >
+                        <Icon name="pdf-color" size={20} colored />
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.iconButton}
+                        disabled
+                        aria-label="PDF недоступен"
+                      >
+                        <Icon name="pdf-color" size={20} colored />
+                      </button>
+                    )}
                   </div>
                 </div>
 

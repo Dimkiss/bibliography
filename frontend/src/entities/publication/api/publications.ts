@@ -86,6 +86,7 @@ export type PublicationDetailDto = {
   keywords: string[];
   metrics: PublicationMetricDto[];
   related_articles: RelatedPublicationDto[];
+  has_pdf: boolean;
 };
 
 export type GetPublicationsParams = {
@@ -290,4 +291,8 @@ export async function getPublicationDetail(
   }
 
   return response.json();
+}
+
+export function getPublicationPdfUrl(articleId: number): string {
+  return `${API_BASE_URL}/articles/${articleId}/pdf`;
 }

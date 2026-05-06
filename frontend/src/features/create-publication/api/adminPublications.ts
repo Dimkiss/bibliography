@@ -321,3 +321,25 @@ export async function createAdminArticle(
 
   return response.json();
 }
+
+export async function uploadAdminArticlePdf(
+  articleId: number,
+  file: File,
+): Promise<{ article_id: number; has_pdf: boolean }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/admin/articles/${articleId}/pdf`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+
+  return response.json();
+}

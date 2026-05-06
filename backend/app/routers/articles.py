@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -10,6 +11,7 @@ from app.schemas.article import (
     ArticleListResponse,
 )
 from app.services.articles import public as article_service
+from app.services.articles import pdf_files
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 
@@ -64,6 +66,27 @@ def get_latest_articles(
     db: Session = Depends(get_db),
 ):
     return article_service.get_latest_articles(db=db, limit=limit)
+
+
+@router.get("/{article_id}/pdf")
+def download_article_pdf(
+    article_id: int,
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    try:
+        article_service.get_article_detail(article_id=article_id, db=db)
+    except article_service.ArticleNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    pdf_path = pdf_files.get_pdf_path(article_id)
+    if not pdf_path.is_file():
+        raise HTTPException(status_code=404, detail="PDF file not found.")
+
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        filename=f"article-{article_id}.pdf",
+    )
 
 
 @router.get("/{article_id}", response_model=ArticleDetailResponse)

@@ -84,6 +84,7 @@
   background: #ffffff;
   color: #44474f;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .iconButton:hover:not(:disabled) {

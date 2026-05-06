@@ -91,6 +91,7 @@ class ArticleDetailResponse(BaseModel):
     keywords: list[str] = Field(default_factory=list)
     metrics: list[ArticleMetricItem] = Field(default_factory=list)
     related_articles: list[RelatedArticleItem] = Field(default_factory=list)
+    has_pdf: bool = False
 
 
 class JournalOptionItem(BaseModel):

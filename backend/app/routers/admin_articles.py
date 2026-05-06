@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -23,6 +23,7 @@ from app.schemas.article import (
     WorkFormTypeOption,
 )
 from app.services.articles import admin as article_admin
+from app.services.articles import pdf_files
 from app.services.articles.exceptions import (
     ArticleConflictError,
     ArticleNotFoundError,
@@ -243,6 +244,32 @@ def admin_create_article(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(exc),
         ) from exc
+
+
+@router.post("/articles/{article_id}/pdf")
+def admin_upload_article_pdf(
+    article_id: int,
+    file: UploadFile = File(...),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if file.content_type not in {"application/pdf", "application/x-pdf"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF files are allowed.",
+        )
+
+    try:
+        article_admin.get_article_for_edit(db=db, article_id=article_id)
+    except ArticleNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    pdf_files.save_article_pdf(article_id, file)
+    return {"article_id": article_id, "has_pdf": True}
+
 
 @router.put("/articles/{article_id}")
 def admin_update_article(

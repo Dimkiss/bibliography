@@ -18,6 +18,7 @@ from app.schemas.article import (
     RelatedArticleItem,
 )
 from app.services.articles.exceptions import ArticleNotFoundError
+from app.services.articles import pdf_files
 
 DEFAULT_PAGE_SIZE = 10
 MAX_PAGE_SIZE = 100
@@ -823,4 +824,5 @@ def get_article_detail(
         ],
         metrics=_build_metrics(article_dict),
         related_articles=related_articles,
+        has_pdf=pdf_files.article_pdf_exists(article_id),
     )
