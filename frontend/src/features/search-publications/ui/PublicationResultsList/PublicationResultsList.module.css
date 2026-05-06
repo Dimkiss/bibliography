@@ -367,10 +367,13 @@
   margin-top: 8px;
 }
 
-.cardQuartile,
-.quartileCell {
+.cardQuartile {
   display: flex;
   justify-content: center;
+}
+
+.quartileCell {
+  text-align: center;
 }
 
 .rowActions {
