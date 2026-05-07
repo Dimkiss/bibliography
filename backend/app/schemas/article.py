@@ -25,6 +25,7 @@ class ArticleListItem(BaseModel):
     publication_types: list[str] = Field(default_factory=list)
     databases: list[str] = Field(default_factory=list)
     original_translation: str | None = None
+    has_pdf: bool = False
 
 
 class PaginationMeta(BaseModel):

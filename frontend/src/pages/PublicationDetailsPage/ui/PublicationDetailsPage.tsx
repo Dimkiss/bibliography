@@ -4,6 +4,7 @@ import { Footer } from '@/widgets/Footer';
 import { Header } from '@/widgets/Header';
 import { Icon } from '@/shared/ui/Icon';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
+import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
 import {
   QuartilesDropdown,
   type QuartilesDropdownItem,
@@ -32,6 +33,16 @@ function getArticleIdFromPathname(pathname: string): number | null {
 
   const parsed = Number(match[1]);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function downloadPublicationPdf(articleId: number) {
+  const link = document.createElement('a');
+  link.href = getPublicationPdfUrl(articleId);
+  link.download = `article-${articleId}.pdf`;
+  link.rel = 'noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
 function formatMetricValue(metric: PublicationMetricDto): string {
@@ -136,9 +147,10 @@ function RelatedPublicationCard({
         <div className={styles.relatedYear}>{item.year ?? '—'}</div>
 
         <div className={styles.relatedActions}>
-          <button
-            type="button"
-            className={styles.iconButton}
+          <OutlineIconButton
+            iconName="copy"
+            iconSize={20}
+            size="small"
             onClick={() => {
               const textToCopy = item.doi || item.title || '';
               if (!textToCopy) {
@@ -147,18 +159,15 @@ function RelatedPublicationCard({
               void navigator.clipboard.writeText(textToCopy);
             }}
             aria-label="Скопировать данные публикации"
-          >
-            <Icon name="copy" size={20} />
-          </button>
+          />
 
-          <button
-            type="button"
-            className={styles.iconButton}
+          <OutlineIconButton
+            iconName="pdf-mono"
+            iconSize={20}
+            size="small"
             disabled
             aria-label="PDF недоступен"
-          >
-            <Icon name="pdf-color" size={20} colored />
-          </button>
+          />
         </div>
       </div>
     </div>
@@ -295,44 +304,40 @@ export function PublicationDetailsPage() {
                   </div>
 
                   <div className={styles.actions}>
-                    <button
-                      type="button"
-                      className={styles.iconButton}
+                    <OutlineIconButton
+                      iconName="more_vert"
+                      iconSize={20}
+                      size="small"
                       disabled
                       aria-label="Дополнительные действия недоступны"
-                    >
-                      <Icon name="more_vert" size={20} />
-                    </button>
+                    />
 
-                    <button
-                      type="button"
-                      className={styles.iconButton}
+                    <OutlineIconButton
+                      iconName="copy"
+                      iconSize={20}
+                      size="small"
                       onClick={() => {
                         void handleCopyMain();
                       }}
                       aria-label="Скопировать DOI или заголовок"
-                    >
-                      <Icon name="copy" size={20} />
-                    </button>
+                    />
 
                     {item.has_pdf ? (
-                      <a
-                        className={styles.iconButton}
-                        href={getPublicationPdfUrl(item.id)}
-                        download
+                      <OutlineIconButton
+                        iconName="pdf-mono"
+                        iconSize={20}
+                        size="small"
+                        onClick={() => downloadPublicationPdf(item.id)}
                         aria-label="Скачать PDF"
-                      >
-                        <Icon name="pdf-color" size={20} colored />
-                      </a>
+                      />
                     ) : (
-                      <button
-                        type="button"
-                        className={styles.iconButton}
+                      <OutlineIconButton
+                        iconName="pdf-mono"
+                        iconSize={20}
+                        size="small"
                         disabled
                         aria-label="PDF недоступен"
-                      >
-                        <Icon name="pdf-color" size={20} colored />
-                      </button>
+                      />
                     )}
                   </div>
                 </div>

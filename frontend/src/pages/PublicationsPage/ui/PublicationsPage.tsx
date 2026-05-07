@@ -593,6 +593,16 @@ export function PublicationsPage() {
     });
   };
 
+  const handlePublicationDeleted = (id: number) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+    setSelectedPublicationIds((prev) => prev.filter((itemId) => itemId !== id));
+    setPagination((prev) => ({
+      ...prev,
+      total: Math.max(0, prev.total - 1),
+      total_pages: Math.ceil(Math.max(0, prev.total - 1) / prev.page_size),
+    }));
+  };
+
   return (
     <div className={styles.page}>
       <Header title="Поиск публикаций" />
@@ -679,6 +689,7 @@ export function PublicationsPage() {
                       page: 1,
                     }));
                   }}
+                  onPublicationDeleted={handlePublicationDeleted}
                 />
 
                 <PublicationsPagination

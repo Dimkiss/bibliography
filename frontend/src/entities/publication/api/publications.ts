@@ -15,6 +15,7 @@ export type PublicationListItemDto = PublicationPreviewDto & {
   publication_types: string[];
   databases: string[];
   original_translation: string | null;
+  has_pdf: boolean;
 };
 
 export type PublicationsPaginationDto = {

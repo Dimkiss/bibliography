@@ -74,6 +74,23 @@ SORT_FIELD_MAP = {
     "quartile": "COALESCE(NULLIF(j.Quartile, ''), NULLIF(j.QuartileScopus, ''))",
 }
 
+QUARTILE_SORT_VALUE = "UPPER(TRIM(COALESCE(NULLIF(j.Quartile, ''), NULLIF(j.QuartileScopus, ''))))"
+
+QUARTILE_SORT_RANK = f"""
+    CASE {QUARTILE_SORT_VALUE}
+        WHEN NULL THEN 0
+        WHEN 'Q1' THEN 1
+        WHEN '1' THEN 1
+        WHEN 'Q2' THEN 2
+        WHEN '2' THEN 2
+        WHEN 'Q3' THEN 3
+        WHEN '3' THEN 3
+        WHEN 'Q4' THEN 4
+        WHEN '4' THEN 4
+        ELSE 0
+    END
+"""
+
 
 def _build_in_clause(prefix: str, values: list[str], params: dict[str, Any]) -> str:
     placeholders: list[str] = []
@@ -510,6 +527,11 @@ def list_articles(
 
     sort_expr = SORT_FIELD_MAP.get(sort_by, SORT_FIELD_MAP["year"])
     sort_dir = "ASC" if sort_order == "asc" else "DESC"
+    order_by_sql = (
+        f"{QUARTILE_SORT_RANK} {sort_dir}, a.Record_ID DESC"
+        if sort_by == "quartile"
+        else f"{sort_expr} {sort_dir}, a.Record_ID DESC"
+    )
 
     params: dict[str, Any] = {}
     filters_sql = _build_common_filters(
@@ -599,7 +621,7 @@ def list_articles(
         LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
         WHERE 1 = 1
         {filters_sql}
-        ORDER BY {sort_expr} {sort_dir}, a.Record_ID DESC
+        ORDER BY {order_by_sql}
         LIMIT :limit OFFSET :offset
         """
     )
@@ -623,6 +645,7 @@ def list_articles(
                 publication_types=_parse_csv_list(row_dict.get("publication_types_csv")),
                 databases=_extract_databases(row_dict),
                 original_translation=row_dict.get("original_translation"),
+                has_pdf=pdf_files.article_pdf_exists(row_dict["id"]),
             )
         )
 

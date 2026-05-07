@@ -223,6 +223,86 @@
   color: var(--blue);
 }
 
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(26, 27, 33, 0.36);
+}
+
+.confirmDialog {
+  width: min(480px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--outline);
+  border-radius: 16px;
+  background: var(--article-menu);
+  box-shadow: 0 16px 38px rgba(14, 26, 53, 0.24);
+}
+
+.confirmTitle {
+  margin: 0;
+  color: var(--text);
+  font-family: Roboto, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 30px;
+}
+
+.confirmText {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.confirmCancelButton,
+.confirmDeleteButton {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.confirmCancelButton {
+  border: 1px solid var(--outline);
+  background: transparent;
+  color: var(--on-surface-variant);
+}
+
+.confirmCancelButton:hover {
+  background: rgba(69, 70, 79, 0.08);
+}
+
+.confirmDeleteButton {
+  border: 1px solid var(--error);
+  background: var(--error);
+  color: #ffffff;
+}
+
+.confirmDeleteButton:hover {
+  background: #9f1515;
+  border-color: #9f1515;
+}
+
 .list {
   display: flex;
   flex-direction: column;
@@ -377,10 +457,60 @@
 }
 
 .rowActions {
+  position: relative;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+}
+
+.publicationMenu {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 10px);
+  z-index: 30;
+  width: 274px;
+  padding: 10px 0;
+  border: 1px solid rgba(198, 197, 208, 0.78);
+  border-radius: 4px;
+  background: #f4f2fa;
+  box-shadow: 0 4px 12px rgba(29, 27, 32, 0.22);
+}
+
+.publicationMenuItem {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  border: none;
+  background: transparent;
+  color: var(--on-surface);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.publicationMenuItem:hover:not(:disabled) {
+  background: rgba(69, 70, 79, 0.08);
+}
+
+.publicationMenuItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.publicationMenuItem span {
+  font-family: Roboto, sans-serif;
+  font-size: 18px;
+  line-height: 26px;
+}
+
+.publicationMenuDivider {
+  height: 1px;
+  margin: 8px 0;
+  background: var(--outline);
 }
 
 .tableScroll {
@@ -411,6 +541,36 @@
   font-size: 15px;
   font-weight: 700;
   line-height: 22px;
+}
+
+.tableHeaderButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 26px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.tableHeaderButton:hover {
+  color: var(--blue);
+}
+
+.tableHeaderButtonCenter {
+  justify-content: center;
+  text-align: center;
+}
+
+.tableSortIcon {
+  flex: 0 0 auto;
+  color: inherit;
 }
 
 .table th:nth-child(1) {

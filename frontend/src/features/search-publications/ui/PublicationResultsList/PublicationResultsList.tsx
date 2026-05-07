@@ -18,6 +18,7 @@ import {
 } from '@/entities/publication';
 import { Icon } from '@/shared/ui/Icon';
 import { Checkbox } from '@/shared/ui/Checkbox';
+import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
 import {
   QuartilesDropdown,
   type QuartilesDropdownItem,
@@ -27,6 +28,9 @@ import {
   type PublicationsSortFieldValue,
 } from '@/entities/publication';
 import { navigateTo } from '@/shared/lib/navigation';
+import { deleteAdminArticle } from '@/features/create-publication';
+import { useAuth } from '@/features/auth';
+import { ADMIN_ROLE_ID } from '@/entities/role';
 import styles from './PublicationResultsList.module.css';
 
 export type PublicationResultsViewMode = 'list' | 'table';
@@ -46,6 +50,7 @@ type PublicationResultsListProps = {
   onTogglePageSelection: (ids: number[], shouldSelect: boolean) => void;
   onSortFieldChange: (value: PublicationsSortFieldValue) => void;
   onSortOrderChange: (value: PublicationSortOrder) => void;
+  onPublicationDeleted?: (id: number) => void;
 };
 
 function formatRecordsCountLabel(count: number): string {
@@ -63,27 +68,35 @@ function formatRecordsCountLabel(count: number): string {
   return 'записей';
 }
 
-function downloadPublicationPdf(articleId: number) {
-  const link = document.createElement('a');
-  link.href = getPublicationPdfUrl(articleId);
-  link.download = `article-${articleId}.pdf`;
-  link.rel = 'noreferrer';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+function openPublicationPdf(articleId: number) {
+  window.open(getPublicationPdfUrl(articleId), '_blank', 'noopener,noreferrer');
 }
 
-function downloadPublicationPdfs(articleIds: number[]) {
+function openPublicationPdfs(articleIds: number[]) {
   articleIds.forEach((articleId, index) => {
     if (index === 0) {
-      downloadPublicationPdf(articleId);
+      openPublicationPdf(articleId);
       return;
     }
 
     window.setTimeout(() => {
-      downloadPublicationPdf(articleId);
+      openPublicationPdf(articleId);
     }, index * 120);
   });
+}
+
+function buildBibliographicReference(item: PublicationListItemDto): string {
+  const parts = [
+    item.authors,
+    item.title,
+    normalizeJournalName(item.journal),
+    item.year ? String(item.year) : null,
+    item.doi ? `DOI: ${item.doi}` : null,
+  ]
+    .map((part) => part?.trim())
+    .filter(Boolean);
+
+  return parts.join('. ');
 }
 
 function stopInteractiveEvent(event: ReactMouseEvent<HTMLElement>) {
@@ -153,45 +166,137 @@ function QuartileBadge({ item }: { item: PublicationListItemDto }) {
 
 function RowActions({
   item,
-  onCopyStub,
+  isAdmin,
+  isMenuOpen,
+  onToggleMenu,
+  onOpenPdf,
+  onOpenDoi,
+  onCopyReference,
+  onEdit,
+  onDelete,
 }: {
   item: PublicationListItemDto;
-  onCopyStub: () => void;
+  isAdmin: boolean;
+  isMenuOpen: boolean;
+  onToggleMenu: () => void;
+  onOpenPdf: () => void;
+  onOpenDoi: () => void;
+  onCopyReference: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
-  return (
-    <div className={styles.rowActions} onClick={stopInteractiveEvent}>
-      <button
-        type="button"
-        className={styles.iconButton}
-        aria-label="Дополнительные действия"
-        onClick={stopInteractiveEvent}
-      >
-        <Icon name="more_horiz" size={20} />
-      </button>
+  const hasDoiUrl = Boolean(buildDoiUrl(item.doi));
 
-      <button
-        type="button"
-        className={styles.iconButton}
+  return (
+    <div
+      className={styles.rowActions}
+      onClick={stopInteractiveEvent}
+      onMouseDown={stopInteractiveEvent}
+    >
+      <OutlineIconButton
+        iconName="more_horiz"
+        iconSize={20}
+        size="small-x"
+        aria-label="Дополнительные действия"
+        aria-expanded={isMenuOpen}
+        onClick={(event) => {
+          stopInteractiveEvent(event);
+          onToggleMenu();
+        }}
+      />
+
+      {isMenuOpen ? (
+        <div className={styles.publicationMenu} role="menu">
+          <button
+            type="button"
+            className={styles.publicationMenuItem}
+            onClick={onOpenPdf}
+            disabled={!item.has_pdf}
+            role="menuitem"
+          >
+            <Icon
+              name={item.has_pdf ? 'pdf-color' : 'pdf-mono'}
+              size={24}
+              colored={item.has_pdf}
+            />
+            <span>Открыть PDF</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.publicationMenuItem}
+            onClick={onOpenDoi}
+            disabled={!hasDoiUrl}
+            role="menuitem"
+          >
+            <Icon name="doi" size={24} />
+            <span>Открыть по DOI</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.publicationMenuItem}
+            onClick={onCopyReference}
+            role="menuitem"
+          >
+            <Icon name="copy" size={24} />
+            <span>Копировать библ. ссылку</span>
+          </button>
+
+          {isAdmin ? (
+            <>
+              <div className={styles.publicationMenuDivider} />
+
+              <button
+                type="button"
+                className={styles.publicationMenuItem}
+                onClick={onEdit}
+                role="menuitem"
+              >
+                <Icon name="edit" size={24} />
+                <span>Редактировать</span>
+              </button>
+
+              <button
+                type="button"
+                className={styles.publicationMenuItem}
+                onClick={onDelete}
+                role="menuitem"
+              >
+                <Icon name="delete" size={24} />
+                <span>Удалить</span>
+              </button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
+      <OutlineIconButton
+        iconName="copy"
+        iconSize={20}
+        size="small-x"
         aria-label="Копировать данные публикации"
         onClick={(event) => {
           stopInteractiveEvent(event);
-          onCopyStub();
+          onCopyReference();
         }}
-      >
-        <Icon name="copy" size={20} />
-      </button>
+      />
 
-      <button
-        type="button"
-        className={styles.iconButton}
+      <OutlineIconButton
+        iconName={item.has_pdf ? 'pdf-color' : 'pdf-mono'}
+        iconSize={20}
+        iconColored={item.has_pdf}
+        size="small-x"
+        disabled={!item.has_pdf}
         aria-label="Скачать PDF"
         onClick={(event) => {
           stopInteractiveEvent(event);
-          downloadPublicationPdf(item.id);
+          if (!item.has_pdf) {
+            return;
+          }
+          onOpenPdf();
         }}
-      >
-        <Icon name="pdf-color" size={20} colored />
-      </button>
+      />
     </div>
   );
 }
@@ -211,20 +316,29 @@ export function PublicationResultsList({
   onTogglePageSelection,
   onSortFieldChange,
   onSortOrderChange,
+  onPublicationDeleted,
 }: PublicationResultsListProps) {
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = Boolean(isAuthenticated && user?.role_id === ADMIN_ROLE_ID);
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
+  const [publicationToDelete, setPublicationToDelete] =
+    useState<PublicationListItemDto | null>(null);
   const [actionMessage, setActionMessage] = useState('');
   const sortRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: globalThis.MouseEvent) => {
       if (!sortRef.current) {
+        setOpenActionMenuId(null);
         return;
       }
 
       if (!sortRef.current.contains(event.target as Node)) {
         setIsSortOpen(false);
       }
+
+      setOpenActionMenuId(null);
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -257,22 +371,110 @@ export function PublicationResultsList({
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const pageIds = useMemo(() => items.map((item) => item.id), [items]);
+  const selectedPdfIds = useMemo(
+    () =>
+      items
+        .filter((item) => selectedIdSet.has(item.id) && item.has_pdf)
+        .map((item) => item.id),
+    [items, selectedIdSet],
+  );
   const selectedOnPageCount = pageIds.filter((id) => selectedIdSet.has(id)).length;
   const isAllPageSelected = pageIds.length > 0 && selectedOnPageCount === pageIds.length;
   const isPageSelectionIndeterminate =
     selectedOnPageCount > 0 && selectedOnPageCount < pageIds.length;
 
   const handleCopyStub = () => {
-    setActionMessage('Копирование будет добавлено позже.');
-  };
+    const selectedReferences = items
+      .filter((item) => selectedIdSet.has(item.id))
+      .map(buildBibliographicReference)
+      .filter(Boolean);
 
-  const handleDownloadSelected = () => {
-    if (!selectedIds.length) {
+    if (!selectedReferences.length) {
       return;
     }
 
-    downloadPublicationPdfs(selectedIds);
-    setActionMessage(`Запущено скачивание PDF: ${selectedIds.length}.`);
+    void navigator.clipboard.writeText(selectedReferences.join('\n'));
+    setActionMessage(`Скопировано библиографических ссылок: ${selectedReferences.length}.`);
+  };
+
+  const handleDownloadSelected = () => {
+    if (!selectedPdfIds.length) {
+      return;
+    }
+
+    openPublicationPdfs(selectedPdfIds);
+    setActionMessage(`Открыто PDF: ${selectedPdfIds.length}.`);
+  };
+
+  const handleOpenPdf = (item: PublicationListItemDto) => {
+    if (!item.has_pdf) {
+      return;
+    }
+
+    setOpenActionMenuId(null);
+    openPublicationPdf(item.id);
+  };
+
+  const handleOpenDoi = (item: PublicationListItemDto) => {
+    const doiUrl = buildDoiUrl(item.doi);
+    if (!doiUrl) {
+      return;
+    }
+
+    setOpenActionMenuId(null);
+    window.open(doiUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopyReference = async (item: PublicationListItemDto) => {
+    const reference = buildBibliographicReference(item);
+    if (!reference) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(reference);
+    setOpenActionMenuId(null);
+    setActionMessage('Библиографическая ссылка скопирована.');
+  };
+
+  const handleEditPublication = () => {
+    setOpenActionMenuId(null);
+    setActionMessage('Редактирование будет доступно после обновления формы публикации.');
+  };
+
+  const handleRequestDeletePublication = (item: PublicationListItemDto) => {
+    setOpenActionMenuId(null);
+    setPublicationToDelete(item);
+  };
+
+  const handleConfirmDeletePublication = async () => {
+    if (!publicationToDelete) {
+      return;
+    }
+
+    const item = publicationToDelete;
+
+    try {
+      await deleteAdminArticle(item.id);
+      onPublicationDeleted?.(item.id);
+      setPublicationToDelete(null);
+      setActionMessage('Публикация удалена.');
+    } catch (caughtError) {
+      setActionMessage(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Не удалось удалить публикацию.',
+      );
+    }
+  };
+
+  const handleTableSort = (field: PublicationsSortFieldValue) => {
+    if (field === sortField) {
+      onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+
+    onSortFieldChange(field);
+    onSortOrderChange('desc');
   };
 
   const handleOpenPublication = (articleId: number) => {
@@ -307,6 +509,32 @@ export function PublicationResultsList({
       <span>Выбрать все</span>
     </button>
   );
+
+  const renderTableHeaderButton = (
+    field: PublicationsSortFieldValue,
+    label: string,
+    className = '',
+  ) => {
+    const isActive = field === sortField;
+
+    return (
+      <button
+        type="button"
+        className={[styles.tableHeaderButton, className].filter(Boolean).join(' ')}
+        onClick={() => handleTableSort(field)}
+        aria-label={`Сортировать по полю ${label}`}
+      >
+        <span>{label}</span>
+        {isActive ? (
+          <Icon
+            name={sortOrder === 'asc' ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+            size={20}
+            className={styles.tableSortIcon}
+          />
+        ) : null}
+      </button>
+    );
+  };
 
   const renderSortControls = () => (
     <div className={styles.sortControls}>
@@ -351,45 +579,40 @@ export function PublicationResultsList({
         ) : null}
       </div>
 
-      <button
-        type="button"
-        className={styles.orderButton}
+      <OutlineIconButton
+        iconName={sortOrder === 'asc' ? 'order-asc' : 'order-desc'}
+        iconSize={20}
+        size="small-x"
         onClick={() => onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')}
         aria-label={
           sortOrder === 'asc'
             ? 'Переключить сортировку по убыванию'
             : 'Переключить сортировку по возрастанию'
         }
-      >
-        <Icon
-          name={sortOrder === 'asc' ? 'order-asc' : 'order-desc'}
-          size={20}
-        />
-      </button>
+      />
     </div>
   );
 
   const renderBulkActions = () => (
     <div className={styles.bulkActions}>
-      <button
-        type="button"
-        className={styles.bulkIconButton}
+      <OutlineIconButton
+        iconName="copy"
+        iconSize={20}
+        size="small-x"
         onClick={handleCopyStub}
         disabled={!selectedIds.length}
         aria-label="Копировать выбранные публикации"
-      >
-        <Icon name="copy" size={20} />
-      </button>
+      />
 
-      <button
-        type="button"
-        className={styles.bulkIconButton}
+      <OutlineIconButton
+        iconName={selectedPdfIds.length ? 'pdf-color' : 'pdf-mono'}
+        iconSize={20}
+        iconColored={selectedPdfIds.length > 0}
+        size="small-x"
         onClick={handleDownloadSelected}
-        disabled={!selectedIds.length}
+        disabled={!selectedPdfIds.length}
         aria-label="Скачать PDF выбранных публикаций"
-      >
-        <Icon name="pdf-color" size={20} colored />
-      </button>
+      />
     </div>
   );
 
@@ -450,7 +673,23 @@ export function PublicationResultsList({
               <QuartileBadge item={item} />
             </div>
 
-            <RowActions item={item} onCopyStub={handleCopyStub} />
+            <RowActions
+              item={item}
+              isAdmin={isAdmin}
+              isMenuOpen={openActionMenuId === item.id}
+              onToggleMenu={() =>
+                setOpenActionMenuId((prev) => (prev === item.id ? null : item.id))
+              }
+              onOpenPdf={() => handleOpenPdf(item)}
+              onOpenDoi={() => handleOpenDoi(item)}
+              onCopyReference={() => {
+                void handleCopyReference(item);
+              }}
+              onEdit={handleEditPublication}
+              onDelete={() => {
+                handleRequestDeletePublication(item);
+              }}
+            />
           </article>
         );
       })}
@@ -478,12 +717,14 @@ export function PublicationResultsList({
                 />
               </button>
             </th>
-            <th>Авторы</th>
-            <th>Название</th>
-            <th>Издание</th>
-            <th>Год</th>
-            <th>DOI</th>
-            <th className={styles.quartileColumn}>Q</th>
+            <th>{renderTableHeaderButton('authors', 'Авторы')}</th>
+            <th>{renderTableHeaderButton('title', 'Название')}</th>
+            <th>{renderTableHeaderButton('journal', 'Издание')}</th>
+            <th>{renderTableHeaderButton('year', 'Год')}</th>
+            <th>{renderTableHeaderButton('doi', 'DOI')}</th>
+            <th className={styles.quartileColumn}>
+              {renderTableHeaderButton('quartile', 'Q', styles.tableHeaderButtonCenter)}
+            </th>
             <th className={styles.actionsColumn} aria-label="Действия" />
           </tr>
         </thead>
@@ -534,7 +775,23 @@ export function PublicationResultsList({
                   <QuartileBadge item={item} />
                 </td>
                 <td>
-                  <RowActions item={item} onCopyStub={handleCopyStub} />
+                  <RowActions
+                    item={item}
+                    isAdmin={isAdmin}
+                    isMenuOpen={openActionMenuId === item.id}
+                    onToggleMenu={() =>
+                      setOpenActionMenuId((prev) => (prev === item.id ? null : item.id))
+                    }
+                    onOpenPdf={() => handleOpenPdf(item)}
+                    onOpenDoi={() => handleOpenDoi(item)}
+                    onCopyReference={() => {
+                      void handleCopyReference(item);
+                    }}
+                    onEdit={handleEditPublication}
+                    onDelete={() => {
+                      handleRequestDeletePublication(item);
+                    }}
+                  />
                 </td>
               </tr>
             );
@@ -610,6 +867,49 @@ export function PublicationResultsList({
 
       {!isLoading && !error && items.length ? (
         viewMode === 'table' ? renderTable() : renderList()
+      ) : null}
+
+      {publicationToDelete ? (
+        <div
+          className={styles.confirmOverlay}
+          role="presentation"
+          onMouseDown={() => setPublicationToDelete(null)}
+        >
+          <div
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-publication-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h2 id="delete-publication-title" className={styles.confirmTitle}>
+              Удалить публикацию?
+            </h2>
+            <p className={styles.confirmText}>
+              Вы точно хотите удалить публикацию «
+              {publicationToDelete.title || `#${publicationToDelete.id}`}»? Это действие нельзя
+              отменить.
+            </p>
+            <div className={styles.confirmActions}>
+              <button
+                type="button"
+                className={styles.confirmCancelButton}
+                onClick={() => setPublicationToDelete(null)}
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                className={styles.confirmDeleteButton}
+                onClick={() => {
+                  void handleConfirmDeletePublication();
+                }}
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </section>
   );

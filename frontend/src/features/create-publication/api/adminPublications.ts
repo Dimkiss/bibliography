@@ -343,3 +343,14 @@ export async function uploadAdminArticlePdf(
 
   return response.json();
 }
+
+export async function deleteAdminArticle(articleId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/admin/articles/${articleId}`, {
+    method: 'DELETE',
+    headers: buildAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+}
