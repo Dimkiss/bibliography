@@ -1071,6 +1071,16 @@ def delete_article(
         db.execute(
             text(
                 """
+                DELETE FROM pdf
+                WHERE n = :article_id
+                """
+            ),
+            {"article_id": article_id},
+        )
+
+        db.execute(
+            text(
+                """
                 DELETE FROM articles
                 WHERE Record_ID = :article_id
                 """
@@ -1079,7 +1089,6 @@ def delete_article(
         )
 
         db.commit()
-        pdf_files.delete_article_pdf(article_id)
     except IntegrityError as exc:
         db.rollback()
         raise ArticleConflictError(
