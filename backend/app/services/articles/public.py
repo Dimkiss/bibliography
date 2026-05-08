@@ -82,15 +82,14 @@ QUARTILE_SORT_VALUE = "UPPER(TRIM(COALESCE(NULLIF(j.Quartile, ''), NULLIF(j.Quar
 
 QUARTILE_SORT_RANK = f"""
     CASE {QUARTILE_SORT_VALUE}
-        WHEN NULL THEN 0
-        WHEN 'Q1' THEN 1
-        WHEN '1' THEN 1
-        WHEN 'Q2' THEN 2
-        WHEN '2' THEN 2
-        WHEN 'Q3' THEN 3
-        WHEN '3' THEN 3
-        WHEN 'Q4' THEN 4
-        WHEN '4' THEN 4
+        WHEN 'Q1' THEN 4
+        WHEN '1' THEN 4
+        WHEN 'Q2' THEN 3
+        WHEN '2' THEN 3
+        WHEN 'Q3' THEN 2
+        WHEN '3' THEN 2
+        WHEN 'Q4' THEN 1
+        WHEN '4' THEN 1
         ELSE 0
     END
 """
