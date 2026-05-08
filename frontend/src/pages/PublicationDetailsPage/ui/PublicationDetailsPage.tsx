@@ -10,6 +10,7 @@ import {
   type QuartilesDropdownItem,
 } from '@/shared/ui/QuartilesDropdown';
 import {
+  getBibliographicReference,
   getPublicationDetail,
   getPublicationPdfUrl,
   type PublicationDetailDto,
@@ -253,7 +254,7 @@ export function PublicationDetailsPage() {
       return;
     }
 
-    const textToCopy = item.doi || item.title || '';
+    const textToCopy = getBibliographicReference(item);
     if (!textToCopy) {
       return;
     }
@@ -319,7 +320,7 @@ export function PublicationDetailsPage() {
                       onClick={() => {
                         void handleCopyMain();
                       }}
-                      aria-label="Скопировать DOI или заголовок"
+                      aria-label="Скопировать библиографическую ссылку"
                     />
 
                     {item.has_pdf ? (

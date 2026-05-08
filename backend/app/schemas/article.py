@@ -20,6 +20,7 @@ class ArticleListItem(BaseModel):
     journal: str | None = None
     year: int | None = None
     doi: str | None = None
+    bibliographic_reference: str = ""
     quartile: str | None = None
     quartile_scopus: str | None = None
     publication_types: list[str] = Field(default_factory=list)
@@ -81,6 +82,7 @@ class ArticleDetailResponse(BaseModel):
     authors: str | None = None
     abstract: str | None = None
     doi: str | None = None
+    bibliographic_reference: str = ""
     journal: str | None = None
     year: int | None = None
     volume: str | None = None

@@ -10,6 +10,7 @@ export type PublicationPreviewDto = {
 };
 
 export type PublicationListItemDto = PublicationPreviewDto & {
+  bibliographic_reference: string;
   quartile: string | null;
   quartile_scopus: string | null;
   publication_types: string[];
@@ -76,6 +77,7 @@ export type PublicationDetailDto = {
   authors: string | null;
   abstract: string | null;
   doi: string | null;
+  bibliographic_reference: string;
   journal: string | null;
   year: number | null;
   volume: string | null;

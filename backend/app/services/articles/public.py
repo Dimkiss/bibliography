@@ -18,6 +18,10 @@ from app.schemas.article import (
     RelatedArticleItem,
 )
 from app.services.articles.exceptions import ArticleNotFoundError
+from app.services.articles.bibliographic_reference import (
+    build_bibliographic_reference,
+    build_pages_fallback_select_sql,
+)
 from app.services.articles import pdf_files
 
 DEFAULT_PAGE_SIZE = 10
@@ -564,12 +568,28 @@ def list_articles(
     offset = (page - 1) * page_size
     params["limit"] = page_size
     params["offset"] = offset
+    pages_fallback_sql = build_pages_fallback_select_sql(db)
 
     data_query = text(
         f"""
         SELECT
             a.Record_ID AS id,
+            a.Record_ID AS record_id,
+            a.WorkFormType_f AS work_form_type,
+            a.Author_Analitic_F1 AS author_analitic,
             a.Title_Analitic_F4 AS title,
+            a.Title_Analitic_F4 AS title_analitic,
+            a.Author_of_Material_F7 AS author_of_material,
+            a.Title_of_Material_F9 AS title_of_material,
+            a.DateOfMeeting_F12 AS date_of_meeting,
+            a.Edition_F15 AS edition,
+            a.Date_of_Publication_F20 AS date_of_publication,
+            a.VolumeID_F22 AS volume,
+            a.IssueID_F24 AS issue,
+            a.Pages_F25 AS pages,
+            {pages_fallback_sql} AS pages_fallback,
+            a.ExtentOfWork_F26 AS extent_of_work,
+            a.ISBN_F41 AS isbn,
             COALESCE(
                 (
                     SELECT GROUP_CONCAT(DISTINCT au.authorName ORDER BY au.authorName SEPARATOR ', ')
@@ -579,9 +599,12 @@ def list_articles(
                 ),
                 a.Author_Analitic_F1
             ) AS authors,
+            NULLIF(jn.JournalName, '') AS journal_name,
             COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
             a.Date_of_Publication_F20 AS year,
             a.DOI AS doi,
+            pp.PlaceName AS place_name,
+            pn.PublisherName AS publisher_name,
             NULLIF(j.Quartile, '') AS quartile,
             NULLIF(j.QuartileScopus, '') AS quartile_scopus,
             COALESCE(j.WOS, 0) AS wos_flag,
@@ -619,6 +642,8 @@ def list_articles(
         LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
         LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
         LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
+        LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
+        LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
         WHERE 1 = 1
         {filters_sql}
         ORDER BY {order_by_sql}
@@ -640,6 +665,7 @@ def list_articles(
                 journal=row_dict.get("journal"),
                 year=row_dict.get("year"),
                 doi=row_dict.get("doi"),
+                bibliographic_reference=build_bibliographic_reference(row_dict),
                 quartile=row_dict.get("quartile"),
                 quartile_scopus=row_dict.get("quartile_scopus"),
                 publication_types=_parse_csv_list(row_dict.get("publication_types_csv")),
@@ -730,22 +756,38 @@ def get_article_detail(
     article_id: int,
     db: Session,
 ) -> ArticleDetailResponse:
+    pages_fallback_sql = build_pages_fallback_select_sql(db)
     article_row = db.execute(
         text(
-            """
+            f"""
             SELECT
                 a.Record_ID AS id,
+                a.Record_ID AS record_id,
+                a.WorkFormType_f AS work_form_type,
+                a.Author_Analitic_F1 AS author_analitic,
                 a.Title_Analitic_F4 AS title,
+                a.Title_Analitic_F4 AS title_analitic,
+                a.Author_of_Material_F7 AS author_of_material,
+                a.Title_of_Material_F9 AS title_of_material,
+                a.DateOfMeeting_F12 AS date_of_meeting,
+                a.Edition_F15 AS edition,
+                a.Date_of_Publication_F20 AS date_of_publication,
+                a.ExtentOfWork_F26 AS extent_of_work,
+                a.ISBN_F41 AS isbn,
                 a.Author_Analitic_F1 AS authors_fallback,
                 a.Abstract_F43 AS abstract,
                 a.DOI AS doi,
                 a.VolumeID_F22 AS volume,
                 a.IssueID_F24 AS issue,
                 a.Pages_F25 AS pages,
+                {pages_fallback_sql} AS pages_fallback,
                 a.PublicationDate AS publication_date,
                 a.Date_of_Publication_F20 AS year,
                 a.InsertDate AS insert_date,
+                NULLIF(jn.JournalName, '') AS journal_name,
                 COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
+                pp.PlaceName AS place_name,
+                pn.PublisherName AS publisher_name,
                 NULLIF(j.Quartile, '') AS quartile,
                 NULLIF(j.QuartileScopus, '') AS quartile_scopus,
                 COALESCE(j.WOS, 0) AS wos_flag,
@@ -758,6 +800,9 @@ def get_article_detail(
             FROM articles a
             LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
             LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
+            LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
+            LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
+            LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
             WHERE a.Record_ID = :article_id
             """
         ),
@@ -824,6 +869,7 @@ def get_article_detail(
         authors=authors,
         abstract=article_dict.get("abstract"),
         doi=article_dict.get("doi"),
+        bibliographic_reference=build_bibliographic_reference(article_dict),
         journal=article_dict.get("journal"),
         year=article_dict.get("year"),
         volume=article_dict.get("volume"),

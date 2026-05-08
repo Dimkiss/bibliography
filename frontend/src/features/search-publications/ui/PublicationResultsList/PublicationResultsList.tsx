@@ -13,6 +13,7 @@ import type {
 } from '@/entities/publication';
 import {
   buildDoiUrl,
+  getBibliographicReference,
   getPublicationPdfUrl,
   normalizeJournalName,
 } from '@/entities/publication';
@@ -83,20 +84,6 @@ function openPublicationPdfs(articleIds: number[]) {
       openPublicationPdf(articleId);
     }, index * 120);
   });
-}
-
-function buildBibliographicReference(item: PublicationListItemDto): string {
-  const parts = [
-    item.authors,
-    item.title,
-    normalizeJournalName(item.journal),
-    item.year ? String(item.year) : null,
-    item.doi ? `DOI: ${item.doi}` : null,
-  ]
-    .map((part) => part?.trim())
-    .filter(Boolean);
-
-  return parts.join('. ');
 }
 
 function stopInteractiveEvent(event: ReactMouseEvent<HTMLElement>) {
@@ -386,7 +373,7 @@ export function PublicationResultsList({
   const handleCopyStub = () => {
     const selectedReferences = items
       .filter((item) => selectedIdSet.has(item.id))
-      .map(buildBibliographicReference)
+      .map(getBibliographicReference)
       .filter(Boolean);
 
     if (!selectedReferences.length) {
@@ -426,7 +413,7 @@ export function PublicationResultsList({
   };
 
   const handleCopyReference = async (item: PublicationListItemDto) => {
-    const reference = buildBibliographicReference(item);
+    const reference = getBibliographicReference(item);
     if (!reference) {
       return;
     }
