@@ -11,7 +11,7 @@
   max-width: 100%;
   flex: 0 0 auto;
 
-  gap: 8px;
+  gap: var(--space-3);
   white-space: nowrap;
   cursor: pointer;
   font: inherit;
@@ -30,15 +30,15 @@
 
 .label {
   color: inherit;
-  font-family: Roboto, sans-serif;
-  font-weight: 500;
+  font-family: var(--font-family-ui);
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
 }
 
 .large {
   height: 56px;
   padding: 0 24px;
-  gap: 12px;
+  gap: var(--space-5);
 }
 
 .large .label {
@@ -47,25 +47,25 @@
 }
 
 .normal {
-  height: 40px;
+  height: var(--control-height-md);
   padding: 0 16px;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .normal .label {
-  font-size: 16px;
-  line-height: 24px;
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
 }
 
 .small {
-  height: 32px;
+  height: var(--control-height-sm);
   padding: 0 12px;
   gap: 6px;
 }
 
 .small .label {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
 }
 
 .button:hover:not(:disabled) {

@@ -1,12 +1,12 @@
 .card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(180px, 31%);
-  gap: 6px 24px;
+  gap: var(--space-2) var(--space-7);
   min-height: 64px;
-  padding: 8px 16px;
+  padding: var(--space-3) var(--space-6);
   border: 1px solid var(--outline);
   border-radius: var(--radius);
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .cardInteractive {
@@ -32,21 +32,21 @@
 .title {
   margin: 0;
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 24px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-title-sm-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-title-sm-line);
   letter-spacing: 0.15px;
 }
 
 .authors {
   margin: 0;
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 16px;
-  letter-spacing: 0.4px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-sm-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-sm-line);
+  letter-spacing: var(--type-body-sm-letter);
 }
 
 .meta {
@@ -55,13 +55,13 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: var(--space-1);
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
-  letter-spacing: 0.25px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
 }
 
 .separator {
@@ -69,33 +69,33 @@
 }
 
 .doi {
-  font-family: Roboto, sans-serif;
-  line-height: 20px;
+  font-family: var(--font-family-ui);
+  line-height: var(--type-body-md-line);
   word-break: break-all;
 }
 
 .doiLabel {
   color: var(--add_notes);
-  font-size: 14px;
-  font-weight: 400;
-  letter-spacing: 0.25px;
+  font-size: var(--type-body-md-size);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--type-body-md-letter);
 }
 
 .doiValue {
-  color: #06164b;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-  letter-spacing: 0.1px;
+  color: var(--color-link);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
+  letter-spacing: var(--type-label-md-letter);
 }
 
 .doiPlaceholder {
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
-  letter-spacing: 0.25px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
 }
 
 @media (max-width: 720px) {

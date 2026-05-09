@@ -1,11 +1,11 @@
 .root {
-  width: 48px;
-  height: 48px;
+  width: var(--control-touch-size);
+  height: var(--control-touch-size);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 48px;
-  color: #45464f;
+  flex: 0 0 var(--control-touch-size);
+  color: var(--color-text-muted);
 }
 
 .stateLayer {
@@ -41,7 +41,7 @@
 }
 
 .primary.selected {
-  color: var(--bkg);
+  color: var(--color-primary);
 }
 
 .error {
@@ -55,15 +55,15 @@
 
 .selected .checkIcon,
 .selected .indeterminateIcon {
-  color: #ffffff;
+  color: var(--color-white);
 }
 
 .hovered .stateLayer {
-  background: rgba(26, 27, 33, 0.08);
+  background: var(--state-text-hover);
 }
 
 .primary.selected.hovered .stateLayer {
-  background: rgba(78, 91, 146, 0.08);
+  background: var(--state-primary-hover);
 }
 
 .error.hovered .stateLayer,
@@ -72,7 +72,7 @@
 }
 
 .pressed .stateLayer {
-  background: rgba(26, 27, 33, 0.1);
+  background: var(--state-text-active);
 }
 
 .primary.selected.pressed .stateLayer {

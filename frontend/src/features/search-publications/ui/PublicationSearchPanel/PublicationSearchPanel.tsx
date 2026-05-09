@@ -156,7 +156,7 @@ export function PublicationSearchPanel({
       ref={(node) => {
         fieldDropdownsRef.current[index] = node;
       }}
-      className={styles.dropdownWrap}
+      className="app-search-dropdown-wrap"
     >
       <DropdownButton
         label={formatSearchFieldLabel(field)}
@@ -171,19 +171,19 @@ export function PublicationSearchPanel({
       />
 
       {openFieldIndex === index ? (
-        <div className={styles.menu}>
-          <div className={styles.optionsList}>
+        <div className="app-search-menu">
+          <div className="app-search-options-list">
             {SEARCH_FIELD_OPTIONS.map((option) => (
               <button
                 key={option.key}
                 type="button"
-                className={styles.optionButton}
+                className="app-search-option-button"
                 onClick={() => {
                   handleCriterionChange(index, option.key);
                   setOpenFieldIndex(null);
                 }}
               >
-                <span className={styles.optionButtonIcon}>
+                <span className="app-search-option-icon">
                   <Icon name={getFieldIconName(option.key)} size={18} />
                 </span>
                 <span>{option.label}</span>
@@ -243,7 +243,7 @@ export function PublicationSearchPanel({
     <section className={styles.section}>
       <form className={`app-surface ${styles.panel}`} onSubmit={handleSubmit}>
         <div className={styles.topRow}>
-          <div ref={yearDropdownRef} className={styles.dropdownWrap}>
+          <div ref={yearDropdownRef} className="app-search-dropdown-wrap">
             <DropdownButton
               label={periodLabel}
               icon={<Icon name="calendar_renge" size={18} />}
@@ -255,11 +255,11 @@ export function PublicationSearchPanel({
             />
 
             {isYearOpen ? (
-              <div className={styles.menu}>
+              <div className="app-search-menu">
                 <div className={styles.yearPanel}>
-                  <div className={styles.yearInputs}>
+                  <div className="app-year-inputs">
                     <input
-                      className={styles.yearInput}
+                      className="app-year-input"
                       type="number"
                       inputMode="numeric"
                       placeholder={yearMin ? String(yearMin) : 'От'}
@@ -272,10 +272,10 @@ export function PublicationSearchPanel({
                       }
                     />
 
-                    <span className={styles.yearSeparator}>-</span>
+                    <span className="app-year-separator">-</span>
 
                     <input
-                      className={styles.yearInput}
+                      className="app-year-input"
                       type="number"
                       inputMode="numeric"
                       placeholder={yearMax ? String(yearMax) : 'До'}

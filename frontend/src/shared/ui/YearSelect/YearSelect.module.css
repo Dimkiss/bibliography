@@ -8,17 +8,17 @@
   align-items: center;
   justify-content: space-between;
   width: 75px;
-  height: 32px;
+  height: var(--control-height-sm);
   padding: 0 10px;
-  border: 1px solid #c8c6d2;
+  border: 1px solid var(--color-outline-control);
   border-radius: 8px;
-  background: #ffffff;
-  color: #42434d;
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-  letter-spacing: 0.1px;
+  background: var(--color-surface);
+  color: var(--color-control-text);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
+  letter-spacing: var(--type-label-md-letter);
   cursor: pointer;
 }
 
@@ -33,7 +33,7 @@
   height: 0;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-top: 6px solid #42434d;
+  border-top: 6px solid var(--color-control-text);
   margin-left: 8px;
 }
 
@@ -47,10 +47,10 @@
   overflow-y: auto;
   margin: 0;
   padding: 0;
-  border: 1px solid #e4e0ea;
+  border: 1px solid var(--color-outline-soft);
   border-radius: 4px;
-  background: #f8f5ff;
-  box-shadow: 0 2px 8px rgba(29, 27, 32, 0.22);
+  background: var(--color-surface-soft);
+  box-shadow: var(--shadow-popover);
   list-style: none;
 }
 
@@ -65,7 +65,7 @@
 .menu::-webkit-scrollbar-thumb {
   border: 3px solid transparent;
   border-radius: 999px;
-  background: #777680;
+  background: var(--color-outline-input);
   background-clip: content-box;
 }
 
@@ -73,24 +73,24 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  min-height: 56px;
+  min-height: var(--menu-option-height);
   padding: 0 16px;
   text-align: left;
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 24px;
-  letter-spacing: 0.5px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: var(--type-body-lg-letter);
   cursor: pointer;
 }
 
 .option:hover,
 .optionFocused {
-  background: rgba(78, 91, 146, 0.08);
+  background: var(--state-primary-hover);
 }
 
 .optionSelected {
   color: var(--blue);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }

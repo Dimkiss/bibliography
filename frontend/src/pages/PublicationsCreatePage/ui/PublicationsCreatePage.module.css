@@ -1,12 +1,5 @@
 .page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
   background: #f3f0f7;
-}
-
-.main {
-  flex: 1;
 }
 
 .card {
@@ -21,7 +14,7 @@
 .typeRow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-5);
   margin-bottom: 18px;
 }
 
@@ -29,8 +22,8 @@
   flex: 0 0 auto;
   min-width: 138px;
   color: var(--Value-indicator);
-  font-size: 16px;
-  line-height: 24px;
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
 }
 
 .primarySelect {
@@ -49,7 +42,7 @@
   width: 100%;
   border: 1px solid #8f8b95;
   border-radius: 4px;
-  background: #ffffff;
+  background: var(--color-surface);
   color: var(--Value-indicator);
   font: inherit;
 }
@@ -94,20 +87,20 @@
 .lookupRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 168px;
-  gap: 24px;
+  gap: var(--space-7);
   align-items: center;
 }
 
 .rowTwo {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  gap: var(--space-7);
 }
 
 .rowTwoLeft {
   display: grid;
   grid-template-columns: 168px 168px 1fr;
-  gap: 24px;
+  gap: var(--space-7);
 }
 
 .rowThreeArticle {
@@ -119,7 +112,7 @@
 .rowThree {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  gap: var(--space-7);
 }
 
 .sideButton {
@@ -142,23 +135,23 @@
   padding: 12px;
   border: 1px solid #d5d0dd;
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--color-surface);
   display: grid;
-  gap: 12px;
+  gap: var(--space-5);
 }
 
 .selectorHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-5);
 }
 
 .selectorTitle {
   color: var(--Value-indicator);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
 }
 
 .selectorClose {
@@ -178,7 +171,7 @@
   max-height: 240px;
   overflow: auto;
   display: grid;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .selectorItem {
@@ -186,7 +179,7 @@
   padding: 10px 12px;
   border: 1px solid #dbd7e5;
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--color-surface);
   color: var(--Value-indicator);
   text-align: left;
   cursor: pointer;
@@ -199,21 +192,21 @@
 }
 
 .selectorItemTitle {
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 500;
+  font-size: var(--type-label-md-size);
+  line-height: var(--type-label-md-line);
+  font-weight: var(--font-weight-medium);
 }
 
 .selectorItemMeta,
 .selectorHint {
   color: #6e6975;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
 }
 
 .relatedModeRow {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .relationToggle {
@@ -221,7 +214,7 @@
   height: 34px;
   border: 1px solid #cfc9d8;
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--color-surface);
   color: #565a6d;
   cursor: pointer;
   font: inherit;
@@ -236,7 +229,7 @@
 .actionsRow {
   display: flex;
   justify-content: flex-end;
-  gap: 24px;
+  gap: var(--space-7);
   margin-top: 2px;
 }
 
@@ -263,8 +256,8 @@
   border-radius: 12px;
   border: 1px solid #d6d3de;
   background: rgba(255, 255, 255, 0.92);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
 }
 
 .messageError {
@@ -302,7 +295,7 @@
   .actionsRow {
     grid-template-columns: 1fr;
     display: grid;
-    gap: 12px;
+    gap: var(--space-5);
   }
 
   .typeRow {

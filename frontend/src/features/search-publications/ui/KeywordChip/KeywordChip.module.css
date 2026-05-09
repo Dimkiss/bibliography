@@ -1,17 +1,17 @@
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
   max-width: 100%;
   min-height: 28px;
   padding: 4px 12px;
   border-radius: 14px;
   background: var(--header-item);
-  color: #424659;
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
+  color: var(--color-icon-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
   letter-spacing: 0;
 }
 
@@ -32,6 +32,6 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: #424659;
+  color: var(--color-icon-muted);
   cursor: pointer;
 }

@@ -750,9 +750,9 @@ export function PublicationsCreatePage() {
 
   if (isInitializing || (isRoleAllowed && isBootLoading)) {
     return (
-      <div className={styles.page}>
+      <div className={`app-page ${styles.page}`}>
         <Header title="Добавить публикацию" />
-        <main className={styles.main}>
+        <main className="app-main">
           <div className="container app-block-group">
             <div className={styles.statusBox}>Загрузка формы…</div>
           </div>
@@ -764,9 +764,9 @@ export function PublicationsCreatePage() {
 
   if (!isRoleAllowed) {
     return (
-      <div className={styles.page}>
+      <div className={`app-page ${styles.page}`}>
         <Header title="Добавить публикацию" />
-        <main className={styles.main}>
+        <main className="app-main">
           <div className="container app-block-group">
             <div className={styles.statusBox}>
               Доступ к странице добавления публикаций разрешён только пользователям с ролью 5.
@@ -779,10 +779,10 @@ export function PublicationsCreatePage() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={`app-page ${styles.page}`}>
       <Header title="Добавить публикацию" />
 
-      <main className={styles.main}>
+      <main className="app-main">
         <div className="container app-block-group">
           {error ? <div className={styles.messageError}>{error}</div> : null}
           {successMessage ? <div className={styles.messageSuccess}>{successMessage}</div> : null}

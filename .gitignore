@@ -59,3 +59,6 @@ build/
 *.egg-info/
 
 *.zip
+
+# Local agent notes
+AGENTS.md

@@ -53,10 +53,10 @@ export function LoginPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="app-page">
       <Header title="Авторизация" authActionVariant="hidden" />
 
-      <main className={styles.main}>
+      <main className="app-main">
         <div className="container app-block-group">
           <section className={styles.card}>
             <div className={styles.cardHeader}>

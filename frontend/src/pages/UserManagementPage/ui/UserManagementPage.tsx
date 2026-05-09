@@ -367,10 +367,10 @@ export function UserManagementPage() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className="app-page">
       <Header title="Управление пользователями" />
 
-      <main className={styles.main}>
+      <main className="app-main">
         <div className="container app-block-group">
           <section className={styles.layout}>
             <div className={styles.panel}>

@@ -1,43 +1,33 @@
-.page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.main {
-  flex: 1;
-}
-
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(320px, 420px);
-  gap: 24px;
+  gap: var(--space-7);
   align-items: start;
 }
 
 .panel,
 .formPanel {
-  background: #ffffff;
+  background: var(--color-surface);
   border: 1px solid var(--Text-field);
   border-radius: 24px;
   box-shadow: 0 12px 40px rgba(14, 26, 53, 0.08);
 }
 
 .panel {
-  padding: 24px;
+  padding: var(--space-7);
 }
 
 .formPanel {
-  padding: 24px;
+  padding: var(--space-7);
   position: sticky;
-  top: 24px;
+  top: var(--space-7);
 }
 
 .panelHeader,
 .formHeader {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .panelHeader {
@@ -47,9 +37,9 @@
 .title {
   margin: 0;
   color: var(--blue);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 32px;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   line-height: 40px;
 }
 
@@ -57,17 +47,17 @@
 .formSubtitle {
   margin: 0;
   color: var(--Scrollbar);
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
 }
 
 .formTitle {
   margin: 0;
   color: var(--blue);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 24px;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   line-height: 32px;
 }
 
@@ -86,18 +76,18 @@
 
 .table th,
 .table td {
-  padding: 14px 16px;
+  padding: 14px var(--space-6);
   text-align: left;
   border-bottom: 1px solid var(--Text-field);
   vertical-align: middle;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
 }
 
 .table th {
   background: #f8f8fc;
   color: var(--blue);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .table tbody tr {
@@ -110,7 +100,7 @@
 }
 
 .rowSelected {
-  background: rgba(78, 91, 146, 0.08);
+  background: var(--state-primary-hover);
 }
 
 .emptyCell {
@@ -121,29 +111,29 @@
 
 .rowActions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-6);
   margin-top: 20px;
 }
 
 .fieldBlock {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .selectLabel {
   color: var(--blue);
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
 }
 
 .select {
@@ -152,7 +142,7 @@
   padding: 0 16px;
   border: 1px solid var(--Text-field);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--color-surface);
   color: var(--blue);
   font: inherit;
   outline: none;
@@ -160,23 +150,23 @@
 
 .select:focus {
   border-color: var(--Vector);
-  box-shadow: 0 0 0 3px rgba(90, 132, 239, 0.14);
+  box-shadow: var(--shadow-focus);
 }
 
 .formActions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-5);
   flex-wrap: wrap;
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .errorBanner,
 .successBanner {
   margin-top: 16px;
-  padding: 14px 16px;
+  padding: 14px var(--space-6);
   border-radius: 16px;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
 }
 
 .errorBanner {
@@ -192,7 +182,7 @@
 }
 
 .detailsCard {
-  margin-top: 24px;
+  margin-top: var(--space-7);
   padding-top: 20px;
   border-top: 1px solid var(--Text-field);
 }
@@ -200,21 +190,21 @@
 .detailsTitle {
   margin: 0 0 16px;
   color: var(--blue);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 20px;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   line-height: 28px;
 }
 
 .detailsGrid {
   display: grid;
-  gap: 12px;
+  gap: var(--space-5);
 }
 
 .detailItem {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .detailLabel {
@@ -248,8 +238,8 @@
   }
 
   .title {
-    font-size: 28px;
-    line-height: 36px;
+    font-size: var(--type-title-lg-size);
+    line-height: var(--type-title-lg-line);
   }
 
   .formTitle {

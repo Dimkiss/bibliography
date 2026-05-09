@@ -44,26 +44,26 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: Roboto, sans-serif;
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.1px;
+  font-family: var(--font-family-ui);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--type-label-md-size);
+  line-height: var(--type-label-md-line);
+  letter-spacing: var(--type-label-md-letter);
   color: inherit;
 }
 
 .small .leftPart {
-  min-height: 32px;
-  height: 32px;
+  min-height: var(--control-height-sm);
+  height: var(--control-height-sm);
   padding: 6px 12px 6px 16px;
-  gap: 8px;
+  gap: var(--space-3);
   border-radius: 100px 4px 4px 100px;
 }
 
 .small .rightPart {
   width: 48px;
-  min-height: 32px;
-  height: 32px;
+  min-height: var(--control-height-sm);
+  height: var(--control-height-sm);
   padding: 6px 14px 6px 12px;
   border-radius: 4px 100px 100px 4px;
 }
@@ -80,17 +80,17 @@
 }
 
 .normal .leftPart {
-  min-height: 40px;
-  height: 40px;
+  min-height: var(--control-height-md);
+  height: var(--control-height-md);
   padding: 10px 12px 10px 16px;
-  gap: 8px;
+  gap: var(--space-3);
   border-radius: 100px 4px 4px 100px;
 }
 
 .normal .rightPart {
   width: 48px;
-  min-height: 40px;
-  height: 40px;
+  min-height: var(--control-height-md);
+  height: var(--control-height-md);
   padding: 10px 14px 10px 12px;
   border-radius: 4px 100px 100px 4px;
 }
@@ -107,16 +107,16 @@
 }
 
 .filled .buttonPart {
-  background: var(--bkg);
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
 }
 
 .filled .buttonPart:hover:not(:disabled) {
-  background: #5b6aa8;
+  background: var(--color-primary-hover);
 }
 
 .filled .buttonPart:active:not(:disabled) {
-  background: #445181;
+  background: var(--color-primary-active);
 }
 
 .tonal .buttonPart {
@@ -125,11 +125,11 @@
 }
 
 .tonal .buttonPart:hover:not(:disabled) {
-  background: #d4d9fb;
+  background: var(--color-tonal-hover);
 }
 
 .tonal .buttonPart:active:not(:disabled) {
-  background: #c8cef4;
+  background: var(--color-tonal-active);
 }
 
 .buttonPart:disabled {
@@ -137,6 +137,6 @@
 }
 
 .disabled .buttonPart {
-  background: #d9d9d9;
-  color: #9a9a9a;
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-control-text);
 }

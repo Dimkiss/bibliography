@@ -5,7 +5,7 @@
   padding: 20px;
   border: 1px solid var(--Text-field);
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .cardInteractive {
@@ -32,13 +32,13 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--space-6);
 }
 
 .headerMeta {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   justify-content: flex-end;
 }
@@ -46,8 +46,8 @@
 .title {
   margin: 0;
   color: var(--blue);
-  font-family: Roboto, sans-serif;
-  font-size: 22px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-title-md-size);
   line-height: 30px;
 }
 
@@ -55,7 +55,7 @@
 .subtitle {
   margin: 8px 0 0;
   color: var(--article-add);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 15px;
   line-height: 22px;
 }
@@ -73,7 +73,7 @@
   min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 13px;
   line-height: 18px;
 }
@@ -85,11 +85,11 @@
 
 .stateBadge {
   background: rgba(80, 173, 118, 0.14);
-  color: #226640;
+  color: var(--color-success);
 }
 
 .tag {
-  background: rgba(78, 91, 146, 0.08);
+  background: var(--state-primary-hover);
   color: var(--blue);
 }
 
@@ -101,18 +101,18 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-6);
 }
 
 .metaBlock {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .metaLabel {
   color: var(--Scrollbar);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 13px;
   line-height: 18px;
 }
@@ -120,12 +120,12 @@
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .doiLink {
   color: var(--Vector);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 15px;
   line-height: 22px;
   word-break: break-all;
@@ -133,9 +133,9 @@
 
 .placeholder {
   color: var(--Scrollbar);
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 20px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
 }
 
 @media (max-width: 760px) {

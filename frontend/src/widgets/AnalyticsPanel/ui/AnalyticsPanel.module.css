@@ -10,29 +10,29 @@
 }
 
 .panelTitle {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-5);
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 22px;
-  font-weight: 400;
-  line-height: 28px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-title-md-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-title-md-line);
   letter-spacing: 0;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 344px));
-  gap: 24px;
+  gap: var(--space-7);
   justify-content: space-between;
 }
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-4);
   width: 344px;
   height: 282px;
-  padding: 12px;
+  padding: var(--space-5);
   border: 1px solid var(--outline);
   border-radius: 8px;
   background: var(--article-menu);
@@ -51,11 +51,11 @@
   min-width: 0;
   margin: 0;
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 24px;
-  letter-spacing: 0.5px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: var(--type-body-lg-letter);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -70,22 +70,22 @@
 }
 
 .typesCard {
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .yearsCard {
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .lwlCard {
-  gap: 10px;
+  gap: var(--space-4);
 }
 
 .typesChartArea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-5);
   padding-left: 0;
 }
 
@@ -123,19 +123,19 @@
 
 .donutCenterValue {
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 28px;
-  font-weight: 400;
-  line-height: 36px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-title-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-title-lg-line);
 }
 
 .donutCenterCaption {
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 16px;
-  letter-spacing: 0.5px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-sm-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-sm-line);
+  letter-spacing: var(--type-label-sm-letter);
 }
 
 .selectWrap {
@@ -151,15 +151,15 @@
   border-radius: 10px;
   outline: none;
   background: var(--article-menu);
-  color: #5a696f;
-  font-family: Roboto, sans-serif;
-  font-size: 12px;
-  line-height: 16px;
+  color: var(--color-chart-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-sm-size);
+  line-height: var(--type-label-sm-line);
   appearance: none;
   cursor: pointer;
   background-image:
-    linear-gradient(45deg, transparent 50%, #69797e 50%),
-    linear-gradient(135deg, #69797e 50%, transparent 50%);
+    linear-gradient(45deg, transparent 50%, var(--color-chart-affordance) 50%),
+    linear-gradient(135deg, var(--color-chart-affordance) 50%, transparent 50%);
   background-position:
     calc(100% - 14px) 11px,
     calc(100% - 9px) 11px;
@@ -174,7 +174,7 @@
 }
 
 .rangeDash {
-  color: #5a696f;
+  color: var(--color-chart-muted);
   font-size: 12px;
   line-height: 28px;
 }
@@ -184,14 +184,14 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 6px 12px;
+  gap: var(--space-2) var(--space-5);
   padding-top: 0;
 }
 
 .legendItem {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -204,7 +204,7 @@
 
 .legendText {
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 11px;
   line-height: 14px;
 }
@@ -220,28 +220,28 @@
   justify-content: center;
   writing-mode: sideways-lr;
   color: var(--add_notes);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 11px;
-  font-weight: 500;
-  line-height: 16px;
-  letter-spacing: 0.5px;
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-sm-line);
+  letter-spacing: var(--type-label-sm-letter);
   white-space: nowrap;
   pointer-events: none;
 }
 
 .donutValue {
   fill: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 28px;
-  font-weight: 400;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-title-lg-size);
+  font-weight: var(--font-weight-regular);
 }
 
 .donutCaption {
   fill: var(--add_notes);
-  font-family: Roboto, sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-sm-size);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--type-label-sm-letter);
 }
 
 .tooltip {
@@ -257,24 +257,24 @@
 .tooltipLabel {
   margin-bottom: 4px;
   color: var(--add_notes);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--type-label-sm-size);
+  font-weight: var(--font-weight-medium);
 }
 
 .tooltipValue {
   color: var(--article-add);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--type-label-sm-size);
+  line-height: var(--type-label-sm-line);
 }
 
 .state {
-  padding: 16px;
+  padding: var(--space-6);
   border: 1px solid var(--Text-field);
   border-radius: var(--radius-sm);
   background: var(--article-menu);
   color: var(--article-add);
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
 }
 
 @media (max-width: 1100px) {
@@ -301,6 +301,6 @@
   }
 
   .legendRow {
-    gap: 8px 10px;
+    gap: var(--space-3) var(--space-4);
   }
 }

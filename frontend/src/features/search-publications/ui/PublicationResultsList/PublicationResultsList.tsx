@@ -73,19 +73,6 @@ function openPublicationPdf(articleId: number) {
   window.open(getPublicationPdfUrl(articleId), '_blank', 'noopener,noreferrer');
 }
 
-function openPublicationPdfs(articleIds: number[]) {
-  articleIds.forEach((articleId, index) => {
-    if (index === 0) {
-      openPublicationPdf(articleId);
-      return;
-    }
-
-    window.setTimeout(() => {
-      openPublicationPdf(articleId);
-    }, index * 120);
-  });
-}
-
 function stopInteractiveEvent(event: ReactMouseEvent<HTMLElement>) {
   event.stopPropagation();
 }
@@ -358,40 +345,10 @@ export function PublicationResultsList({
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const pageIds = useMemo(() => items.map((item) => item.id), [items]);
-  const selectedPdfIds = useMemo(
-    () =>
-      items
-        .filter((item) => selectedIdSet.has(item.id) && item.has_pdf)
-        .map((item) => item.id),
-    [items, selectedIdSet],
-  );
   const selectedOnPageCount = pageIds.filter((id) => selectedIdSet.has(id)).length;
   const isAllPageSelected = pageIds.length > 0 && selectedOnPageCount === pageIds.length;
   const isPageSelectionIndeterminate =
     selectedOnPageCount > 0 && selectedOnPageCount < pageIds.length;
-
-  const handleCopyStub = () => {
-    const selectedReferences = items
-      .filter((item) => selectedIdSet.has(item.id))
-      .map(getBibliographicReference)
-      .filter(Boolean);
-
-    if (!selectedReferences.length) {
-      return;
-    }
-
-    void navigator.clipboard.writeText(selectedReferences.join('\n'));
-    setActionMessage(`Скопировано библиографических ссылок: ${selectedReferences.length}.`);
-  };
-
-  const handleDownloadSelected = () => {
-    if (!selectedPdfIds.length) {
-      return;
-    }
-
-    openPublicationPdfs(selectedPdfIds);
-    setActionMessage(`Открыто PDF: ${selectedPdfIds.length}.`);
-  };
 
   const handleOpenPdf = (item: PublicationListItemDto) => {
     if (!item.has_pdf) {
@@ -537,8 +494,8 @@ export function PublicationResultsList({
         >
           <span className={styles.sortSelectText}>{currentSortLabel}</span>
           <Icon
-            name={isSortOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
-            size={20}
+            name={isSortOpen ? 'arrow_drop_up' : 'arrow_drop_down'}
+            size={18}
           />
         </button>
 
@@ -576,29 +533,6 @@ export function PublicationResultsList({
             ? 'Переключить сортировку по убыванию'
             : 'Переключить сортировку по возрастанию'
         }
-      />
-    </div>
-  );
-
-  const renderBulkActions = () => (
-    <div className={styles.bulkActions}>
-      <OutlineIconButton
-        iconName="copy"
-        iconSize={20}
-        size="small-x"
-        onClick={handleCopyStub}
-        disabled={!selectedIds.length}
-        aria-label="Копировать выбранные публикации"
-      />
-
-      <OutlineIconButton
-        iconName={selectedPdfIds.length ? 'pdf-color' : 'pdf-mono'}
-        iconSize={20}
-        iconColored={selectedPdfIds.length > 0}
-        size="small-x"
-        onClick={handleDownloadSelected}
-        disabled={!selectedPdfIds.length}
-        aria-label="Скачать PDF выбранных публикаций"
       />
     </div>
   );
@@ -832,11 +766,12 @@ export function PublicationResultsList({
         </div>
       </div>
 
-      <div className={styles.controlsRow}>
-        {renderSelectAllButton()}
-        {renderBulkActions()}
-        {viewMode === 'list' ? renderSortControls() : null}
-      </div>
+      {viewMode === 'list' ? (
+        <div className={styles.controlsRow}>
+          {renderSelectAllButton()}
+          {renderSortControls()}
+        </div>
+      ) : null}
 
       {actionMessage ? (
         <div className={styles.actionMessage} role="status">

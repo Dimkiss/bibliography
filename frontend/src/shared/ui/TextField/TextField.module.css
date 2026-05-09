@@ -3,12 +3,12 @@
   display: grid;
   gap: 4px;
 
-  --field-bg: #ffffff;
+  --field-bg: var(--color-surface);
   --field-border: var(--Text-field);
-  --field-label: #49454f;
-  --field-text: #1d1b20;
-  --field-supporting: #49454f;
-  --field-icon: #49454f;
+  --field-label: var(--color-field-affordance);
+  --field-text: var(--color-text-title);
+  --field-supporting: var(--color-field-affordance);
+  --field-icon: var(--color-field-affordance);
 }
 
 .field {
@@ -33,11 +33,11 @@
   outline: none;
   background: transparent;
   color: var(--field-text);
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 24px;
-  letter-spacing: 0.5px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: var(--type-body-lg-letter);
 }
 
 .input::placeholder {
@@ -45,12 +45,12 @@
 }
 
 .plain {
-  --field-border: #767680;
+  --field-border: var(--color-outline-strong);
   --field-text: var(--on-surface);
 }
 
 .plain .field {
-  gap: 10px;
+  gap: var(--space-4);
   padding: 0 12px;
 }
 
@@ -63,11 +63,11 @@
 
 .plain .input::placeholder {
   color: var(--on-surface-variant);
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 24px;
-  letter-spacing: 0.5px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: var(--type-body-lg-letter);
   opacity: 1;
 }
 
@@ -104,8 +104,8 @@
   background: var(--field-bg);
   color: var(--field-label);
   font-family: inherit;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--type-label-sm-size);
+  line-height: var(--type-label-sm-line);
   pointer-events: none;
   transition:
     top 0.15s ease,
@@ -124,8 +124,8 @@
   transform: translateY(-50%);
   padding: 0;
   background: transparent;
-  font-size: 16px;
-  line-height: 24px;
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
 }
 
 .input:placeholder-shown + .label.labelWithLeadingIcon {
@@ -139,8 +139,8 @@
   transform: translateY(-50%);
   padding: 0 4px;
   background: var(--field-bg);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--type-label-sm-size);
+  line-height: var(--type-label-sm-line);
 }
 
 .leadingIcon,
@@ -177,13 +177,13 @@
   padding: 0 16px;
   color: var(--field-supporting);
   font-family: inherit;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--type-label-sm-size);
+  line-height: var(--type-label-sm-line);
 }
 
 /* default */
 .root:hover:not(.disabled):not(.error) {
-  --field-border: #1d1b20;
+  --field-border: var(--color-text-title);
 }
 
 .root:focus-within:not(.disabled):not(.error) {
@@ -224,11 +224,11 @@
 
 /* disabled */
 .disabled {
-  --field-border: rgba(29, 27, 32, 0.12);
-  --field-label: rgba(29, 27, 32, 0.38);
-  --field-text: rgba(29, 27, 32, 0.38);
-  --field-supporting: rgba(29, 27, 32, 0.38);
-  --field-icon: rgba(29, 27, 32, 0.38);
+  --field-border: var(--disabled-border);
+  --field-label: var(--disabled-text);
+  --field-text: var(--disabled-text);
+  --field-supporting: var(--disabled-text);
+  --field-icon: var(--disabled-text);
 }
 
 .disabled .field {

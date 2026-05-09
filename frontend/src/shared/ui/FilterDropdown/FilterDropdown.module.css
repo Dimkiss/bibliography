@@ -4,17 +4,17 @@
 }
 
 .trigger {
-  min-width: 32px;
-  min-height: 32px;
+  min-width: var(--control-height-sm);
+  min-height: var(--control-height-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-3);
   padding: 6px 8px;
   border: 1px solid var(--outline);
   border-radius: 8px;
-  background: #ffffff;
-  color: #45464f;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
 }
@@ -22,7 +22,7 @@
 .triggerActive {
   border-color: transparent;
   background: var(--button-tonal);
-  color: #45464f;
+  color: var(--color-text-muted);
 }
 
 .trigger:disabled {
@@ -32,23 +32,23 @@
 
 .triggerLabel {
   color: inherit;
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-  letter-spacing: 0.1px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
+  letter-spacing: var(--type-label-md-letter);
   white-space: nowrap;
 }
 
 .menu {
   position: absolute;
-  top: calc(100% + 16px);
+  top: calc(100% + var(--space-6));
   left: 0;
   z-index: 20;
   min-width: 112px;
   width: max-content;
   max-width: min(280px, calc(100vw - 48px));
-  padding: 8px 0;
+  padding: var(--space-3) 0;
   border-radius: 4px;
   background: var(--menu);
   box-shadow:
@@ -66,21 +66,21 @@
 .optionButton {
   width: max-content;
   min-width: 100%;
-  height: 56px;
+  height: var(--menu-option-height);
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 12px 8px 0;
+  padding: var(--space-3) var(--space-5) var(--space-3) 0;
   border: none;
   background: transparent;
-  color: #45464f;
+  color: var(--color-text-muted);
   cursor: pointer;
   font: inherit;
   text-align: left;
 }
 
 .optionButton:hover {
-  background: rgba(78, 91, 146, 0.08);
+  background: var(--state-primary-hover);
 }
 
 .control {
@@ -91,7 +91,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #45464f;
+  color: var(--color-text-muted);
 }
 
 .checkbox::before {
@@ -105,10 +105,10 @@
 .optionLabel {
   min-width: 0;
   padding-right: 12px;
-  color: #45464f;
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-  letter-spacing: 0.1px;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
+  letter-spacing: var(--type-label-md-letter);
 }

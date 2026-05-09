@@ -6,11 +6,11 @@
   max-width: 100%;
   flex: 0 0 auto;
 
-  gap: 8px;
+  gap: var(--space-3);
   border: none;
   border-radius: 100px;
   background: transparent;
-  color: var(--bkg);
+  color: var(--color-primary);
   cursor: pointer;
   font: inherit;
   white-space: nowrap;
@@ -29,47 +29,47 @@
 
 .label {
   color: inherit;
-  font-family: Roboto, sans-serif;
-  font-weight: 500;
-  letter-spacing: 0.1px;
+  font-family: var(--font-family-ui);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--type-label-md-letter);
   white-space: nowrap;
 }
 
 .normal {
-  height: 40px;
+  height: var(--control-height-md);
   padding: 0 16px;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .normal .label {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--type-label-md-size);
+  line-height: var(--type-label-md-line);
 }
 
 .small {
-  height: 32px;
+  height: var(--control-height-sm);
   padding: 0 12px;
   gap: 4px;
 }
 
 .small .label {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--type-label-md-size);
+  line-height: var(--type-label-md-line);
 }
 
 .button:hover:not(:disabled),
 .active {
-  background: rgba(78, 91, 146, 0.08);
+  background: var(--state-primary-hover);
   border-radius: 100px;
 }
 
 .button:active:not(:disabled) {
-  background: rgba(78, 91, 146, 0.16);
+  background: var(--state-primary-active);
   border-radius: 8px;
 }
 
 .button:disabled {
-  background: rgba(26, 27, 33, 0.1);
+  background: var(--state-text-active);
   color: rgba(26, 27, 33, 0.38);
   cursor: not-allowed;
   border-radius: 100px;

@@ -15,9 +15,9 @@
   align-items: center;
   justify-content: center;
   color: var(--Value-indicator);
-  font-family: Roboto, sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 16px;
-  letter-spacing: 0.4px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-sm-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-sm-line);
+  letter-spacing: var(--type-body-sm-letter);
 }

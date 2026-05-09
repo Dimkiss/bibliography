@@ -12,7 +12,7 @@ import {
 import type { DashboardLwlPoint } from '../api/analytics';
 import { YearSelect } from '@/shared/ui/YearSelect';
 import { AnalyticsTooltip } from './AnalyticsTooltip';
-import { AXIS_COLOR, BAR_COLOR, GRID_COLOR } from './chartConfig';
+import { BAR_COLOR, CHART_TICK_STYLE, GRID_COLOR } from './chartConfig';
 import styles from './AnalyticsPanel.module.css';
 
 type AnalyticsLwlCardProps = {
@@ -51,24 +51,14 @@ export function AnalyticsLwlCard({
               dataKey="label"
               height={16}
               tick={{
+                ...CHART_TICK_STYLE,
                 dy: -2,
-                fill: AXIS_COLOR,
-                fontFamily: 'Roboto, sans-serif',
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: 0.5,
               }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              tick={{
-                fill: AXIS_COLOR,
-                fontFamily: 'Roboto, sans-serif',
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: 0.5,
-              }}
+              tick={CHART_TICK_STYLE}
               tickLine={false}
               axisLine={false}
               width={28}

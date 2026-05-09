@@ -5,13 +5,13 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .topRow,
 .criteriaRow {
   display: grid;
-  gap: 12px;
+  gap: var(--space-5);
   align-items: start;
 }
 
@@ -26,7 +26,7 @@
 .fieldLabel {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
   min-height: 48px;
   padding: 0 12px;
   border-radius: 14px;
@@ -36,9 +36,9 @@
 
 .labelText {
   min-width: 0;
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 20px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
   white-space: nowrap;
 }
 
@@ -66,7 +66,7 @@
   padding: 0 44px 0 14px;
   border: 1px solid var(--Text-field);
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--color-surface);
   color: var(--blue);
   font: inherit;
 }
@@ -95,7 +95,7 @@
 .actionsRow {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: var(--space-5);
   align-items: center;
 }
 
@@ -107,13 +107,13 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .submitActions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-5);
 }
 
 @media (max-width: 960px) {
@@ -131,94 +131,20 @@
     align-items: stretch;
   }
 }
-.dropdownWrap {
-  position: relative;
-  width: 248px;
-  max-width: 100%;
-}
-
-.menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 20;
-  min-width: 220px;
-  max-width: min(340px, calc(100vw - 48px));
-  padding: 12px;
-  border: 1px solid var(--Text-field);
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 16px 36px rgba(14, 26, 53, 0.12);
-}
-
-.optionsList {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.optionButton {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  font: inherit;
-  color: var(--blue);
-}
-
-.optionButton:hover {
-  background: rgba(78, 91, 146, 0.08);
-}
-
-.optionButtonIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: inherit;
-}
-
 .yearPanel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.yearInputs {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-}
-
-.yearInput {
-  width: 100%;
-  height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--Text-field);
-  border-radius: 10px;
-  background: #ffffff;
-  color: var(--blue);
-  font: inherit;
-}
-
-.yearSeparator {
-  color: var(--Scrollbar);
+  gap: var(--space-5);
 }
 
 .quickActions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .quickAction {
-  padding: 8px 10px;
+  padding: var(--space-3) var(--space-4);
   border: none;
   border-radius: 10px;
   background: transparent;
@@ -229,5 +155,5 @@
 }
 
 .quickAction:hover {
-  background: rgba(78, 91, 146, 0.08);
+  background: var(--state-primary-hover);
 }

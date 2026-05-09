@@ -137,7 +137,10 @@ export function PublicationQuickSearchPanel() {
       </h2>
 
       <form className={styles.form} onSubmit={handleSubmit}>
-        <div ref={yearDropdownRef} className={styles.dropdownWrap}>
+        <div
+          ref={yearDropdownRef}
+          className={`app-search-dropdown-wrap ${styles.dropdownWrap}`}
+        >
           <DropdownButton
             label={periodLabel}
             icon={<Icon name="calendar_renge" size={18} />}
@@ -149,10 +152,10 @@ export function PublicationQuickSearchPanel() {
           />
 
           {isYearOpen ? (
-            <div className={styles.menu}>
-              <div className={styles.yearInputs}>
+            <div className="app-search-menu">
+              <div className="app-year-inputs">
                 <input
-                  className={styles.yearInput}
+                  className="app-year-input"
                   type="number"
                   inputMode="numeric"
                   placeholder={filters.year_min ? String(filters.year_min) : 'От'}
@@ -160,10 +163,10 @@ export function PublicationQuickSearchPanel() {
                   onChange={(event) => setYearFrom(event.target.value)}
                 />
 
-                <span className={styles.yearSeparator}>-</span>
+                <span className="app-year-separator">-</span>
 
                 <input
-                  className={styles.yearInput}
+                  className="app-year-input"
                   type="number"
                   inputMode="numeric"
                   placeholder={filters.year_max ? String(filters.year_max) : 'До'}
@@ -175,7 +178,10 @@ export function PublicationQuickSearchPanel() {
           ) : null}
         </div>
 
-        <div ref={fieldDropdownRef} className={styles.dropdownWrap}>
+        <div
+          ref={fieldDropdownRef}
+          className={`app-search-dropdown-wrap ${styles.dropdownWrap}`}
+        >
           <DropdownButton
             label={formatSearchFieldLabel(field)}
             icon={<Icon name={getFieldIconName(field)} size={18} />}
@@ -187,19 +193,19 @@ export function PublicationQuickSearchPanel() {
           />
 
           {isFieldOpen ? (
-            <div className={styles.menu}>
-              <div className={styles.optionsList}>
+            <div className="app-search-menu">
+              <div className="app-search-options-list">
                 {SEARCH_FIELD_OPTIONS.map((option) => (
                   <button
                     key={option.key}
                     type="button"
-                    className={styles.optionButton}
+                    className="app-search-option-button"
                     onClick={() => {
                       setField(option.key);
                       setIsFieldOpen(false);
                     }}
                   >
-                    <span className={styles.optionButtonIcon}>
+                    <span className="app-search-option-icon">
                       <Icon name={getFieldIconName(option.key)} size={18} />
                     </span>
                     <span>{option.label}</span>

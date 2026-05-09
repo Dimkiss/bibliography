@@ -37,27 +37,24 @@
 }
 
 .smallX {
-  width: 32px;
-  height: 32px;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
   border-radius: 12px;
 }
 
 .button:hover:not(:disabled) {
-  background: var(--outline-icon-button-hover-bg, rgba(69, 70, 79, 0.08));
+  background: var(--outline-icon-button-hover-bg, var(--state-on-surface-hover));
   border-radius: 12px;
 }
 
 .button:active:not(:disabled) {
-  background: var(--outline-icon-button-active-bg, rgba(69, 70, 79, 0.16));
+  background: var(--outline-icon-button-active-bg, var(--state-on-surface-active));
   border-radius: 8px;
 }
 
 .button:disabled {
-  color: var(--outline-icon-button-disabled-color, rgba(29, 27, 32, 0.38));
-  border-color: var(
-    --outline-icon-button-disabled-border-color,
-    rgba(29, 27, 32, 0.12)
-  );
+  color: var(--outline-icon-button-disabled-color, var(--disabled-text));
+  border-color: var(--outline-icon-button-disabled-border-color, var(--disabled-border));
   background: transparent;
   cursor: not-allowed;
   border-radius: 8px;

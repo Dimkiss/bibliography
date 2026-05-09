@@ -11,7 +11,7 @@ import {
 import type { DashboardYearsPoint } from '../api/analytics';
 import { YearRangeSelect } from '@/shared/ui/YearRangeSelect';
 import { AnalyticsTooltip } from './AnalyticsTooltip';
-import { AXIS_COLOR, GRID_COLOR, LINE_COLOR } from './chartConfig';
+import { CHART_TICK_STYLE, GRID_COLOR, LINE_COLOR } from './chartConfig';
 import styles from './AnalyticsPanel.module.css';
 
 type AnalyticsYearsCardProps = {
@@ -60,24 +60,14 @@ export function AnalyticsYearsCard({
               dataKey="year"
               height={16}
               tick={{
+                ...CHART_TICK_STYLE,
                 dy: -2,
-                fill: AXIS_COLOR,
-                fontFamily: 'Roboto, sans-serif',
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: 0.5,
               }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              tick={{
-                fill: AXIS_COLOR,
-                fontFamily: 'Roboto, sans-serif',
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: 0.5,
-              }}
+              tick={CHART_TICK_STYLE}
               tickLine={false}
               axisLine={false}
               width={28}

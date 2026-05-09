@@ -1,71 +1,61 @@
-.page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.main {
-  flex: 1;
-}
-
 .card {
   width: min(100%, 720px);
   margin: 0 auto;
-  padding: 32px;
+  padding: var(--space-8);
   border: 1px solid var(--Text-field);
   border-radius: 24px;
-  background: #ffffff;
+  background: var(--color-surface);
   box-shadow: 0 12px 40px rgba(14, 26, 53, 0.08);
 }
 
 .cardHeader {
   display: grid;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-7);
 }
 
 .title {
   margin: 0;
   color: var(--blue);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 32px;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   line-height: 40px;
 }
 
 .subtitle {
   margin: 0;
   color: var(--Scrollbar);
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
 }
 
 .infoGrid {
   display: grid;
-  gap: 16px;
+  gap: var(--space-6);
 }
 
 .item {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   padding: 16px 20px;
   border: 1px solid var(--Text-field);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .itemLabel {
   color: var(--Scrollbar);
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
 }
 
 .itemValue {
   color: var(--blue);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 18px;
   line-height: 28px;
   word-break: break-word;
@@ -78,12 +68,12 @@
   }
 
   .title {
-    font-size: 28px;
-    line-height: 36px;
+    font-size: var(--type-title-lg-size);
+    line-height: var(--type-title-lg-line);
   }
 
   .itemValue {
-    font-size: 16px;
-    line-height: 24px;
+    font-size: var(--type-body-lg-size);
+    line-height: var(--type-body-lg-line);
   }
 }

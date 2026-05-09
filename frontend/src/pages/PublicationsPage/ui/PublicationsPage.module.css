@@ -1,13 +1,3 @@
-.page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.main {
-  flex: 1;
-}
-
 .content {
   display: flex;
   flex-direction: column;
@@ -17,11 +7,11 @@
 .resultsBlock {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .emptySearchState {
-  padding: 32px 24px;
+  padding: var(--space-8) var(--space-7);
   border: 1px dashed var(--Text-field);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.62);
@@ -30,23 +20,23 @@
 
 .emptySearchTitle {
   margin: 0;
-  color: var(--Text);
+  color: var(--color-text-primary);
   font-size: 20px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   line-height: 1.3;
 }
 
 .emptySearchText {
   max-width: 560px;
-  margin: 10px auto 0;
-  color: var(--Grey);
+  margin: var(--space-4) auto 0;
+  color: var(--color-text-subtle);
   font-size: 15px;
   line-height: 1.5;
 }
 
 @media (max-width: 640px) {
   .emptySearchState {
-    padding: 16px;
+    padding: var(--space-6);
   }
 
   .emptySearchTitle {

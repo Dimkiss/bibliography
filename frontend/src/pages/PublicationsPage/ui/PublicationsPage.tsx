@@ -604,10 +604,10 @@ export function PublicationsPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="app-page">
       <Header title="Поиск публикаций" />
 
-      <main className={styles.main}>
+      <main className="app-main">
         <div className="container app-block-group">
           {canCreatePublication ? (
             <div className={styles.actionsRow}>

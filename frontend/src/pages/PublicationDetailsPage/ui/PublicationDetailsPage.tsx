@@ -264,10 +264,10 @@ export function PublicationDetailsPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="app-page">
       <Header title="Информация о публикации" />
 
-      <main className={styles.main}>
+      <main className="app-main">
         <div className="container app-block-group">
           <section className={styles.card}>
             {isLoading ? (

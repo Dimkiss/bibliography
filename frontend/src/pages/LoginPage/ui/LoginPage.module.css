@@ -1,62 +1,52 @@
-.page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.main {
-  flex: 1;
-}
-
 .card {
   width: min(100%, 480px);
   margin: 0 auto;
-  padding: 32px;
+  padding: var(--space-8);
   border: 1px solid var(--Text-field);
   border-radius: 24px;
-  background: #ffffff;
+  background: var(--color-surface);
   box-shadow: 0 12px 40px rgba(14, 26, 53, 0.08);
 }
 
 .cardHeader {
   display: grid;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-7);
 }
 
 .title {
   margin: 0;
   color: var(--blue);
-  font-family: Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 32px;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   line-height: 40px;
 }
 
 .subtitle {
   margin: 0;
   color: var(--Scrollbar);
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
 }
 
 .form {
   display: grid;
-  gap: 16px;
+  gap: var(--space-6);
 }
 
 .field {
   display: grid;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .label {
   color: var(--blue);
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
 }
 
 .input {
@@ -66,11 +56,11 @@
   border: 1px solid var(--Text-field);
   border-radius: 12px;
   outline: none;
-  background: #ffffff;
+  background: var(--color-surface);
   color: var(--blue);
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
@@ -87,9 +77,9 @@
 
 .errorText {
   color: var(--error);
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 20px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
 }
 
 .submitButton {
@@ -98,12 +88,12 @@
   border: none;
   border-radius: 100px;
   background: var(--bkg);
-  color: #ffffff;
+  color: var(--color-white);
   cursor: pointer;
-  font-family: Roboto, sans-serif;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 24px;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-body-lg-line);
   transition:
     background-color 0.15s ease,
     border-radius 0.12s ease,
@@ -111,17 +101,17 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background: #5b6aa8;
+  background: var(--color-primary-hover);
 }
 
 .submitButton:active:not(:disabled) {
-  background: #445181;
-  border-radius: 8px;
+  background: var(--color-primary-active);
+  border-radius: var(--radius-control);
 }
 
 .submitButton:disabled {
-  background: #d9d9d9;
-  color: #9a9a9a;
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-control-text);
   cursor: not-allowed;
 }
 .actions {
@@ -135,7 +125,7 @@
   }
 
   .title {
-    font-size: 28px;
-    line-height: 36px;
+    font-size: var(--type-title-lg-size);
+    line-height: var(--type-title-lg-line);
   }
 }

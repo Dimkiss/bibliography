@@ -1,5 +1,3 @@
-import styles from "./MainPage.module.css";
-
 import { Header } from "@/widgets/Header";
 import { Footer } from "@/widgets/Footer";
 import { PublicationList } from "@/widgets/PublicationList";
@@ -9,10 +7,10 @@ import { PublicationQuickSearchPanel } from "@/features/search-publications";
 
 export function MainPage() {
   return (
-    <div className={styles.page}>
+    <div className="app-page">
       <Header title="Библиография ЛИН СО РАН" />
 
-      <main className={styles.main}>
+      <main className="app-main">
         <div className="container app-block-group">
           <PublicationQuickSearchPanel />
           <AnalyticsPanel />
