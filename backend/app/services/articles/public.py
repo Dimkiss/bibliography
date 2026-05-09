@@ -62,13 +62,13 @@ PUBLICATION_TYPE_PRIMARY_FLAGS: tuple[str, ...] = tuple(
 SORT_FIELD_MAP = {
     "authors": """
         COALESCE(
+            NULLIF(a.Author_Analitic_F1, ''),
             (
                 SELECT GROUP_CONCAT(DISTINCT au.authorName ORDER BY au.authorName SEPARATOR ', ')
                 FROM articlehasauthor aha
                 JOIN authors au ON au.authorID = aha.authorID_f
                 WHERE aha.Record_ID_f = a.Record_ID
-            ),
-            a.Author_Analitic_F1
+            )
         )
     """,
     "title": "a.Title_Analitic_F4",
@@ -260,12 +260,15 @@ def _build_common_filters(
         params["author"] = f"%{author.strip()}%"
         conditions.append(
             """
-            EXISTS (
-                SELECT 1
-                FROM articlehasauthor aha
-                JOIN authors au ON au.authorID = aha.authorID_f
-                WHERE aha.Record_ID_f = a.Record_ID
-                  AND au.authorName LIKE :author
+            (
+                a.Author_Analitic_F1 LIKE :author
+                OR EXISTS (
+                    SELECT 1
+                    FROM articlehasauthor aha
+                    JOIN authors au ON au.authorID = aha.authorID_f
+                    WHERE aha.Record_ID_f = a.Record_ID
+                      AND au.authorName LIKE :author
+                )
             )
             """
         )
@@ -463,13 +466,13 @@ def _fetch_related_articles(db: Session, article_id: int) -> list[RelatedArticle
                 a.Record_ID AS id,
                 a.Title_Analitic_F4 AS title,
                 COALESCE(
+                    NULLIF(a.Author_Analitic_F1, ''),
                     (
                         SELECT GROUP_CONCAT(DISTINCT au.authorName ORDER BY au.authorName SEPARATOR ', ')
                         FROM articlehasauthor aha
                         JOIN authors au ON au.authorID = aha.authorID_f
                         WHERE aha.Record_ID_f = a.Record_ID
-                    ),
-                    a.Author_Analitic_F1
+                    )
                 ) AS authors,
                 COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
                 a.Date_of_Publication_F20 AS year,
@@ -590,13 +593,13 @@ def list_articles(
             a.ExtentOfWork_F26 AS extent_of_work,
             a.ISBN_F41 AS isbn,
             COALESCE(
+                NULLIF(a.Author_Analitic_F1, ''),
                 (
                     SELECT GROUP_CONCAT(DISTINCT au.authorName ORDER BY au.authorName SEPARATOR ', ')
                     FROM articlehasauthor aha
                     JOIN authors au ON au.authorID = aha.authorID_f
                     WHERE aha.Record_ID_f = a.Record_ID
-                ),
-                a.Author_Analitic_F1
+                )
             ) AS authors,
             NULLIF(jn.JournalName, '') AS journal_name,
             COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
@@ -723,13 +726,13 @@ def get_latest_articles(
             a.Record_ID AS id,
             a.Title_Analitic_F4 AS title,
             COALESCE(
+                NULLIF(a.Author_Analitic_F1, ''),
                 (
                     SELECT GROUP_CONCAT(DISTINCT au.authorName ORDER BY au.authorName SEPARATOR ', ')
                     FROM articlehasauthor aha
                     JOIN authors au ON au.authorID = aha.authorID_f
                     WHERE aha.Record_ID_f = a.Record_ID
-                ),
-                a.Author_Analitic_F1
+                )
             ) AS authors,
             COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
             a.Date_of_Publication_F20 AS year,
@@ -737,13 +740,13 @@ def get_latest_articles(
         FROM (
             SELECT Record_ID
             FROM articles
-            ORDER BY PublicationDate DESC, Record_ID DESC
+            ORDER BY InsertDate DESC, Record_ID DESC
             LIMIT :limit
         ) latest
         JOIN articles a ON a.Record_ID = latest.Record_ID
         LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
         LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
-        ORDER BY a.PublicationDate DESC, a.Record_ID DESC
+        ORDER BY a.InsertDate DESC, a.Record_ID DESC
         """
     )
 
@@ -857,10 +860,10 @@ def get_article_detail(
     article_dict = dict(article_row)
     authors = None
 
-    if authors_row and authors_row.get("authors"):
-        authors = authors_row.get("authors")
-    elif article_dict.get("authors_fallback"):
+    if article_dict.get("authors_fallback"):
         authors = article_dict.get("authors_fallback")
+    elif authors_row and authors_row.get("authors"):
+        authors = authors_row.get("authors")
 
     return ArticleDetailResponse(
         id=article_dict["id"],

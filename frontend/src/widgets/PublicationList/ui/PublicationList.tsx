@@ -65,7 +65,7 @@ export function PublicationList() {
     >
       <div className={styles.header}>
         <h2 id="latest-publications-title" className={styles.title}>
-          Последние публикации
+          Последние добавленные
         </h2>
       </div>
 
