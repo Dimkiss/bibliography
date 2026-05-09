@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { MainPage } from '@/pages/MainPage';
+import { AboutProjectPage } from '@/pages/AboutProjectPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { PublicationsPage } from '@/pages/PublicationsPage';
@@ -29,6 +30,10 @@ function AppRoutes() {
 
   if (pathname === '/profile') {
     return <ProfilePage />;
+  }
+
+  if (pathname === '/about') {
+    return <AboutProjectPage />;
   }
 
   if (pathname === '/user-management') {
