@@ -32,6 +32,7 @@ import { navigateTo } from '@/shared/lib/navigation';
 import { deleteAdminArticle } from '@/features/create-publication';
 import { useAuth } from '@/features/auth';
 import { ADMIN_ROLE_ID } from '@/entities/role';
+import { PublicationSelectionActionsPanel } from '../PublicationSelectionActionsPanel';
 import styles from './PublicationResultsList.module.css';
 
 export type PublicationResultsViewMode = 'list' | 'table';
@@ -344,6 +345,10 @@ export function PublicationResultsList({
   }, [sortField]);
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedItems = useMemo(
+    () => items.filter((item) => selectedIdSet.has(item.id)),
+    [items, selectedIdSet],
+  );
   const pageIds = useMemo(() => items.map((item) => item.id), [items]);
   const selectedOnPageCount = pageIds.filter((id) => selectedIdSet.has(id)).length;
   const isAllPageSelected = pageIds.length > 0 && selectedOnPageCount === pageIds.length;
@@ -790,6 +795,12 @@ export function PublicationResultsList({
       {!isLoading && !error && items.length ? (
         viewMode === 'table' ? renderTable() : renderList()
       ) : null}
+
+      <PublicationSelectionActionsPanel
+        selectedItems={selectedItems}
+        onActionStart={() => setOpenActionMenuId(null)}
+        onActionMessage={setActionMessage}
+      />
 
       {publicationToDelete ? (
         <div

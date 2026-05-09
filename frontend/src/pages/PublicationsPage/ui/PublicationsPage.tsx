@@ -87,19 +87,6 @@ function isPublicationResultsViewMode(value: unknown): value is PublicationResul
   return value === 'list' || value === 'table';
 }
 
-function normalizeSelectedPublicationIds(value: unknown): number[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const ids = value.filter(
-    (item): item is number =>
-      typeof item === 'number' && Number.isInteger(item) && item > 0,
-  );
-
-  return Array.from(new Set(ids));
-}
-
 function normalizeSearchFields(value: unknown): SearchFieldKey[] {
   if (!Array.isArray(value)) {
     return [...DEFAULT_ACTIVE_FIELDS];
@@ -239,9 +226,7 @@ function getStoredSearchState(): PublicationsPageSearchState | null {
       appliedFields,
       items: Array.isArray(parsed.items) ? parsed.items : [],
       pagination: normalizePagination(parsed.pagination),
-      selectedPublicationIds: normalizeSelectedPublicationIds(
-        parsed.selectedPublicationIds,
-      ),
+      selectedPublicationIds: [],
       viewMode: isPublicationResultsViewMode(parsed.viewMode)
         ? parsed.viewMode
         : 'list',
@@ -425,7 +410,7 @@ export function PublicationsPage() {
       appliedFields: [...appliedFields],
       items,
       pagination,
-      selectedPublicationIds,
+      selectedPublicationIds: [],
       viewMode,
       sortField,
       sortOrder,
@@ -444,7 +429,6 @@ export function PublicationsPage() {
     hasSearched,
     items,
     pagination,
-    selectedPublicationIds,
     sortField,
     sortOrder,
     viewMode,
@@ -677,6 +661,7 @@ export function PublicationsPage() {
                   onTogglePageSelection={handleTogglePageSelection}
                   onSortFieldChange={(value) => {
                     setSortField(value);
+                    setSelectedPublicationIds([]);
                     setPagination((prev) => ({
                       ...prev,
                       page: 1,
@@ -684,6 +669,7 @@ export function PublicationsPage() {
                   }}
                   onSortOrderChange={(value) => {
                     setSortOrder(value);
+                    setSelectedPublicationIds([]);
                     setPagination((prev) => ({
                       ...prev,
                       page: 1,
@@ -697,19 +683,21 @@ export function PublicationsPage() {
                   pageSize={pagination.page_size}
                   totalPages={pagination.total_pages}
                   total={pagination.total}
-                  onPageChange={(nextPage) =>
+                  onPageChange={(nextPage) => {
+                    setSelectedPublicationIds([]);
                     setPagination((prev) => ({
                       ...prev,
                       page: nextPage,
-                    }))
-                  }
-                  onPageSizeChange={(nextPageSize) =>
+                    }));
+                  }}
+                  onPageSizeChange={(nextPageSize) => {
+                    setSelectedPublicationIds([]);
                     setPagination((prev) => ({
                       ...prev,
                       page: 1,
                       page_size: nextPageSize,
-                    }))
-                  }
+                    }));
+                  }}
                 />
               </div>
             ) : (

@@ -1,0 +1,107 @@
+.panel {
+  position: fixed;
+  right: max(var(--space-7), env(safe-area-inset-right));
+  bottom: max(var(--space-7), env(safe-area-inset-bottom));
+  z-index: 60;
+  width: min(520px, calc(100vw - 48px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-5);
+  border: 1px solid var(--Text-field);
+  border-radius: 8px;
+  background: var(--article-menu);
+  box-shadow: var(--shadow-menu);
+}
+
+.info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+}
+
+.actionButton {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-5);
+  border: 1px solid var(--outline);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--blue);
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.actionButton:hover:not(:disabled) {
+  background: var(--state-primary-hover);
+}
+
+.actionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.actionButton span {
+  color: inherit;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+@media (max-width: 720px) {
+  .panel {
+    right: var(--space-6);
+    bottom: var(--space-6);
+    left: var(--space-6);
+    width: auto;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .buttons {
+    width: 100%;
+  }
+
+  .actionButton {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .actionButton span {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 420px) {
+  .buttons {
+    flex-direction: column;
+  }
+
+  .actionButton {
+    width: 100%;
+  }
+}
