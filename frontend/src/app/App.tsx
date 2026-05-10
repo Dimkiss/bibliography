@@ -9,16 +9,23 @@ import { PublicationDetailsPage } from '@/pages/PublicationDetailsPage';
 import { PublicationsCreatePage } from '@/pages/PublicationsCreatePage';
 import { UserManagementPage } from '@/pages/UserManagementPage';
 import { AuthProvider } from '@/features/auth';
-import { subscribeToNavigation } from '@/shared/lib/navigation';
+import {
+  getCurrentNavigationPath,
+  subscribeToNavigation,
+} from '@/shared/lib/navigation';
 
 function AppRoutes() {
-  const [pathname, setPathname] = useState(window.location.pathname);
+  const [locationPath, setLocationPath] = useState(getCurrentNavigationPath);
 
   useEffect(() => {
     return subscribeToNavigation(() => {
-      setPathname(window.location.pathname);
+      setLocationPath(getCurrentNavigationPath());
     });
   }, []);
+
+  const pathname = useMemo(() => {
+    return new URL(locationPath, window.location.origin).pathname;
+  }, [locationPath]);
 
   const isPublicationDetailsPage = useMemo(() => {
     return /^\/articles\/\d+$/.test(pathname);
@@ -45,7 +52,7 @@ function AppRoutes() {
   }
 
   if (pathname === '/articles') {
-    return <PublicationsPage />;
+    return <PublicationsPage key={locationPath} />;
   }
 
   if (isPublicationDetailsPage) {
