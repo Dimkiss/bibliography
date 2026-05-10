@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '@/shared/config/api';
+import { getAuthHeaders } from '@/shared/lib/auth';
 
 export type PublicationPreviewDto = {
   id: number;
@@ -298,4 +299,18 @@ export async function getPublicationDetail(
 
 export function getPublicationPdfUrl(articleId: number): string {
   return `${API_BASE_URL}/articles/${articleId}/pdf`;
+}
+
+export async function deleteAdminArticle(articleId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/admin/articles/${articleId}`, {
+    method: 'DELETE',
+    headers: {
+      accept: 'application/json',
+      ...getAuthHeaders(),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
 }
