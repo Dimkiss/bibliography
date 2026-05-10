@@ -121,7 +121,7 @@
 
 .tonal .buttonPart {
   background: var(--button-tonal);
-  color: var(--Value-indicator);
+  color: var(--color-icon-muted);
 }
 
 .tonal .buttonPart:hover:not(:disabled) {

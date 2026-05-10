@@ -131,29 +131,69 @@
     align-items: stretch;
   }
 }
+
+.yearDropdownWrap {
+  width: 240px;
+}
+
+.yearTrigger {
+  gap: 2px;
+}
+
+.yearMenu {
+  position: absolute;
+  top: calc(100% + var(--space-3));
+  left: 0;
+  z-index: 20;
+  width: 240px;
+  min-width: 112px;
+  max-width: min(280px, calc(100vw - 48px));
+  padding: var(--space-3) 0;
+  border-radius: var(--radius-menu);
+  background: var(--color-surface-menu);
+  box-shadow: var(--shadow-menu-md);
+}
+
 .yearPanel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
 }
 
 .quickActions {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  border-top: 1px solid var(--color-outline);
 }
 
 .quickAction {
-  padding: var(--space-3) var(--space-4);
+  min-height: var(--menu-option-height);
+  padding: var(--space-3) var(--space-5);
   border: none;
-  border-radius: 10px;
   background: transparent;
-  color: var(--blue);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: var(--type-body-lg-letter);
   text-align: left;
-  font: inherit;
   cursor: pointer;
 }
 
 .quickAction:hover {
-  background: var(--state-primary-hover);
+  background: var(--state-text-hover);
+}
+
+.quickAction:active {
+  background: var(--state-text-active);
+}
+
+.yearPanel > :first-child {
+  padding: var(--space-3) var(--space-5) var(--space-5);
+}
+
+@media (max-width: 960px) {
+  .yearDropdownWrap {
+    width: 100%;
+  }
 }

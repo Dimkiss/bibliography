@@ -3,16 +3,30 @@ import { forwardRef, useMemo } from 'react';
 import type { PublicationSearchFormState } from '@/entities/publication';
 import { DropdownButton } from '@/shared/ui/DropdownButton';
 import { Icon } from '@/shared/ui/Icon';
+import { YearRangePicker } from '@/shared/ui/YearRangeSelect';
 import styles from './PublicationSearchPanel.module.css';
+
+const RECENT_YEAR_ACTIONS = [
+  { years: 1, label: 'Последний год' },
+  { years: 3, label: 'Последние 3 года' },
+  { years: 5, label: 'Последние 5 лет' },
+] as const;
 
 type YearSearchDropdownProps = {
   value: PublicationSearchFormState;
   yearMin?: number | null;
   yearMax?: number | null;
   isOpen: boolean;
+  className?: string;
   onOpenChange: (nextValue: boolean) => void;
   onYearRangeChange: (nextValue: { from: string; to: string }) => void;
 };
+
+function parseYear(value: string): number | null {
+  const parsedValue = Number(value);
+
+  return Number.isFinite(parsedValue) ? Math.round(parsedValue) : null;
+}
 
 export const YearSearchDropdown = forwardRef<
   HTMLDivElement,
@@ -23,11 +37,19 @@ export const YearSearchDropdown = forwardRef<
     yearMin,
     yearMax,
     isOpen,
+    className = '',
     onOpenChange,
     onYearRangeChange,
   },
   ref,
 ) {
+  const maxAvailableYear = yearMax ?? new Date().getFullYear();
+  const minAvailableYear = yearMin ?? Math.max(1900, maxAvailableYear - 30);
+  const minYear = Math.min(minAvailableYear, maxAvailableYear);
+  const maxYear = Math.max(minAvailableYear, maxAvailableYear);
+  const selectedFrom = parseYear(value.yearFrom) ?? minYear;
+  const selectedTo = parseYear(value.yearTo) ?? maxYear;
+
   const periodLabel = useMemo(() => {
     const hasSelectedPeriod = value.yearFrom.trim() || value.yearTo.trim();
 
@@ -37,89 +59,63 @@ export const YearSearchDropdown = forwardRef<
 
     const from = value.yearFrom || (yearMin ? String(yearMin) : 'Год от');
     const to = value.yearTo || (yearMax ? String(yearMax) : 'Год до');
-    return `${from}-${to}`;
+    return `${from}–${to}`;
   }, [value.yearFrom, value.yearTo, yearMin, yearMax]);
 
   const selectRecentYears = (yearsCount: number) => {
-    const year = yearMax ?? new Date().getFullYear();
+    const year = maxYear;
     onYearRangeChange({
-      from: String(year - yearsCount + 1),
+      from: String(Math.max(minYear, year - yearsCount + 1)),
       to: String(year),
     });
     onOpenChange(false);
   };
 
   return (
-    <div ref={ref} className="app-search-dropdown-wrap">
+    <div
+      ref={ref}
+      className={['app-search-dropdown-wrap', styles.yearDropdownWrap, className]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <DropdownButton
         label={periodLabel}
         icon={<Icon name="calendar_renge" size={18} />}
         size="normal"
         variant="tonal"
-        width={248}
+        width={240}
+        className={styles.yearTrigger}
         isOpen={isOpen}
         onClick={() => onOpenChange(!isOpen)}
       />
 
       {isOpen ? (
-        <div className="app-search-menu">
+        <div className={styles.yearMenu}>
           <div className={styles.yearPanel}>
-            <div className="app-year-inputs">
-              <input
-                className="app-year-input"
-                type="number"
-                inputMode="numeric"
-                placeholder={yearMin ? String(yearMin) : 'От'}
-                value={value.yearFrom}
-                onChange={(event) =>
-                  onYearRangeChange({
-                    from: event.target.value,
-                    to: value.yearTo,
-                  })
-                }
-              />
-
-              <span className="app-year-separator">-</span>
-
-              <input
-                className="app-year-input"
-                type="number"
-                inputMode="numeric"
-                placeholder={yearMax ? String(yearMax) : 'До'}
-                value={value.yearTo}
-                onChange={(event) =>
-                  onYearRangeChange({
-                    from: value.yearFrom,
-                    to: event.target.value,
-                  })
-                }
-              />
-            </div>
+            <YearRangePicker
+              from={selectedFrom}
+              to={selectedTo}
+              minYear={minYear}
+              maxYear={maxYear}
+              onChange={(range) =>
+                onYearRangeChange({
+                  from: String(range.from),
+                  to: String(range.to),
+                })
+              }
+            />
 
             <div className={styles.quickActions}>
-              <button
-                type="button"
-                className={styles.quickAction}
-                onClick={() => selectRecentYears(1)}
-              >
-                Последний год
-              </button>
-
-              <button
-                type="button"
-                className={styles.quickAction}
-                onClick={() => selectRecentYears(3)}
-              >
-                Последние 3 года
-              </button>
-
-              <button
-                type="button"
-                className={styles.quickAction}
-                onClick={() => selectRecentYears(5)}
-              >
-                Последние 5 лет
-              </button>
+              {RECENT_YEAR_ACTIONS.map((action) => (
+                <button
+                  key={action.years}
+                  type="button"
+                  className={styles.quickAction}
+                  onClick={() => selectRecentYears(action.years)}
+                >
+                  {action.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>

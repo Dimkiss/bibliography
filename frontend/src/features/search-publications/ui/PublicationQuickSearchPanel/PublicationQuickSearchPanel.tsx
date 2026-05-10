@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 
 import {
+  INITIAL_PUBLICATION_SEARCH_FORM,
   SEARCH_FIELD_OPTIONS,
   formatSearchFieldLabel,
   getSearchFieldPlaceholder,
@@ -13,6 +14,7 @@ import { DropdownButton } from '@/shared/ui/DropdownButton';
 import { Icon } from '@/shared/ui/Icon';
 import { getSearchFieldIconName } from '../../lib/searchFieldUi';
 import { KeywordSearchInput } from '../KeywordSearchInput';
+import { YearSearchDropdown } from '../PublicationSearchPanel/YearSearchDropdown';
 import styles from './PublicationQuickSearchPanel.module.css';
 
 const EMPTY_FILTERS: PublicationFiltersDto = {
@@ -82,13 +84,14 @@ export function PublicationQuickSearchPanel() {
     };
   }, []);
 
-  const periodLabel = useMemo(() => {
-    if (yearFrom || yearTo) {
-      return `${yearFrom || 'Год от'}-${yearTo || 'Год до'}`;
-    }
-
-    return 'Год';
-  }, [yearFrom, yearTo]);
+  const yearSearchValue = useMemo(
+    () => ({
+      ...INITIAL_PUBLICATION_SEARCH_FORM,
+      yearFrom,
+      yearTo,
+    }),
+    [yearFrom, yearTo],
+  );
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -123,46 +126,19 @@ export function PublicationQuickSearchPanel() {
       </h2>
 
       <form className={styles.form} onSubmit={handleSubmit}>
-        <div
+        <YearSearchDropdown
           ref={yearDropdownRef}
-          className={`app-search-dropdown-wrap ${styles.dropdownWrap}`}
-        >
-          <DropdownButton
-            label={periodLabel}
-            icon={<Icon name="calendar_renge" size={18} />}
-            size="normal"
-            variant="tonal"
-            width={248}
-            isOpen={isYearOpen}
-            onClick={() => setIsYearOpen((prev) => !prev)}
-          />
-
-          {isYearOpen ? (
-            <div className="app-search-menu">
-              <div className="app-year-inputs">
-                <input
-                  className="app-year-input"
-                  type="number"
-                  inputMode="numeric"
-                  placeholder={filters.year_min ? String(filters.year_min) : 'От'}
-                  value={yearFrom}
-                  onChange={(event) => setYearFrom(event.target.value)}
-                />
-
-                <span className="app-year-separator">-</span>
-
-                <input
-                  className="app-year-input"
-                  type="number"
-                  inputMode="numeric"
-                  placeholder={filters.year_max ? String(filters.year_max) : 'До'}
-                  value={yearTo}
-                  onChange={(event) => setYearTo(event.target.value)}
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
+          className={styles.dropdownWrap}
+          value={yearSearchValue}
+          yearMin={filters.year_min}
+          yearMax={filters.year_max}
+          isOpen={isYearOpen}
+          onOpenChange={setIsYearOpen}
+          onYearRangeChange={(nextValue) => {
+            setYearFrom(nextValue.from);
+            setYearTo(nextValue.to);
+          }}
+        />
 
         <div
           ref={fieldDropdownRef}
