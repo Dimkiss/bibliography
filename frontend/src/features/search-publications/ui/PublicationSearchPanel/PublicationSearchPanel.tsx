@@ -1,23 +1,19 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import {
   SEARCH_FIELD_OPTIONS,
-  formatSearchFieldLabel,
-  getSearchFieldPlaceholder,
   type PublicationSearchFormState,
   type SearchFieldKey,
 } from '@/entities/publication';
 import { Button } from '@/shared/ui/Button';
-import { DropdownButton } from '@/shared/ui/DropdownButton';
-import { Icon } from '@/shared/ui/Icon';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
-import { TextField } from '@/shared/ui/TextField';
 import { TextButton } from '@/shared/ui/TextButton';
-import { KeywordSearchInput } from '../KeywordSearchInput';
 import {
   PublicationsFilterDropdown,
   type PublicationsFilterOption,
 } from '../PublicationsFilterDropdown';
+import { SearchCriterionRow } from './SearchCriterionRow';
+import { YearSearchDropdown } from './YearSearchDropdown';
 import styles from './PublicationSearchPanel.module.css';
 
 type PublicationSearchPanelProps = {
@@ -38,21 +34,6 @@ type PublicationSearchPanelProps = {
   onSubmit: () => void;
   onReset: () => void;
 };
-
-function getFieldIconName(field: SearchFieldKey) {
-  switch (field) {
-    case 'author':
-      return 'person';
-    case 'title':
-      return 'article-outline';
-    case 'journal':
-      return 'journal-outline';
-    case 'keyword':
-      return 'hashtag';
-    default:
-      return 'person';
-  }
-}
 
 export function PublicationSearchPanel({
   value,
@@ -83,18 +64,7 @@ export function PublicationSearchPanel({
   );
   const firstActiveField = activeFields[0];
   const restActiveFields = activeFields.slice(1);
-
-  const periodLabel = useMemo(() => {
-    const hasSelectedPeriod = value.yearFrom.trim() || value.yearTo.trim();
-
-    if (!hasSelectedPeriod) {
-      return 'Год';
-    }
-
-    const from = value.yearFrom || (yearMin ? String(yearMin) : 'Год от');
-    const to = value.yearTo || (yearMax ? String(yearMax) : 'Год до');
-    return `${from}-${to}`;
-  }, [value.yearFrom, value.yearTo, yearMin, yearMax]);
+  const canRemoveCriteria = activeFields.length > 1;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -124,6 +94,7 @@ export function PublicationSearchPanel({
     const nextActiveFields = [...activeFields];
 
     if (currentField === nextField) {
+      setOpenFieldIndex(null);
       return;
     }
 
@@ -134,9 +105,15 @@ export function PublicationSearchPanel({
 
     nextActiveFields[index] = nextField;
     onActiveFieldsChange(nextActiveFields);
+    setOpenFieldIndex(null);
   };
 
   const handleRemoveCriterion = (index: number) => {
+    if (activeFields.length <= 1) {
+      setOpenFieldIndex(null);
+      return;
+    }
+
     onActiveFieldsChange(
       activeFields.filter((_, currentIndex) => currentIndex !== index),
     );
@@ -151,191 +128,38 @@ export function PublicationSearchPanel({
     onSubmit();
   };
 
-  const renderCriterionSelector = (field: SearchFieldKey, index: number) => (
-    <div
-      ref={(node) => {
+  const renderSearchCriterion = (field: SearchFieldKey, index: number) => (
+    <SearchCriterionRow
+      field={field}
+      index={index}
+      value={value}
+      isSelectorOpen={openFieldIndex === index}
+      canRemove={canRemoveCriteria}
+      selectorRef={(node) => {
         fieldDropdownsRef.current[index] = node;
       }}
-      className="app-search-dropdown-wrap"
-    >
-      <DropdownButton
-        label={formatSearchFieldLabel(field)}
-        icon={<Icon name={getFieldIconName(field)} size={18} />}
-        size="normal"
-        variant="tonal"
-        width={248}
-        isOpen={openFieldIndex === index}
-        onClick={() =>
-          setOpenFieldIndex((prev) => (prev === index ? null : index))
-        }
-      />
-
-      {openFieldIndex === index ? (
-        <div className="app-search-menu">
-          <div className="app-search-options-list">
-            {SEARCH_FIELD_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                className="app-search-option-button"
-                onClick={() => {
-                  handleCriterionChange(index, option.key);
-                  setOpenFieldIndex(null);
-                }}
-              >
-                <span className="app-search-option-icon">
-                  <Icon name={getFieldIconName(option.key)} size={18} />
-                </span>
-                <span>{option.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-
-  const renderFieldInput = (field: SearchFieldKey, index: number) => {
-    if (field === 'keyword') {
-      return (
-        <KeywordSearchInput
-          value={value.keyword}
-          placeholder={getSearchFieldPlaceholder(field)}
-          onChange={(nextValue) => onFieldChange(field, nextValue)}
-          onRemoveCriterion={() => handleRemoveCriterion(index)}
-        />
-      );
-    }
-
-    return (
-      <div className={styles.inputWrap}>
-        <TextField
-          variant="plain"
-          value={value[field]}
-          onChange={(event) => onFieldChange(field, event.target.value)}
-          placeholder={getSearchFieldPlaceholder(field)}
-          height={40}
-          radius={4}
-          fieldClassName={styles.searchInputField}
-          endContent={
-            <button
-              type="button"
-              className={styles.removeButton}
-              onClick={() => handleRemoveCriterion(index)}
-              aria-label={`Удалить критерий ${formatSearchFieldLabel(field)}`}
-            >
-              <Icon name="close" size={18} />
-            </button>
-          }
-        />
-      </div>
-    );
-  };
-
-  const renderSearchCriterion = (field: SearchFieldKey, index: number) => (
-    <>
-      {renderCriterionSelector(field, index)}
-      {renderFieldInput(field, index)}
-    </>
+      onToggleSelector={() =>
+        setOpenFieldIndex((prev) => (prev === index ? null : index))
+      }
+      onCriterionChange={handleCriterionChange}
+      onFieldChange={onFieldChange}
+      onRemoveCriterion={handleRemoveCriterion}
+    />
   );
 
   return (
     <section className={styles.section}>
       <form className={`app-surface ${styles.panel}`} onSubmit={handleSubmit}>
         <div className={styles.topRow}>
-          <div ref={yearDropdownRef} className="app-search-dropdown-wrap">
-            <DropdownButton
-              label={periodLabel}
-              icon={<Icon name="calendar_renge" size={18} />}
-              size="normal"
-              variant="tonal"
-              width={248}
-              isOpen={isYearOpen}
-              onClick={() => setIsYearOpen((prev) => !prev)}
-            />
-
-            {isYearOpen ? (
-              <div className="app-search-menu">
-                <div className={styles.yearPanel}>
-                  <div className="app-year-inputs">
-                    <input
-                      className="app-year-input"
-                      type="number"
-                      inputMode="numeric"
-                      placeholder={yearMin ? String(yearMin) : 'От'}
-                      value={value.yearFrom}
-                      onChange={(event) =>
-                        onYearRangeChange({
-                          from: event.target.value,
-                          to: value.yearTo,
-                        })
-                      }
-                    />
-
-                    <span className="app-year-separator">-</span>
-
-                    <input
-                      className="app-year-input"
-                      type="number"
-                      inputMode="numeric"
-                      placeholder={yearMax ? String(yearMax) : 'До'}
-                      value={value.yearTo}
-                      onChange={(event) =>
-                        onYearRangeChange({
-                          from: value.yearFrom,
-                          to: event.target.value,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div className={styles.quickActions}>
-                    <button
-                      type="button"
-                      className={styles.quickAction}
-                      onClick={() => {
-                        const year = yearMax ?? new Date().getFullYear();
-                        onYearRangeChange({ from: String(year), to: String(year) });
-                        setIsYearOpen(false);
-                      }}
-                    >
-                      Последний год
-                    </button>
-
-                    <button
-                      type="button"
-                      className={styles.quickAction}
-                      onClick={() => {
-                        const year = yearMax ?? new Date().getFullYear();
-                        onYearRangeChange({
-                          from: String(year - 2),
-                          to: String(year),
-                        });
-                        setIsYearOpen(false);
-                      }}
-                    >
-                      Последние 3 года
-                    </button>
-
-                    <button
-                      type="button"
-                      className={styles.quickAction}
-                      onClick={() => {
-                        const year = yearMax ?? new Date().getFullYear();
-                        onYearRangeChange({
-                          from: String(year - 4),
-                          to: String(year),
-                        });
-                        setIsYearOpen(false);
-                      }}
-                    >
-                      Последние 5 лет
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
+          <YearSearchDropdown
+            ref={yearDropdownRef}
+            value={value}
+            yearMin={yearMin}
+            yearMax={yearMax}
+            isOpen={isYearOpen}
+            onOpenChange={setIsYearOpen}
+            onYearRangeChange={onYearRangeChange}
+          />
 
           {firstActiveField ? renderSearchCriterion(firstActiveField, 0) : null}
         </div>

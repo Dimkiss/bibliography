@@ -11,6 +11,7 @@ import {
 import { navigateTo } from '@/shared/lib/navigation';
 import { DropdownButton } from '@/shared/ui/DropdownButton';
 import { Icon } from '@/shared/ui/Icon';
+import { getSearchFieldIconName } from '../../lib/searchFieldUi';
 import { KeywordSearchInput } from '../KeywordSearchInput';
 import styles from './PublicationQuickSearchPanel.module.css';
 
@@ -21,21 +22,6 @@ const EMPTY_FILTERS: PublicationFiltersDto = {
   databases: [],
   original_translation_modes: [],
 };
-
-function getFieldIconName(field: SearchFieldKey) {
-  switch (field) {
-    case 'author':
-      return 'person';
-    case 'title':
-      return 'article-outline';
-    case 'journal':
-      return 'journal-outline';
-    case 'keyword':
-      return 'hashtag';
-    default:
-      return 'person';
-  }
-}
 
 export function PublicationQuickSearchPanel() {
   const [filters, setFilters] = useState<PublicationFiltersDto>(EMPTY_FILTERS);
@@ -184,7 +170,7 @@ export function PublicationQuickSearchPanel() {
         >
           <DropdownButton
             label={formatSearchFieldLabel(field)}
-            icon={<Icon name={getFieldIconName(field)} size={18} />}
+            icon={<Icon name={getSearchFieldIconName(field)} size={18} />}
             size="normal"
             variant="tonal"
             width={248}
@@ -206,7 +192,7 @@ export function PublicationQuickSearchPanel() {
                     }}
                   >
                     <span className="app-search-option-icon">
-                      <Icon name={getFieldIconName(option.key)} size={18} />
+                      <Icon name={getSearchFieldIconName(option.key)} size={18} />
                     </span>
                     <span>{option.label}</span>
                   </button>
