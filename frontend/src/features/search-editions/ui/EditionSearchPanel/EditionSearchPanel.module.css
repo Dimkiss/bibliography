@@ -1,0 +1,138 @@
+.section {
+  width: 100%;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.topRow {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr) auto;
+  gap: var(--space-5);
+  align-items: center;
+}
+
+.kindWrap,
+.yearWrap {
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+}
+
+.searchInput {
+  width: 100%;
+  height: var(--control-height-md);
+  padding: 0 14px;
+  border: 1px solid var(--color-outline-input);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--blue);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--Vector);
+  box-shadow: var(--shadow-focus);
+}
+
+.filtersRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.yearTrigger {
+  min-height: var(--control-height-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: 6px 8px;
+  border: 1px solid var(--outline);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+}
+
+.yearTriggerActive {
+  border-color: transparent;
+  background: var(--button-tonal);
+}
+
+.yearTrigger span {
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
+  letter-spacing: var(--type-label-md-letter);
+}
+
+.yearMenu {
+  position: absolute;
+  top: calc(100% + var(--space-3));
+  left: 0;
+  z-index: 20;
+  width: 240px;
+  min-width: 112px;
+  max-width: min(280px, calc(100vw - 48px));
+  padding: var(--space-3) 0;
+  border-radius: var(--radius-menu);
+  background: var(--color-surface-menu);
+  box-shadow: var(--shadow-menu-md);
+}
+
+.yearPanel {
+  display: flex;
+  flex-direction: column;
+}
+
+.yearPanel > :first-child {
+  padding: var(--space-3) var(--space-5) var(--space-5);
+}
+
+.quickActions {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-outline);
+}
+
+.quickAction {
+  min-height: var(--menu-option-height);
+  padding: var(--space-3) var(--space-5);
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: var(--type-body-lg-letter);
+  text-align: left;
+  cursor: pointer;
+}
+
+.quickAction:hover {
+  background: var(--state-text-hover);
+}
+
+@media (max-width: 840px) {
+  .topRow {
+    grid-template-columns: 1fr;
+  }
+
+  .kindWrap,
+  .kindWrap > div,
+  .yearWrap {
+    width: 100%;
+  }
+}

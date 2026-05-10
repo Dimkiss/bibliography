@@ -1,34 +1,39 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  PUBLICATIONS_SORT_FIELD_OPTIONS,
-  type PublicationSortOrder,
-  type PublicationsSortFieldValue,
-} from '@/entities/publication';
+  type EditionSortOrder,
+  type EditionsSortFieldValue,
+} from '@/entities/edition';
+import { formatRecordsCountLabel } from '@/shared/lib/formatRecordsCountLabel';
 import { Checkbox } from '@/shared/ui/Checkbox';
-import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
 import { Icon } from '@/shared/ui/Icon';
+import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
 import { ViewModeToggle } from '@/shared/ui/ViewModeToggle';
-import type { PublicationResultsViewMode } from './PublicationResultsList.types';
-import { formatRecordsCountLabel } from './publicationResultsList.lib';
-import styles from './PublicationResultsList.module.css';
+import type { EditionResultsViewMode } from '../../model/editionResultsView';
+import styles from './EditionResultsList.module.css';
 
-type PublicationResultsToolbarProps = {
-  total: number;
-  selectedCount: number;
-  pageIds: number[];
-  isAllPageSelected: boolean;
-  isPageSelectionIndeterminate: boolean;
-  viewMode: PublicationResultsViewMode;
-  sortField: PublicationsSortFieldValue;
-  sortOrder: PublicationSortOrder;
-  onViewModeChange: (value: PublicationResultsViewMode) => void;
-  onTogglePageSelection: (ids: number[], shouldSelect: boolean) => void;
-  onSortFieldChange: (value: PublicationsSortFieldValue) => void;
-  onSortOrderChange: (value: PublicationSortOrder) => void;
+type SortOption = {
+  value: EditionsSortFieldValue;
+  label: string;
 };
 
-export function PublicationResultsToolbar({
+type EditionResultsToolbarProps = {
+  total: number;
+  selectedCount: number;
+  pageIds: string[];
+  isAllPageSelected: boolean;
+  isPageSelectionIndeterminate: boolean;
+  viewMode: EditionResultsViewMode;
+  sortField: EditionsSortFieldValue;
+  sortOrder: EditionSortOrder;
+  sortOptions: SortOption[];
+  onViewModeChange: (value: EditionResultsViewMode) => void;
+  onTogglePageSelection: (ids: string[], shouldSelect: boolean) => void;
+  onSortFieldChange: (value: EditionsSortFieldValue) => void;
+  onSortOrderChange: (value: EditionSortOrder) => void;
+};
+
+export function EditionResultsToolbar({
   total,
   selectedCount,
   pageIds,
@@ -37,16 +42,17 @@ export function PublicationResultsToolbar({
   viewMode,
   sortField,
   sortOrder,
+  sortOptions,
   onViewModeChange,
   onTogglePageSelection,
   onSortFieldChange,
   onSortOrderChange,
-}: PublicationResultsToolbarProps) {
+}: EditionResultsToolbarProps) {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: globalThis.MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (!sortRef.current?.contains(event.target as Node)) {
         setIsSortOpen(false);
       }
@@ -60,11 +66,8 @@ export function PublicationResultsToolbar({
   }, []);
 
   const currentSortLabel = useMemo(() => {
-    return (
-      PUBLICATIONS_SORT_FIELD_OPTIONS.find((item) => item.value === sortField)?.label ??
-      'Год'
-    );
-  }, [sortField]);
+    return sortOptions.find((item) => item.value === sortField)?.label ?? 'Название';
+  }, [sortField, sortOptions]);
 
   return (
     <>
@@ -73,15 +76,18 @@ export function PublicationResultsToolbar({
           <span className={styles.summary}>
             Найдено: {total} {formatRecordsCountLabel(total)}
           </span>
-          <span className={styles.summary}>
-            Выбрано: {selectedCount} {formatRecordsCountLabel(selectedCount)}
-          </span>
+          {selectedCount > 0 ? (
+            <span className={styles.summary}>
+              Выбрано: {selectedCount} {formatRecordsCountLabel(selectedCount)}
+            </span>
+          ) : null}
         </div>
 
         <ViewModeToggle
           value={viewMode}
           onChange={onViewModeChange}
-          ariaLabel="Тип вывода публикаций"
+          ariaLabel="Тип вывода изданий"
+          listIconName="journal-outline"
         />
       </div>
 
@@ -122,7 +128,7 @@ export function PublicationResultsToolbar({
 
               {isSortOpen ? (
                 <div className={styles.sortMenu}>
-                  {PUBLICATIONS_SORT_FIELD_OPTIONS.map((option) => (
+                  {sortOptions.map((option) => (
                     <button
                       key={option.value}
                       type="button"

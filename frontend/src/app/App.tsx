@@ -5,6 +5,7 @@ import { AboutProjectPage } from '@/pages/AboutProjectPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { PublicationsPage } from '@/pages/PublicationsPage';
+import { EditionsPage } from '@/pages/EditionsPage';
 import { PublicationDetailsPage } from '@/pages/PublicationDetailsPage';
 import { PublicationsCreatePage } from '@/pages/PublicationsCreatePage';
 import { UserManagementPage } from '@/pages/UserManagementPage';
@@ -53,6 +54,10 @@ function AppRoutes() {
 
   if (pathname === '/articles') {
     return <PublicationsPage key={locationPath} />;
+  }
+
+  if (pathname === '/journals') {
+    return <EditionsPage key={locationPath} />;
   }
 
   if (isPublicationDetailsPage) {

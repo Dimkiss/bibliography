@@ -1,0 +1,29 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border-radius: 10px;
+  background: var(--color-surface-toggle);
+}
+
+.button {
+  width: 34px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--blue);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--state-primary-hover);
+}
+
+.buttonActive {
+  background: var(--button-tonal);
+}
