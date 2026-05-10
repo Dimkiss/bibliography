@@ -502,6 +502,7 @@ def _fetch_related_articles(db: Session, article_id: int) -> list[RelatedArticle
                 year=row.get("year"),
                 doi=row.get("doi"),
                 relation_type=relation_type,
+                has_pdf=pdf_files.article_pdf_exists(row["id"]),
             )
         )
 

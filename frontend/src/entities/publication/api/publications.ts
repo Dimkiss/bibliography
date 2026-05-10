@@ -70,6 +70,7 @@ export type RelatedPublicationDto = {
   year: number | null;
   doi: string | null;
   relation_type: 'original' | 'translation';
+  has_pdf: boolean;
 };
 
 export type PublicationDetailDto = {

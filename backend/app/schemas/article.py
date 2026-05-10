@@ -74,6 +74,7 @@ class RelatedArticleItem(BaseModel):
     year: int | None = None
     doi: str | None = None
     relation_type: Literal["original", "translation"]
+    has_pdf: bool = False
 
 
 class ArticleDetailResponse(BaseModel):

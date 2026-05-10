@@ -6,10 +6,6 @@ import { Icon } from '@/shared/ui/Icon';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
 import {
-  QuartilesDropdown,
-  type QuartilesDropdownItem,
-} from '@/shared/ui/QuartilesDropdown';
-import {
   getBibliographicReference,
   getPublicationDetail,
   getPublicationPdfUrl,
@@ -47,56 +43,7 @@ function downloadPublicationPdf(articleId: number) {
 }
 
 function formatMetricValue(metric: PublicationMetricDto): string {
-  const parts = [metric.value, metric.extra].filter(Boolean);
-  return parts.length ? parts.join(' ') : '—';
-}
-
-function isQuartileValue(value?: string | null): boolean {
-  return Boolean(value?.trim().match(/^q?[1-4]$/i));
-}
-
-function findMetricByLabel(
-  metrics: PublicationMetricDto[],
-  matcher: (label: string) => boolean,
-): PublicationMetricDto | undefined {
-  return metrics.find((metric) => matcher(metric.label.toLowerCase()));
-}
-
-function buildQuartileItems(metrics: PublicationMetricDto[]): QuartilesDropdownItem[] {
-  const webOfScience = findMetricByLabel(
-    metrics,
-    (label) => label === 'web of science',
-  );
-  const scopus = findMetricByLabel(metrics, (label) => label === 'scopus');
-  const whiteList = findMetricByLabel(
-    metrics,
-    (label) =>
-      label.includes('бел') ||
-      label.includes('спис') ||
-      label.includes('white') ||
-      label.includes('list'),
-  );
-
-  return [
-    {
-      label: 'Web of Science',
-      value: isQuartileValue(webOfScience?.value) ? webOfScience?.value : null,
-    },
-    {
-      label: 'Scopus',
-      value: isQuartileValue(scopus?.value) ? scopus?.value : null,
-    },
-    {
-      label: 'Белый список',
-      value: isQuartileValue(whiteList?.value) ? whiteList?.value : null,
-    },
-  ];
-}
-
-function getPrimaryQuartileValue(
-  items: QuartilesDropdownItem[],
-): string | number | null {
-  return items.find((item) => item.value)?.value ?? null;
+  return metric.value || '—';
 }
 
 function RelatedPublicationCard({
@@ -107,51 +54,52 @@ function RelatedPublicationCard({
   const doiUrl = buildDoiUrl(item.doi);
 
   return (
-    <div className={styles.relatedCard}>
-      <div className={styles.relatedMain}>
-        <div className={styles.relatedHeading}>
-          {formatRelatedPublicationTitle(item)}
+    <div className={styles.relatedSection}>
+      <h2 className={styles.sectionTitle}>{formatRelatedPublicationTitle(item)}</h2>
+
+      <div className={styles.relatedCard}>
+        <div className={styles.relatedMain}>
+          <button
+            type="button"
+            className={styles.relatedTitleButton}
+            onClick={() => navigateTo(`/articles/${item.id}`)}
+          >
+            {item.title || 'Без названия'}
+          </button>
+
+          <div className={styles.relatedAuthors}>
+            {item.authors || 'Авторы не указаны'}
+          </div>
+
+          {item.doi ? (
+            doiUrl ? (
+              <a
+                className={styles.relatedDoi}
+                href={doiUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                DOI: {item.doi}
+              </a>
+            ) : (
+              <div className={styles.relatedDoi}>DOI: {item.doi}</div>
+            )
+          ) : null}
         </div>
 
-        <button
-          type="button"
-          className={styles.relatedTitleButton}
-          onClick={() => navigateTo(`/articles/${item.id}`)}
-        >
-          {item.title || 'Без названия'}
-        </button>
-
-        <div className={styles.relatedAuthors}>
-          {item.authors || 'Авторы не указаны'}
+        <div className={styles.relatedPublisher}>
+          <div className={styles.relatedJournal}>
+            {normalizeJournalName(item.journal) || 'Издание не указано'}
+          </div>
+          <div className={styles.relatedYear}>{item.year ?? '—'}</div>
         </div>
-
-        {item.doi ? (
-          doiUrl ? (
-            <a
-              className={styles.relatedDoi}
-              href={doiUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              DOI: {item.doi}
-            </a>
-          ) : (
-            <div className={styles.relatedDoi}>DOI: {item.doi}</div>
-          )
-        ) : null}
-      </div>
-
-      <div className={styles.relatedSide}>
-        <div className={styles.relatedJournal}>
-          {normalizeJournalName(item.journal) || 'Издание не указано'}
-        </div>
-        <div className={styles.relatedYear}>{item.year ?? '—'}</div>
 
         <div className={styles.relatedActions}>
           <OutlineIconButton
             iconName="copy"
             iconSize={20}
-            size="small"
+            size="small-x"
+            className={styles.actionButton}
             onClick={() => {
               const textToCopy = item.doi || item.title || '';
               if (!textToCopy) {
@@ -163,11 +111,19 @@ function RelatedPublicationCard({
           />
 
           <OutlineIconButton
-            iconName="pdf-mono"
+            iconName={item.has_pdf ? 'pdf-color' : 'pdf-mono'}
             iconSize={20}
-            size="small"
-            disabled
-            aria-label="PDF недоступен"
+            iconColored={item.has_pdf}
+            size="small-x"
+            className={styles.actionButton}
+            disabled={!item.has_pdf}
+            onClick={() => {
+              if (!item.has_pdf) {
+                return;
+              }
+              downloadPublicationPdf(item.id);
+            }}
+            aria-label={item.has_pdf ? 'Открыть PDF' : 'PDF недоступен'}
           />
         </div>
       </div>
@@ -246,8 +202,6 @@ export function PublicationDetailsPage() {
   }, [copyMessage]);
 
   const doiUrl = buildDoiUrl(item?.doi);
-  const quartileItems = item ? buildQuartileItems(item.metrics) : [];
-  const primaryQuartileValue = getPrimaryQuartileValue(quartileItems);
 
   const handleCopyMain = async () => {
     if (!item) {
@@ -283,22 +237,15 @@ export function PublicationDetailsPage() {
                 <div className={styles.topBlock}>
                   <div className={styles.fileIconWrap}>
                     <Icon
-                      name="pdf-color"
+                      name={item.has_pdf ? 'pdf-color' : 'pdf-mono'}
                       size={64}
-                      colored
+                      colored={item.has_pdf}
                       className={styles.fileIcon}
                     />
                   </div>
 
                   <div className={styles.topContent}>
-                    <div className={styles.titleRow}>
-                      <h1 className={styles.title}>{item.title || 'Без названия'}</h1>
-                      <QuartilesDropdown
-                        value={primaryQuartileValue}
-                        items={quartileItems}
-                        className={styles.quartilesDropdown}
-                      />
-                    </div>
+                    <h1 className={styles.title}>{item.title || 'Без названия'}</h1>
                     <div className={styles.authors}>
                       {item.authors || 'Авторы не указаны'}
                     </div>
@@ -306,9 +253,10 @@ export function PublicationDetailsPage() {
 
                   <div className={styles.actions}>
                     <OutlineIconButton
-                      iconName="more_vert"
+                      iconName="more_horiz"
                       iconSize={20}
-                      size="small"
+                      size="small-x"
+                      className={styles.actionButton}
                       disabled
                       aria-label="Дополнительные действия недоступны"
                     />
@@ -316,7 +264,8 @@ export function PublicationDetailsPage() {
                     <OutlineIconButton
                       iconName="copy"
                       iconSize={20}
-                      size="small"
+                      size="small-x"
+                      className={styles.actionButton}
                       onClick={() => {
                         void handleCopyMain();
                       }}
@@ -325,17 +274,20 @@ export function PublicationDetailsPage() {
 
                     {item.has_pdf ? (
                       <OutlineIconButton
-                        iconName="pdf-mono"
+                        iconName="pdf-color"
                         iconSize={20}
-                        size="small"
+                        iconColored
+                        size="small-x"
+                        className={styles.actionButton}
                         onClick={() => downloadPublicationPdf(item.id)}
-                        aria-label="Скачать PDF"
+                        aria-label="Открыть PDF"
                       />
                     ) : (
                       <OutlineIconButton
                         iconName="pdf-mono"
                         iconSize={20}
-                        size="small"
+                        size="small-x"
+                        className={styles.actionButton}
                         disabled
                         aria-label="PDF недоступен"
                       />
@@ -349,64 +301,72 @@ export function PublicationDetailsPage() {
 
                 <div className={styles.section}>
                   <h2 className={styles.sectionTitle}>Аннотация</h2>
-                  <div className={styles.abstract}>
-                    {item.abstract || 'Аннотация отсутствует.'}
-                  </div>
+                  <div className={styles.sectionBody}>
+                    <div className={styles.abstract}>
+                      {item.abstract || 'Аннотация отсутствует.'}
+                    </div>
 
-                  <div className={styles.doiRow}>
-                    <span className={styles.doiLabel}>DOI:</span>{' '}
-                    {item.doi ? (
-                      doiUrl ? (
-                        <a
-                          className={styles.doiLink}
-                          href={doiUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {item.doi}
-                        </a>
+                    <div className={styles.doiRow}>
+                      <span className={styles.doiLabel}>DOI:</span>{' '}
+                      {item.doi ? (
+                        doiUrl ? (
+                          <a
+                            className={styles.doiLink}
+                            href={doiUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {item.doi}
+                          </a>
+                        ) : (
+                          <span className={styles.doiLink}>{item.doi}</span>
+                        )
                       ) : (
-                        <span className={styles.doiLink}>{item.doi}</span>
-                      )
-                    ) : (
-                      <span className={styles.doiMuted}>не указан</span>
-                    )}
+                        <span className={styles.doiMuted}>не указан</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 <div className={styles.section}>
                   <h2 className={styles.sectionTitle}>Журнал</h2>
 
-                  <div className={styles.journalName}>
-                    {normalizeJournalName(item.journal) || 'Издание не указано'}
-                  </div>
+                  <div className={styles.sectionBody}>
+                    <button
+                      type="button"
+                      className={styles.journalNameButton}
+                      onClick={() => undefined}
+                    >
+                      {normalizeJournalName(item.journal) || 'Издание не указано'}
+                    </button>
 
-                  <div className={styles.journalMeta}>
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Год</span>
-                      <span className={styles.metaValue}>{item.year ?? '—'}</span>
-                    </div>
+                    <div className={styles.journalMeta}>
+                      <div className={styles.metaItem}>
+                        <span className={styles.metaLabel}>Год</span>
+                        <span className={styles.metaValue}>{item.year ?? '—'}</span>
+                      </div>
 
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Том</span>
-                      <span className={styles.metaValue}>{item.volume || '—'}</span>
-                    </div>
+                      <div className={styles.metaItem}>
+                        <span className={styles.metaLabel}>Том</span>
+                        <span className={styles.metaValue}>{item.volume || '—'}</span>
+                      </div>
 
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Номер</span>
-                      <span className={styles.metaValue}>{item.issue || '—'}</span>
-                    </div>
+                      <div className={styles.metaItem}>
+                        <span className={styles.metaLabel}>Номер</span>
+                        <span className={styles.metaValue}>{item.issue || '—'}</span>
+                      </div>
 
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Страницы</span>
-                      <span className={styles.metaValue}>{item.pages || '—'}</span>
-                    </div>
+                      <div className={styles.metaItem}>
+                        <span className={styles.metaLabel}>Страницы</span>
+                        <span className={styles.metaValue}>{item.pages || '—'}</span>
+                      </div>
 
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Дата публикации</span>
-                      <span className={styles.metaValue}>
-                        {formatDisplayDate(item.publication_date)}
-                      </span>
+                      <div className={styles.metaItem}>
+                        <span className={styles.metaLabel}>Дата публикации</span>
+                        <span className={styles.metaValue}>
+                          {formatDisplayDate(item.publication_date)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -415,65 +375,72 @@ export function PublicationDetailsPage() {
                   <h2 className={styles.sectionTitle}>Ключевые слова</h2>
 
                   {item.keywords.length ? (
-                    <div className={styles.keywords}>
-                      {item.keywords.map((keyword) => (
-                        <span key={keyword} className={styles.keyword}>
-                          {keyword}
-                        </span>
-                      ))}
+                    <div className={styles.sectionBody}>
+                      <div className={styles.keywords}>
+                        {item.keywords.map((keyword) => (
+                          <span key={keyword} className={styles.keyword}>
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   ) : (
-                    <div className={styles.emptyText}>Ключевые слова не указаны.</div>
+                    <div className={styles.sectionBody}>
+                      <div className={styles.emptyText}>Ключевые слова не указаны.</div>
+                    </div>
                   )}
                 </div>
 
                 <div className={styles.section}>
                   <h2 className={styles.sectionTitle}>Библиометрические показатели</h2>
 
-                  <div className={styles.metrics}>
-                    {item.metrics.map((metric) => (
-                      <div
-                        key={metric.label}
-                        className={[
-                          styles.metricCard,
-                          metric.enabled ? styles.metricCardActive : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')}
-                      >
-                        <div className={styles.metricLabel}>{metric.label}</div>
-                        <div className={styles.metricValue}>
-                          {formatMetricValue(metric)}
+                  {item.metrics.length ? (
+                    <div className={styles.metrics}>
+                      {item.metrics.map((metric) => (
+                        <div key={metric.label} className={styles.metricItem}>
+                          <div className={styles.metricLabel}>{metric.label}</div>
+                          <div className={styles.metricValueGroup}>
+                            <div className={styles.metricValue}>
+                              {formatMetricValue(metric)}
+                            </div>
+                            {metric.extra ? (
+                              <div className={styles.metricExtra}>
+                                {metric.extra}
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={styles.sectionBody}>
+                      <div className={styles.emptyText}>Показатели не указаны.</div>
+                    </div>
+                  )}
                 </div>
 
-                {item.related_articles.length ? (
-                  <div className={styles.section}>
-                    {item.related_articles.map((relatedItem) => (
-                      <RelatedPublicationCard
-                        key={`${relatedItem.relation_type}-${relatedItem.id}`}
-                        item={relatedItem}
-                      />
-                    ))}
-                  </div>
-                ) : null}
+                {item.related_articles.map((relatedItem) => (
+                  <RelatedPublicationCard
+                    key={`${relatedItem.relation_type}-${relatedItem.id}`}
+                    item={relatedItem}
+                  />
+                ))}
 
                 <div className={styles.bottomRow}>
                   <OutlineButton
                     label="Назад"
                     iconName="arrow_back"
+                    size="small"
+                    className={styles.backButton}
                     onClick={() => navigateTo('/articles')}
                   />
 
                   <div className={styles.systemMeta}>
-                    <div>
+                    <div className={styles.systemMetaRow}>
                       <span className={styles.systemMetaLabel}>Идентификатор</span>{' '}
                       <span className={styles.systemMetaValue}>{item.id}</span>
                     </div>
-                    <div>
+                    <div className={styles.systemMetaRow}>
                       <span className={styles.systemMetaLabel}>
                         Дата добавления в базу
                       </span>{' '}
