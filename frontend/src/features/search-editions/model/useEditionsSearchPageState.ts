@@ -8,6 +8,7 @@ import {
   getEditionFilters,
   getEditionSortOptions,
   getEditions,
+  hasEditionSearchCriteria,
   INITIAL_EDITION_SEARCH_FORM,
   type EditionFiltersDto,
   type EditionKind,
@@ -48,6 +49,7 @@ type EditionsPageSearchState = {
   viewMode: EditionResultsViewMode;
   sortField: EditionsSortFieldValue;
   sortOrder: EditionSortOrder;
+  hasSearched: boolean;
   restoredFromStorage?: boolean;
 };
 
@@ -125,13 +127,19 @@ function getStoredSearchState(): EditionsPageSearchState | null {
 
     const parsed = JSON.parse(storedValue) as Partial<EditionsPageSearchState>;
     const kind = isEditionKind(parsed.kind) ? parsed.kind : DEFAULT_KIND;
+    const form = normalizeSearchForm(parsed.form);
+    const appliedForm = normalizeSearchForm(parsed.appliedForm);
+    const hasSearched =
+      typeof parsed.hasSearched === 'boolean'
+        ? parsed.hasSearched
+        : hasEditionSearchCriteria(kind, appliedForm);
 
     return {
       kind,
-      form: normalizeSearchForm(parsed.form),
-      appliedForm: normalizeSearchForm(parsed.appliedForm),
-      items: Array.isArray(parsed.items) ? parsed.items : [],
-      pagination: normalizePagination(parsed.pagination),
+      form,
+      appliedForm,
+      items: hasSearched && Array.isArray(parsed.items) ? parsed.items : [],
+      pagination: hasSearched ? normalizePagination(parsed.pagination) : DEFAULT_PAGINATION,
       selectedEditionIds: [],
       viewMode: isViewMode(parsed.viewMode) ? parsed.viewMode : 'table',
       sortField: normalizeSortField(kind, parsed.sortField),
@@ -139,6 +147,7 @@ function getStoredSearchState(): EditionsPageSearchState | null {
         parsed.sortOrder === 'asc' || parsed.sortOrder === 'desc'
           ? parsed.sortOrder
           : getDefaultEditionSortOrder(kind),
+      hasSearched,
     };
   } catch {
     window.sessionStorage.removeItem(EDITIONS_SEARCH_STATE_KEY);
@@ -166,13 +175,14 @@ function getInitialSearchState(): EditionsPageSearchState {
     viewMode: 'table',
     sortField: getDefaultEditionSortField(DEFAULT_KIND),
     sortOrder: getDefaultEditionSortOrder(DEFAULT_KIND),
+    hasSearched: false,
   };
 }
 
 export function useEditionsSearchPageState() {
   const initialSearchState = useState(getInitialSearchState)[0];
   const shouldSkipInitialResultsFetch = useRef(
-    Boolean(initialSearchState.restoredFromStorage),
+    Boolean(initialSearchState.restoredFromStorage && initialSearchState.hasSearched),
   );
   const [filters, setFilters] = useState<EditionFiltersDto>(EMPTY_FILTERS);
   const [kind, setKind] = useState<EditionKind>(initialSearchState.kind);
@@ -202,6 +212,7 @@ export function useEditionsSearchPageState() {
   );
   const [isFiltersLoading, setIsFiltersLoading] = useState(true);
   const [isResultsLoading, setIsResultsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(initialSearchState.hasSearched);
   const [error, setError] = useState<string | null>(null);
 
   const sortOptions = useMemo(() => getEditionSortOptions(kind), [kind]);
@@ -254,15 +265,30 @@ export function useEditionsSearchPageState() {
       viewMode,
       sortField,
       sortOrder,
+      hasSearched,
     };
 
     window.sessionStorage.setItem(
       EDITIONS_SEARCH_STATE_KEY,
       JSON.stringify(stateToStore),
     );
-  }, [appliedForm, form, items, kind, pagination, sortField, sortOrder, viewMode]);
+  }, [
+    appliedForm,
+    form,
+    hasSearched,
+    items,
+    kind,
+    pagination,
+    sortField,
+    sortOrder,
+    viewMode,
+  ]);
 
   useEffect(() => {
+    if (!hasSearched) {
+      return;
+    }
+
     if (shouldSkipInitialResultsFetch.current) {
       shouldSkipInitialResultsFetch.current = false;
       return;
@@ -316,6 +342,7 @@ export function useEditionsSearchPageState() {
     };
   }, [
     appliedForm,
+    hasSearched,
     kind,
     pagination.page,
     pagination.page_size,
@@ -340,6 +367,9 @@ export function useEditionsSearchPageState() {
     setSortField(getDefaultEditionSortField(nextKind));
     setSortOrder(getDefaultEditionSortOrder(nextKind));
     setSelectedEditionIds([]);
+    setItems([]);
+    setError(null);
+    setHasSearched(false);
     setPagination((prev) => ({
       ...prev,
       page: 1,
@@ -378,6 +408,16 @@ export function useEditionsSearchPageState() {
   };
 
   const handleSearch = () => {
+    if (!hasEditionSearchCriteria(kind, form)) {
+      setItems([]);
+      setError(null);
+      setHasSearched(false);
+      setPagination(DEFAULT_PAGINATION);
+      setSelectedEditionIds([]);
+      return;
+    }
+
+    setHasSearched(true);
     setSelectedEditionIds([]);
     setAppliedForm(cloneEditionSearchForm(form));
     setPagination((prev) => ({
@@ -461,6 +501,7 @@ export function useEditionsSearchPageState() {
     sortOptions,
     isFiltersLoading,
     isResultsLoading,
+    hasSearched,
     error,
     setViewMode,
     handleKindChange,

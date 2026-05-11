@@ -70,6 +70,8 @@ export function EditionSearchPanel({
     () => EDITION_KIND_OPTIONS.find((option) => option.value === kind),
     [kind],
   );
+  const searchPlaceholder =
+    kind === 'periodical' ? 'Название или ISSN' : 'Название или ISBN';
   const maxAvailableYear = yearMax ?? new Date().getFullYear();
   const minAvailableYear = yearMin ?? Math.max(1900, maxAvailableYear - 30);
   const minYear = Math.min(minAvailableYear, maxAvailableYear);
@@ -167,6 +169,7 @@ export function EditionSearchPanel({
             className={styles.searchInput}
             type="search"
             value={value.query}
+            placeholder={searchPlaceholder}
             onChange={(event) => onQueryChange(event.target.value)}
             aria-label="Поиск изданий"
           />

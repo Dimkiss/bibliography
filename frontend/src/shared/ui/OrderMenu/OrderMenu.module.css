@@ -1,0 +1,113 @@
+.sortControls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.sortLabel {
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.sortSelectWrap {
+  position: relative;
+  width: var(--order-menu-width);
+}
+
+.sortSelectButton {
+  width: var(--order-menu-width);
+  height: 32px;
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-outline);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  overflow: hidden;
+}
+
+.sortSelectButton:hover {
+  background: rgba(78, 91, 146, 0.04);
+}
+
+.sortSelectText {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
+  letter-spacing: var(--type-label-md-letter);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sortMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: var(--order-menu-width);
+  min-width: 112px;
+  padding: var(--space-3) 0;
+  border: none;
+  border-radius: 4px;
+  background: var(--color-surface-menu);
+  box-shadow: var(--shadow-menu-md);
+}
+
+.sortOptionGroup {
+  width: 100%;
+}
+
+.sortOption {
+  width: 100%;
+  min-height: var(--menu-option-height);
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-5);
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-lg-line);
+}
+
+.sortOption:hover {
+  background: var(--state-primary-hover);
+}
+
+.sortOptionActive {
+  font-weight: var(--font-weight-regular);
+}
+
+.sortDivider {
+  height: 1px;
+  margin: var(--space-2) 0;
+  background: var(--outline);
+}
+
+@media (max-width: 720px) {
+  .sortControls {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+}

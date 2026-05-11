@@ -144,8 +144,8 @@ export function EditionTableView({
               <th>Редакторы/Авторы</th>
               <th>{renderTableHeaderButton('type', 'Тип')}</th>
               <th>{renderTableHeaderButton('year', 'Год')}</th>
-              <th>{renderTableHeaderButton('isbn', 'ISBN')}</th>
-              <th>{renderTableHeaderButton('tirage', 'Тираж')}</th>
+              <th>ISBN</th>
+              <th>Тираж</th>
               <th className={styles.actionsColumn} aria-label="Действия" />
             </tr>
           )}

@@ -34,34 +34,45 @@ export function EditionsPage() {
               onSubmit={search.handleSearch}
             />
 
-            <div className={`app-surface ${styles.resultsBlock}`}>
-              <EditionResultsList
-                kind={search.kind}
-                items={search.items}
-                total={search.pagination.total}
-                isLoading={search.isResultsLoading}
-                error={search.error}
-                selectedIds={search.selectedEditionIds}
-                viewMode={search.viewMode}
-                sortField={search.sortField}
-                sortOrder={search.sortOrder}
-                sortOptions={search.sortOptions}
-                onViewModeChange={search.setViewMode}
-                onToggleItemSelection={search.handleToggleItemSelection}
-                onTogglePageSelection={search.handleTogglePageSelection}
-                onSortFieldChange={search.handleSortFieldChange}
-                onSortOrderChange={search.handleSortOrderChange}
-              />
+            {search.hasSearched ? (
+              <div className={`app-surface ${styles.resultsBlock}`}>
+                <EditionResultsList
+                  kind={search.kind}
+                  items={search.items}
+                  total={search.pagination.total}
+                  isLoading={search.isResultsLoading}
+                  error={search.error}
+                  selectedIds={search.selectedEditionIds}
+                  viewMode={search.viewMode}
+                  sortField={search.sortField}
+                  sortOrder={search.sortOrder}
+                  sortOptions={search.sortOptions}
+                  onViewModeChange={search.setViewMode}
+                  onToggleItemSelection={search.handleToggleItemSelection}
+                  onTogglePageSelection={search.handleTogglePageSelection}
+                  onSortFieldChange={search.handleSortFieldChange}
+                  onSortOrderChange={search.handleSortOrderChange}
+                />
 
-              <EditionsPagination
-                page={search.pagination.page}
-                pageSize={search.pagination.page_size}
-                totalPages={search.pagination.total_pages}
-                total={search.pagination.total}
-                onPageChange={search.handlePageChange}
-                onPageSizeChange={search.handlePageSizeChange}
-              />
-            </div>
+                <EditionsPagination
+                  page={search.pagination.page}
+                  pageSize={search.pagination.page_size}
+                  totalPages={search.pagination.total_pages}
+                  total={search.pagination.total}
+                  onPageChange={search.handlePageChange}
+                  onPageSizeChange={search.handlePageSizeChange}
+                />
+              </div>
+            ) : (
+              <div className={styles.emptySearchState}>
+                <h2 className={styles.emptySearchTitle}>Задайте параметры поиска</h2>
+                <p className={styles.emptySearchText}>
+                  Введите название, ISSN для периодических изданий, ISBN для
+                  непериодических или выберите фильтры, чтобы увидеть подходящие
+                  издания.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </main>

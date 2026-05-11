@@ -132,6 +132,7 @@ export function EditionResultsList({
   return (
     <section className={styles.section}>
       <EditionResultsToolbar
+        kind={kind}
         total={total}
         selectedCount={selectedIds.length}
         pageIds={pageIds}

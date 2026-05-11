@@ -52,8 +52,6 @@ export const NONPERIODICAL_SORT_FIELD_OPTIONS: Array<{
   { value: 'title', label: 'Название' },
   { value: 'type', label: 'Тип издания' },
   { value: 'year', label: 'Год' },
-  { value: 'isbn', label: 'ISBN' },
-  { value: 'tirage', label: 'Тираж' },
 ];
 
 export function getDefaultEditionSortField(
@@ -80,6 +78,19 @@ export function cloneEditionSearchForm(
     metricLevels: [...form.metricLevels],
     editionTypes: [...form.editionTypes],
   };
+}
+
+export function hasEditionSearchCriteria(
+  kind: EditionKind,
+  form: EditionSearchFormState,
+): boolean {
+  if (form.query.trim() || form.yearFrom.trim() || form.yearTo.trim()) {
+    return true;
+  }
+
+  return kind === 'periodical'
+    ? form.metricLevels.some((value) => value.trim())
+    : form.editionTypes.some((value) => value.trim());
 }
 
 export function buildEditionsQueryFromForm(
