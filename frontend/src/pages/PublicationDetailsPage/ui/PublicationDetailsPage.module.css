@@ -169,6 +169,15 @@
   text-decoration: underline;
 }
 
+.journalNameButton:disabled {
+  color: var(--color-text-primary);
+  cursor: default;
+}
+
+.journalNameButton:disabled:hover {
+  text-decoration: none;
+}
+
 .journalMeta {
   display: flex;
   justify-content: center;

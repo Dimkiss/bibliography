@@ -5,6 +5,7 @@ import { Header } from '@/widgets/Header';
 import { Icon } from '@/shared/ui/Icon';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
+import { buildEditionDetailsPath } from '@/entities/edition';
 import {
   getBibliographicReference,
   getPublicationDetail,
@@ -202,6 +203,11 @@ export function PublicationDetailsPage() {
   }, [copyMessage]);
 
   const doiUrl = buildDoiUrl(item?.doi);
+  const editionDetailsPath =
+    item?.edition_kind && typeof item.edition_source_id === 'number'
+      ? buildEditionDetailsPath(item.edition_kind, item.edition_source_id)
+      : null;
+  const sourceSectionTitle = item?.edition_kind === 'nonperiodical' ? 'Издание' : 'Журнал';
 
   const handleCopyMain = async () => {
     if (!item) {
@@ -329,13 +335,18 @@ export function PublicationDetailsPage() {
                 </div>
 
                 <div className={styles.section}>
-                  <h2 className={styles.sectionTitle}>Журнал</h2>
+                  <h2 className={styles.sectionTitle}>{sourceSectionTitle}</h2>
 
                   <div className={styles.sectionBody}>
                     <button
                       type="button"
                       className={styles.journalNameButton}
-                      onClick={() => undefined}
+                      disabled={!editionDetailsPath}
+                      onClick={() => {
+                        if (editionDetailsPath) {
+                          navigateTo(editionDetailsPath);
+                        }
+                      }}
                     >
                       {normalizeJournalName(item.journal) || 'Издание не указано'}
                     </button>

@@ -85,6 +85,8 @@ class ArticleDetailResponse(BaseModel):
     doi: str | None = None
     bibliographic_reference: str = ""
     journal: str | None = None
+    edition_kind: Literal["periodical", "nonperiodical"] | None = None
+    edition_source_id: int | None = None
     year: int | None = None
     volume: str | None = None
     issue: str | None = None

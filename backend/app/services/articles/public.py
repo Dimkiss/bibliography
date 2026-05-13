@@ -59,6 +59,15 @@ PUBLICATION_TYPE_PRIMARY_FLAGS: tuple[str, ...] = tuple(
     for flag in flags
 )
 
+SOURCE_TITLE_EXPR = """
+    COALESCE(
+        NULLIF(jn.JournalName, ''),
+        NULLIF(j.jname, ''),
+        NULLIF(a.Title_of_Material_F9, ''),
+        NULLIF(a.Edition_F15, '')
+    )
+"""
+
 SORT_FIELD_MAP = {
     "authors": """
         COALESCE(
@@ -72,7 +81,7 @@ SORT_FIELD_MAP = {
         )
     """,
     "title": "a.Title_Analitic_F4",
-    "journal": "COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, ''))",
+    "journal": SOURCE_TITLE_EXPR,
     "year": "a.Date_of_Publication_F20",
     "doi": "a.DOI",
     "quartile": "COALESCE(NULLIF(j.Quartile, ''), NULLIF(j.QuartileScopus, ''))",
@@ -276,10 +285,9 @@ def _build_common_filters(
     if journal and journal.strip():
         params["journal"] = f"%{journal.strip()}%"
         conditions.append(
-            """
+            f"""
             (
-                COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, ''))
-                LIKE :journal
+                {SOURCE_TITLE_EXPR} LIKE :journal
                 OR a.ISSN_F40 LIKE :journal
                 OR a.ISBN_F41 LIKE :journal
             )
@@ -474,7 +482,7 @@ def _fetch_related_articles(db: Session, article_id: int) -> list[RelatedArticle
                         WHERE aha.Record_ID_f = a.Record_ID
                     )
                 ) AS authors,
-                COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
+                {SOURCE_TITLE_EXPR} AS journal,
                 a.Date_of_Publication_F20 AS year,
                 a.DOI AS doi
             FROM articles a
@@ -649,7 +657,7 @@ def list_articles(
                 )
             ) AS authors,
             NULLIF(jn.JournalName, '') AS journal_name,
-            COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
+            {SOURCE_TITLE_EXPR} AS journal,
             a.Date_of_Publication_F20 AS year,
             a.DOI AS doi,
             pp.PlaceName AS place_name,
@@ -766,7 +774,7 @@ def get_latest_articles(
     limit: int = 5,
 ):
     query = text(
-        """
+        f"""
         SELECT
             a.Record_ID AS id,
             a.Title_Analitic_F4 AS title,
@@ -779,7 +787,7 @@ def get_latest_articles(
                     WHERE aha.Record_ID_f = a.Record_ID
                 )
             ) AS authors,
-            COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
+            {SOURCE_TITLE_EXPR} AS journal,
             a.Date_of_Publication_F20 AS year,
             a.DOI AS doi
         FROM (
@@ -832,7 +840,17 @@ def get_article_detail(
                 a.Date_of_Publication_F20 AS year,
                 a.InsertDate AS insert_date,
                 NULLIF(jn.JournalName, '') AS journal_name,
-                COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, ''), NULLIF(a.Edition_F15, '')) AS journal,
+                {SOURCE_TITLE_EXPR} AS journal,
+                CASE
+                    WHEN jn.JN_ID IS NOT NULL THEN 'periodical'
+                    WHEN COALESCE(a.WorkFormType_f, '') <> 'J' THEN 'nonperiodical'
+                    ELSE NULL
+                END AS edition_kind,
+                CASE
+                    WHEN jn.JN_ID IS NOT NULL THEN jn.JN_ID
+                    WHEN COALESCE(a.WorkFormType_f, '') <> 'J' THEN a.Record_ID
+                    ELSE NULL
+                END AS edition_source_id,
                 pp.PlaceName AS place_name,
                 pn.PublisherName AS publisher_name,
                 NULLIF(j.Quartile, '') AS quartile,
@@ -918,6 +936,8 @@ def get_article_detail(
         doi=article_dict.get("doi"),
         bibliographic_reference=build_bibliographic_reference(article_dict),
         journal=article_dict.get("journal"),
+        edition_kind=article_dict.get("edition_kind"),
+        edition_source_id=article_dict.get("edition_source_id"),
         year=article_dict.get("year"),
         volume=article_dict.get("volume"),
         issue=article_dict.get("issue"),

@@ -81,6 +81,8 @@ export type PublicationDetailDto = {
   doi: string | null;
   bibliographic_reference: string;
   journal: string | null;
+  edition_kind: 'periodical' | 'nonperiodical' | null;
+  edition_source_id: number | null;
   year: number | null;
   volume: string | null;
   issue: string | null;

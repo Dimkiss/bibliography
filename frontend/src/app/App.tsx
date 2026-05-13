@@ -66,11 +66,11 @@ function AppRoutes() {
   }
 
   if (isEditionDetailsPage) {
-    return <EditionDetailsPage />;
+    return <EditionDetailsPage key={locationPath} />;
   }
 
   if (isPublicationDetailsPage) {
-    return <PublicationDetailsPage />;
+    return <PublicationDetailsPage key={locationPath} />;
   }
 
   return <MainPage />;
