@@ -19,9 +19,17 @@ export type EditionListItemDto = {
   white_list_level: string | null;
   wos_quartile: string | null;
   scopus_quartile: string | null;
+  white_list_levels: EditionMetricHistoryItemDto[];
+  wos_quartiles: EditionMetricHistoryItemDto[];
+  scopus_quartiles: EditionMetricHistoryItemDto[];
   rinc: boolean;
   vak: boolean;
   publication_count: number;
+};
+
+export type EditionMetricHistoryItemDto = {
+  year: number;
+  value: string | null;
 };
 
 export type EditionsPaginationDto = {

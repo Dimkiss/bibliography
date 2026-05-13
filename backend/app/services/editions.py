@@ -12,6 +12,7 @@ from app.schemas.edition import (
     EditionFiltersResponse,
     EditionListItem,
     EditionListResponse,
+    EditionMetricHistoryItem,
 )
 
 DEFAULT_PAGE_SIZE = 10
@@ -27,11 +28,8 @@ METRIC_LEVEL_OPTIONS: list[EditionFilterOption] = [
 EDITION_TYPE_OPTIONS: list[EditionFilterOption] = [
     EditionFilterOption(value="monograph", label="Монография"),
     EditionFilterOption(value="book", label="Книга/сборник"),
-    EditionFilterOption(value="chapter", label="Глава"),
-    EditionFilterOption(value="conference", label="Материалы конференций"),
-    EditionFilterOption(value="patent_method", label="Патент / Свидетельство"),
-    EditionFilterOption(value="report", label="Доклад"),
-    EditionFilterOption(value="dissertation", label="Диссертация"),
+    EditionFilterOption(value="conference", label="Материалы конференции"),
+    EditionFilterOption(value="patent_method", label="Патенты и методики"),
     EditionFilterOption(value="other", label="Другое"),
 ]
 
@@ -49,6 +47,16 @@ NONPERIODICAL_TITLE_EXPR = """
         NULLIF(a.Title_Analitic_F4, ''),
         NULLIF(a.Edition_F15, '')
     )
+"""
+
+NONPERIODICAL_EDITION_KEY_EXPR = """
+    CASE
+        WHEN NULLIF(a.Title_of_Material_F9, '') LIKE '//%' THEN CONCAT(
+            'material:',
+            LOWER(TRIM(LEADING '/' FROM TRIM(a.Title_of_Material_F9)))
+        )
+        ELSE CONCAT('record:', a.Record_ID)
+    END
 """
 
 NONPERIODICAL_CONTRIBUTORS_EXPR = """
@@ -136,6 +144,37 @@ def _parse_csv_list(value: str | None) -> list[str]:
         return []
 
     return [item.strip() for item in value.split("|||") if item.strip()]
+
+
+def _parse_metric_history(
+    value: str | None,
+    *,
+    normalize_value: bool = False,
+) -> list[EditionMetricHistoryItem]:
+    items: list[EditionMetricHistoryItem] = []
+
+    for item in _parse_csv_list(value):
+        year_value, separator, quartile_value = item.partition(":")
+        if not separator:
+            continue
+
+        try:
+            year = int(year_value)
+        except ValueError:
+            continue
+
+        items.append(
+            EditionMetricHistoryItem(
+                year=year,
+                value=(
+                    _normalize_quartile(quartile_value)
+                    if normalize_value
+                    else (quartile_value.strip() or None)
+                ),
+            )
+        )
+
+    return items
 
 
 def _clean_display_text(value: str | None) -> str | None:
@@ -279,15 +318,44 @@ def _build_nonperiodical_type_condition(
                 """
                 (
                     (
-                        a.WorkFormType_f = 'B'
-                        OR EXISTS (
+                        EXISTS (
+                            SELECT 1
+                            FROM articlehastop aht
+                            WHERE aht.Record_ID_f = a.Record_ID
+                              AND aht.TypeOfPublication_f = 'GL'
+                        )
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM articlehastop aht
+                            WHERE aht.Record_ID_f = a.Record_ID
+                              AND aht.TypeOfPublication_f IN (
+                                  'AR', 'AS', 'DI', 'DO', 'LI',
+                                  'MA', 'MO', 'MP', 'OT', 'PA', 'PD',
+                                  'SD', 'TE', 'TR'
+                              )
+                        )
+                    )
+                    OR (
+                        EXISTS (
                             SELECT 1
                             FROM articlehastop aht
                             WHERE aht.Record_ID_f = a.Record_ID
                               AND aht.TypeOfPublication_f IN ('KN', 'SB', 'AT', 'BU', 'SP', 'UC')
                         )
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM articlehastop aht
+                            WHERE aht.Record_ID_f = a.Record_ID
+                              AND aht.TypeOfPublication_f IN (
+                                  'AR', 'AS', 'DI', 'DO', 'GL', 'LI',
+                                  'MA', 'MO', 'MP', 'OT', 'PA', 'PD',
+                                  'SD', 'TE', 'TR'
+                              )
+                        )
                     )
-                    AND NOT EXISTS (
+                    OR (
+                        a.WorkFormType_f = 'B'
+                        AND NOT EXISTS (
                         SELECT 1
                         FROM articlehastop aht
                         WHERE aht.Record_ID_f = a.Record_ID
@@ -296,18 +364,8 @@ def _build_nonperiodical_type_condition(
                               'MA', 'MO', 'MP', 'OT', 'PA', 'PD',
                               'SD', 'TE', 'TR'
                           )
+                        )
                     )
-                )
-                """
-            )
-        elif value == "chapter":
-            conditions.append(
-                """
-                EXISTS (
-                    SELECT 1
-                    FROM articlehastop aht
-                    WHERE aht.Record_ID_f = a.Record_ID
-                      AND aht.TypeOfPublication_f = 'GL'
                 )
                 """
             )
@@ -436,32 +494,26 @@ def _derive_nonperiodical_type(row: dict[str, Any]) -> str:
     names = _parse_csv_list(row.get("publication_type_names_csv"))
     work_form_type = (row.get("work_form_type") or "").strip()
 
-    if work_form_type == "M" or flags.intersection({"PA", "AS", "LI"}):
-        return "Патент / Свидетельство"
-
-    if flags.intersection({"MP"}):
-        return "Методическое пособие"
+    if work_form_type == "M" or flags.intersection({"PA", "AS", "LI", "MP"}):
+        return "Патенты и методики"
 
     if flags.intersection({"OT"}) or work_form_type == "R":
-        return "Доклад"
+        return "Другое"
 
     if "MO" in flags and "GL" not in flags:
         return "Монография"
 
-    if "GL" in flags:
-        return "Глава"
-
     if flags.intersection({"MA", "DO", "PD", "SD", "TE", "TR"}) or work_form_type == "C":
-        return "Материалы конференций"
+        return "Материалы конференции"
+
+    if "GL" in flags:
+        return "Книга/сборник"
 
     if flags.intersection({"DI", "AR"}) or work_form_type == "D":
-        return "Диссертация"
+        return "Другое"
 
-    if "SB" in flags:
-        return "Сборник"
-
-    if flags.intersection({"KN", "AT", "BU", "SP", "UC"}) or work_form_type == "B":
-        return "Книжное издание"
+    if flags.intersection({"KN", "SB", "AT", "BU", "SP", "UC"}) or work_form_type == "B":
+        return "Книга/сборник"
 
     return names[0] if names else "Другое"
 
@@ -470,7 +522,7 @@ def _derive_contributors_label(row: dict[str, Any], publication_type: str) -> st
     if not row.get("contributors"):
         return None
 
-    if publication_type == "Патент / Свидетельство":
+    if publication_type == "Патенты и методики":
         return "Авторы"
 
     if row.get("author_of_material"):
@@ -599,6 +651,33 @@ def _list_periodical_editions(
                 NULLIF(CAST(j.LWL AS CHAR), '') AS white_list_level,
                 NULLIF(j.Quartile, '') AS wos_quartile,
                 NULLIF(j.QuartileScopus, '') AS scopus_quartile,
+                (
+                    SELECT GROUP_CONCAT(
+                        CONCAT(jl.Year, ':', COALESCE(NULLIF(CAST(jl.LWL AS CHAR), ''), '-'))
+                        ORDER BY jl.Year DESC
+                        SEPARATOR '|||'
+                    )
+                    FROM journals jl
+                    WHERE jl.JN_ID_f = jn.JN_ID
+                ) AS white_list_levels_csv,
+                (
+                    SELECT GROUP_CONCAT(
+                        CONCAT(jw.Year, ':', COALESCE(NULLIF(jw.Quartile, ''), '-'))
+                        ORDER BY jw.Year DESC
+                        SEPARATOR '|||'
+                    )
+                    FROM journals jw
+                    WHERE jw.JN_ID_f = jn.JN_ID
+                ) AS wos_quartiles_csv,
+                (
+                    SELECT GROUP_CONCAT(
+                        CONCAT(js.Year, ':', COALESCE(NULLIF(js.QuartileScopus, ''), '-'))
+                        ORDER BY js.Year DESC
+                        SEPARATOR '|||'
+                    )
+                    FROM journals js
+                    WHERE js.JN_ID_f = jn.JN_ID
+                ) AS scopus_quartiles_csv,
                 COALESCE(j.Rints, 0) AS rinc_flag,
                 COALESCE(j.BAK, 0) AS vak_flag,
                 (
@@ -629,6 +708,15 @@ def _list_periodical_editions(
             white_list_level=row.get("white_list_level"),
             wos_quartile=_normalize_quartile(row.get("wos_quartile")),
             scopus_quartile=_normalize_quartile(row.get("scopus_quartile")),
+            white_list_levels=_parse_metric_history(row.get("white_list_levels_csv")),
+            wos_quartiles=_parse_metric_history(
+                row.get("wos_quartiles_csv"),
+                normalize_value=True,
+            ),
+            scopus_quartiles=_parse_metric_history(
+                row.get("scopus_quartiles_csv"),
+                normalize_value=True,
+            ),
             rinc=_format_boolean(row.get("rinc_flag")),
             vak=_format_boolean(row.get("vak_flag")),
             publication_count=int(row.get("publication_count") or 0),
@@ -675,7 +763,7 @@ def _list_nonperiodical_editions(
             db.execute(
                 text(
                     f"""
-                    SELECT COUNT(DISTINCT a.Record_ID) AS total
+                    SELECT COUNT(DISTINCT {NONPERIODICAL_EDITION_KEY_EXPR}) AS total
                     FROM articles a
                     LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
                     LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
@@ -709,23 +797,19 @@ def _list_nonperiodical_editions(
                 source_id
             FROM (
                 SELECT
-                    a.Record_ID AS source_id,
-                    a.WorkFormType_f AS work_form_type,
-                    {NONPERIODICAL_TITLE_EXPR} AS title,
-                    a.ISBN_F41 AS identifier,
-                    a.Date_of_Publication_F20 AS year,
-                    (
-                        SELECT jaa.Tirage
-                        FROM journalarticlesattributes jaa
-                        WHERE jaa.Record_ID_f = a.Record_ID
-                          AND NULLIF(jaa.Tirage, '') IS NOT NULL
-                        LIMIT 1
-                    ) AS tirage
+                    MIN(a.Record_ID) AS source_id,
+                    MIN(a.WorkFormType_f) AS work_form_type,
+                    MIN({NONPERIODICAL_TITLE_EXPR}) AS title,
+                    MAX(a.ISBN_F41) AS identifier,
+                    MIN(a.Date_of_Publication_F20) AS year,
+                    MAX(NULLIF(jaa.Tirage, '')) AS tirage
                 FROM articles a
                 LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
                 LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
+                LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
                 WHERE 1 = 1
                 {filters_sql}
+                GROUP BY {NONPERIODICAL_EDITION_KEY_EXPR}
             ) editions
             ORDER BY {sort_expr} {sort_dir}, source_id DESC
             LIMIT :limit OFFSET :offset

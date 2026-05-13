@@ -13,6 +13,7 @@ export type QuartilesDropdownProps = {
   items: QuartilesDropdownItem[];
   className?: string;
   menuAlign?: 'left' | 'right';
+  variant?: 'default' | 'compact';
   ariaLabel?: string;
 };
 
@@ -21,6 +22,7 @@ export function QuartilesDropdown({
   items,
   className = '',
   menuAlign = 'left',
+  variant = 'default',
   ariaLabel = 'Показать квартили',
 }: QuartilesDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -70,6 +72,7 @@ export function QuartilesDropdown({
           className={[
             styles.menu,
             menuAlign === 'right' ? styles.menuRight : '',
+            variant === 'compact' ? styles.menuCompact : '',
           ]
             .filter(Boolean)
             .join(' ')}

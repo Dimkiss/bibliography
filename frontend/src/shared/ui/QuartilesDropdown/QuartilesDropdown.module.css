@@ -39,6 +39,31 @@
   left: auto;
 }
 
+.menuCompact {
+  width: 167px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: var(--space-2) 0;
+  background: var(--color-surface-menu);
+  scrollbar-color: var(--color-outline-strong) transparent;
+  scrollbar-width: thin;
+}
+
+.menuCompact::-webkit-scrollbar {
+  width: 12px;
+}
+
+.menuCompact::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.menuCompact::-webkit-scrollbar-thumb {
+  border: 4px solid transparent;
+  border-radius: 999px;
+  background: var(--color-outline-strong);
+  background-clip: content-box;
+}
+
 .menuItem {
   min-height: var(--menu-option-height);
   display: flex;
@@ -47,6 +72,12 @@
   gap: var(--space-5);
   padding: var(--space-3) var(--space-7) var(--space-3) var(--space-5);
   color: var(--color-text-primary);
+}
+
+.menuCompact .menuItem {
+  min-height: 56px;
+  padding: var(--space-2) var(--space-3);
+  gap: var(--space-3);
 }
 
 .menuLabel {

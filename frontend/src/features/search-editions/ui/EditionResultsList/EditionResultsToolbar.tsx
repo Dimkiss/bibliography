@@ -64,7 +64,6 @@ export function EditionResultsToolbar({
           value={viewMode}
           onChange={onViewModeChange}
           ariaLabel="Тип вывода изданий"
-          listIconName="journal-outline"
         />
       </div>
 

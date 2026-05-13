@@ -1,7 +1,5 @@
 import {
   formatEditionPresence,
-  formatMetricValue,
-  formatWhiteListLevel,
   type EditionKind,
   type EditionListItemDto,
   type EditionSortOrder,
@@ -9,6 +7,11 @@ import {
 } from '@/entities/edition';
 import { Checkbox } from '@/shared/ui/Checkbox';
 import { Icon } from '@/shared/ui/Icon';
+import {
+  EditionScopusQuartileBadge,
+  EditionWhiteListLevelBadge,
+  EditionWosQuartileBadge,
+} from './EditionQuartileBadge';
 import { EditionRowActions } from './EditionRowActions';
 import { stopInteractiveEvent } from './editionResultsList.lib';
 import styles from './EditionResultsList.module.css';
@@ -179,19 +182,13 @@ export function EditionTableView({
                     <td className={styles.tableTitleCell}>{item.title || 'Без названия'}</td>
                     <td>{item.identifier || '—'}</td>
                     <td className={styles.centerCell}>
-                      <span className={styles.inlineBadge}>
-                        {formatWhiteListLevel(item.white_list_level)}
-                      </span>
+                      <EditionWhiteListLevelBadge item={item} />
                     </td>
                     <td className={styles.centerCell}>
-                      <span className={styles.inlineBadge}>
-                        {formatMetricValue(item.wos_quartile)}
-                      </span>
+                      <EditionWosQuartileBadge item={item} />
                     </td>
                     <td className={styles.centerCell}>
-                      <span className={styles.inlineBadge}>
-                        {formatMetricValue(item.scopus_quartile)}
-                      </span>
+                      <EditionScopusQuartileBadge item={item} />
                     </td>
                     <td className={styles.centerCell}>
                       <span className={styles.inlineBadge}>

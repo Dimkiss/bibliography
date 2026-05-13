@@ -1,9 +1,12 @@
 import {
   formatEditionPresence,
-  formatMetricValue,
-  formatWhiteListLevel,
   type EditionListItemDto,
 } from '@/entities/edition';
+import {
+  EditionScopusQuartileBadge,
+  EditionWhiteListLevelBadge,
+  EditionWosQuartileBadge,
+} from './EditionQuartileBadge';
 import styles from './EditionResultsList.module.css';
 
 type EditionMetricBadgeProps = {
@@ -23,18 +26,18 @@ export function EditionMetricBadge({ label, value }: EditionMetricBadgeProps) {
 export function EditionMetrics({ item }: { item: EditionListItemDto }) {
   return (
     <div className={styles.metrics}>
-      <EditionMetricBadge
-        label="Белый список"
-        value={formatWhiteListLevel(item.white_list_level)}
-      />
-      <EditionMetricBadge
-        label="Web of Science"
-        value={formatMetricValue(item.wos_quartile)}
-      />
-      <EditionMetricBadge
-        label="Scopus"
-        value={formatMetricValue(item.scopus_quartile)}
-      />
+      <span className={styles.metric}>
+        <span className={styles.metricLabel}>Белый список</span>
+        <EditionWhiteListLevelBadge item={item} />
+      </span>
+      <span className={styles.metric}>
+        <span className={styles.metricLabel}>Web of Science</span>
+        <EditionWosQuartileBadge item={item} />
+      </span>
+      <span className={styles.metric}>
+        <span className={styles.metricLabel}>Scopus</span>
+        <EditionScopusQuartileBadge item={item} />
+      </span>
       <EditionMetricBadge label="РИНЦ" value={formatEditionPresence(item.rinc)} />
       <EditionMetricBadge label="ВАК" value={formatEditionPresence(item.vak)} />
     </div>

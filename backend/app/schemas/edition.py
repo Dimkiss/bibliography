@@ -15,6 +15,11 @@ class EditionFilterOption(BaseModel):
     label: str
 
 
+class EditionMetricHistoryItem(BaseModel):
+    year: int
+    value: str | None = None
+
+
 class EditionListItem(BaseModel):
     id: str
     source_id: int
@@ -32,6 +37,9 @@ class EditionListItem(BaseModel):
     white_list_level: str | None = None
     wos_quartile: str | None = None
     scopus_quartile: str | None = None
+    white_list_levels: list[EditionMetricHistoryItem] = Field(default_factory=list)
+    wos_quartiles: list[EditionMetricHistoryItem] = Field(default_factory=list)
+    scopus_quartiles: list[EditionMetricHistoryItem] = Field(default_factory=list)
     rinc: bool = False
     vak: bool = False
     publication_count: int = 0

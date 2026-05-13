@@ -38,7 +38,7 @@ export const PERIODICAL_SORT_FIELD_OPTIONS: Array<{
 }> = [
   { value: 'title', label: 'Название' },
   { value: 'issn', label: 'ISSN' },
-  { value: 'white_list', label: 'Уровень БС' },
+  { value: 'white_list', label: 'БС' },
   { value: 'wos', label: 'Квартиль WoS' },
   { value: 'scopus', label: 'Квартиль Scopus' },
   { value: 'rinc', label: 'Наличие в РИНЦ' },
@@ -145,5 +145,5 @@ export function formatWhiteListLevel(value?: string | null): string {
     return '—';
   }
 
-  return /^[1-4]$/.test(normalized) ? `Q${normalized}` : normalized;
+  return /^[1-4]$/.test(normalized) ? `УБС ${normalized}` : normalized;
 }
