@@ -117,6 +117,117 @@ function normalizeSortField(
     : getDefaultEditionSortField(kind);
 }
 
+function getPositiveNumberParam(
+  searchParams: URLSearchParams,
+  name: string,
+): number | null {
+  const value = Number(searchParams.get(name));
+
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function getTrimmedListParams(searchParams: URLSearchParams, name: string): string[] {
+  return searchParams
+    .getAll(name)
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function appendSearchParamList(
+  searchParams: URLSearchParams,
+  name: string,
+  values: string[],
+) {
+  values.forEach((value) => {
+    const normalized = value.trim();
+
+    if (normalized) {
+      searchParams.append(name, normalized);
+    }
+  });
+}
+
+function getInitialSearchStateFromUrl(): EditionsPageSearchState {
+  const searchParams = new URLSearchParams(window.location.search);
+  const kindParam = searchParams.get('kind');
+  const kind = isEditionKind(kindParam) ? kindParam : DEFAULT_KIND;
+  const page = getPositiveNumberParam(searchParams, 'page') ?? DEFAULT_PAGINATION.page;
+  const pageSize =
+    getPositiveNumberParam(searchParams, 'page_size') ?? DEFAULT_PAGINATION.page_size;
+  const sortField = normalizeSortField(kind, searchParams.get('sort_by'));
+  const sortOrderParam = searchParams.get('sort_order');
+  const sortOrder =
+    sortOrderParam === 'asc' || sortOrderParam === 'desc'
+      ? sortOrderParam
+      : getDefaultEditionSortOrder(kind);
+  const viewMode = isViewMode(searchParams.get('view'))
+    ? (searchParams.get('view') as EditionResultsViewMode)
+    : 'table';
+  const form: EditionSearchFormState = {
+    query: searchParams.get('query') ?? '',
+    yearFrom: searchParams.get('year_from') ?? '',
+    yearTo: searchParams.get('year_to') ?? '',
+    metricLevels: getTrimmedListParams(searchParams, 'metric_levels'),
+    editionTypes: getTrimmedListParams(searchParams, 'edition_types'),
+  };
+
+  return {
+    kind,
+    form: cloneEditionSearchForm(form),
+    appliedForm: cloneEditionSearchForm(form),
+    items: [],
+    pagination: {
+      ...DEFAULT_PAGINATION,
+      page,
+      page_size: pageSize,
+    },
+    selectedEditionIds: [],
+    viewMode,
+    sortField,
+    sortOrder,
+    hasSearched: hasEditionSearchCriteria(kind, form),
+  };
+}
+
+function buildEditionsUrl(
+  kind: EditionKind,
+  form: EditionSearchFormState,
+  pagination: EditionsPaginationDto,
+  sortField: EditionsSortFieldValue,
+  sortOrder: EditionSortOrder,
+  viewMode: EditionResultsViewMode,
+): string {
+  const searchParams = new URLSearchParams();
+
+  searchParams.set('kind', kind);
+
+  if (form.query.trim()) {
+    searchParams.set('query', form.query.trim());
+  }
+
+  if (form.yearFrom.trim()) {
+    searchParams.set('year_from', form.yearFrom.trim());
+  }
+
+  if (form.yearTo.trim()) {
+    searchParams.set('year_to', form.yearTo.trim());
+  }
+
+  if (kind === 'periodical') {
+    appendSearchParamList(searchParams, 'metric_levels', form.metricLevels);
+  } else {
+    appendSearchParamList(searchParams, 'edition_types', form.editionTypes);
+  }
+
+  searchParams.set('page', String(pagination.page));
+  searchParams.set('page_size', String(pagination.page_size));
+  searchParams.set('sort_by', sortField);
+  searchParams.set('sort_order', sortOrder);
+  searchParams.set('view', viewMode);
+
+  return `/journals?${searchParams.toString()}`;
+}
+
 function getStoredSearchState(): EditionsPageSearchState | null {
   try {
     const storedValue = window.sessionStorage.getItem(EDITIONS_SEARCH_STATE_KEY);
@@ -156,6 +267,10 @@ function getStoredSearchState(): EditionsPageSearchState | null {
 }
 
 function getInitialSearchState(): EditionsPageSearchState {
+  if (window.location.search) {
+    return getInitialSearchStateFromUrl();
+  }
+
   const storedState = getStoredSearchState();
 
   if (storedState) {
@@ -183,6 +298,9 @@ export function useEditionsSearchPageState() {
   const initialSearchState = useState(getInitialSearchState)[0];
   const shouldSkipInitialResultsFetch = useRef(
     Boolean(initialSearchState.restoredFromStorage && initialSearchState.hasSearched),
+  );
+  const shouldIncludeTotal = useRef(
+    !Boolean(initialSearchState.restoredFromStorage && initialSearchState.hasSearched),
   );
   const [filters, setFilters] = useState<EditionFiltersDto>(EMPTY_FILTERS);
   const [kind, setKind] = useState<EditionKind>(initialSearchState.kind);
@@ -289,6 +407,34 @@ export function useEditionsSearchPageState() {
       return;
     }
 
+    const nextPath = buildEditionsUrl(
+      kind,
+      appliedForm,
+      pagination,
+      sortField,
+      sortOrder,
+      viewMode,
+    );
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+
+    if (currentPath !== nextPath) {
+      window.history.replaceState({}, '', nextPath);
+    }
+  }, [
+    appliedForm,
+    hasSearched,
+    kind,
+    pagination,
+    sortField,
+    sortOrder,
+    viewMode,
+  ]);
+
+  useEffect(() => {
+    if (!hasSearched) {
+      return;
+    }
+
     if (shouldSkipInitialResultsFetch.current) {
       shouldSkipInitialResultsFetch.current = false;
       return;
@@ -309,6 +455,12 @@ export function useEditionsSearchPageState() {
           sortField,
           sortOrder,
         );
+        const includeTotal = shouldIncludeTotal.current;
+        query.includeTotal = includeTotal;
+
+        if (!includeTotal) {
+          query.knownTotal = pagination.total;
+        }
 
         const response: EditionsResponseDto = await getEditions(query);
 
@@ -318,6 +470,7 @@ export function useEditionsSearchPageState() {
 
         setItems(response.items);
         setPagination(response.pagination);
+        shouldIncludeTotal.current = false;
       } catch (caughtError) {
         if (!isMounted) {
           return;
@@ -366,6 +519,7 @@ export function useEditionsSearchPageState() {
     setAppliedForm(cloneEditionSearchForm(nextForm));
     setSortField(getDefaultEditionSortField(nextKind));
     setSortOrder(getDefaultEditionSortOrder(nextKind));
+    shouldIncludeTotal.current = true;
     setSelectedEditionIds([]);
     setItems([]);
     setError(null);
@@ -418,6 +572,7 @@ export function useEditionsSearchPageState() {
     }
 
     setHasSearched(true);
+    shouldIncludeTotal.current = true;
     setSelectedEditionIds([]);
     setAppliedForm(cloneEditionSearchForm(form));
     setPagination((prev) => ({

@@ -108,6 +108,8 @@ export type GetPublicationsParams = {
   originalTranslationMode?: string;
   sortBy?: PublicationSortField;
   sortOrder?: PublicationSortOrder;
+  includeTotal?: boolean;
+  knownTotal?: number;
 };
 
 function splitSearchValues(value: string): string[] {
@@ -264,6 +266,14 @@ export async function getPublications(
 
   if (params.sortOrder) {
     searchParams.set('sort_order', params.sortOrder);
+  }
+
+  if (typeof params.includeTotal === 'boolean') {
+    searchParams.set('include_total', String(params.includeTotal));
+  }
+
+  if (typeof params.knownTotal === 'number') {
+    searchParams.set('known_total', String(params.knownTotal));
   }
 
   const queryString = searchParams.toString();

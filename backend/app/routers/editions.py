@@ -26,6 +26,8 @@ def list_editions(
     edition_types: list[str] | None = Query(None),
     sort_by: str = Query("title"),
     sort_order: str = Query("asc"),
+    include_total: bool = Query(True),
+    known_total: int | None = Query(None, ge=0),
     db: Session = Depends(get_db),
 ) -> EditionListResponse:
     return edition_service.list_editions(
@@ -40,6 +42,8 @@ def list_editions(
         edition_types=edition_types,
         sort_by=sort_by,
         sort_order=sort_order,
+        include_total=include_total,
+        known_total=known_total,
     )
 
 

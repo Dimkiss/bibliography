@@ -525,6 +525,8 @@ def list_articles(
     original_translation_mode: str = "all",
     sort_by: str = "year",
     sort_order: str = "desc",
+    include_total: bool = True,
+    known_total: int | None = None,
 ) -> ArticleListResponse:
     publication_types = _normalize_str_list(publication_types)
     databases = _normalize_str_list(databases)
@@ -554,23 +556,67 @@ def list_articles(
         original_translation_mode=original_translation_mode,
     )
 
-    count_query = text(
+    if include_total or known_total is None:
+        count_query = text(
+            f"""
+            SELECT COUNT(DISTINCT a.Record_ID) AS total
+            FROM articles a
+            LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
+            LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
+            LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
+            WHERE 1 = 1
+            {filters_sql}
+            """
+        )
+
+        total = int(db.execute(count_query, params).scalar() or 0)
+    else:
+        total = known_total
+
+    offset = (page - 1) * page_size
+    page_params = dict(params)
+    page_params["limit"] = page_size
+    page_params["offset"] = offset
+
+    id_query = text(
         f"""
-        SELECT COUNT(DISTINCT a.Record_ID) AS total
+        SELECT a.Record_ID AS id
         FROM articles a
         LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
         LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
         LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
         WHERE 1 = 1
         {filters_sql}
+        ORDER BY {order_by_sql}
+        LIMIT :limit OFFSET :offset
         """
     )
 
-    total = int(db.execute(count_query, params).scalar() or 0)
+    id_rows = db.execute(id_query, page_params).mappings().all()
+    article_ids = [int(row["id"]) for row in id_rows]
 
-    offset = (page - 1) * page_size
-    params["limit"] = page_size
-    params["offset"] = offset
+    if not article_ids:
+        total_pages = math.ceil(total / page_size) if total > 0 else 0
+        return ArticleListResponse(
+            items=[],
+            pagination=PaginationMeta(
+                page=page,
+                page_size=page_size,
+                total=total,
+                total_pages=total_pages,
+            ),
+        )
+
+    id_placeholders = ", ".join(
+        f":article_id_{index}" for index in range(len(article_ids))
+    )
+    order_placeholders = ", ".join(
+        f":article_id_{index}" for index in range(len(article_ids))
+    )
+    data_params: dict[str, Any] = {
+        f"article_id_{index}": article_id
+        for index, article_id in enumerate(article_ids)
+    }
     pages_fallback_sql = build_pages_fallback_select_sql(db)
 
     data_query = text(
@@ -647,14 +693,12 @@ def list_articles(
         LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
         LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
         LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
-        WHERE 1 = 1
-        {filters_sql}
-        ORDER BY {order_by_sql}
-        LIMIT :limit OFFSET :offset
+        WHERE a.Record_ID IN ({id_placeholders})
+        ORDER BY FIELD(a.Record_ID, {order_placeholders})
         """
     )
 
-    rows = db.execute(data_query, params).mappings().all()
+    rows = db.execute(data_query, data_params).mappings().all()
 
     items: list[ArticleListItem] = []
     for row in rows:

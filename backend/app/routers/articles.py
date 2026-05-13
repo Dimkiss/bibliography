@@ -35,6 +35,8 @@ def list_articles(
     original_translation_mode: str = Query("all"),
     sort_by: str = Query("year"),
     sort_order: str = Query("desc"),
+    include_total: bool = Query(True),
+    known_total: int | None = Query(None, ge=0),
     db: Session = Depends(get_db),
 ) -> ArticleListResponse:
     return article_service.list_articles(
@@ -52,6 +54,8 @@ def list_articles(
         original_translation_mode=original_translation_mode,
         sort_by=sort_by,
         sort_order=sort_order,
+        include_total=include_total,
+        known_total=known_total,
     )
 
 

@@ -74,6 +74,8 @@ export type GetEditionsParams = {
   editionTypes?: string[];
   sortBy?: EditionSortField;
   sortOrder?: EditionSortOrder;
+  includeTotal?: boolean;
+  knownTotal?: number;
 };
 
 function buildHeaders(): HeadersInit {
@@ -160,6 +162,14 @@ export async function getEditions(
 
   if (params.sortOrder) {
     searchParams.set('sort_order', params.sortOrder);
+  }
+
+  if (typeof params.includeTotal === 'boolean') {
+    searchParams.set('include_total', String(params.includeTotal));
+  }
+
+  if (typeof params.knownTotal === 'number') {
+    searchParams.set('known_total', String(params.knownTotal));
   }
 
   const queryString = searchParams.toString();

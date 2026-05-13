@@ -284,7 +284,7 @@
 .cardNumber,
 .tableNumber {
   display: inline-flex;
-  min-width: 24px;
+  min-width: 40px;
   justify-content: center;
   color: var(--color-text-primary);
   font-family: var(--font-family-ui);
@@ -292,6 +292,8 @@
   font-weight: var(--font-weight-regular);
   line-height: var(--type-body-md-line);
   letter-spacing: var(--type-body-md-letter);
+  white-space: nowrap;
+  word-break: normal;
 }
 
 .checkboxButton {
@@ -516,7 +518,7 @@
 }
 
 .table th:nth-child(1) {
-  width: 72px;
+  width: 88px;
 }
 
 .table th:nth-child(2) {

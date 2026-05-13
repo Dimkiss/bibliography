@@ -278,12 +278,24 @@ def _build_nonperiodical_type_condition(
             conditions.append(
                 """
                 (
-                    a.WorkFormType_f = 'B'
-                    OR EXISTS (
+                    (
+                        a.WorkFormType_f = 'B'
+                        OR EXISTS (
+                            SELECT 1
+                            FROM articlehastop aht
+                            WHERE aht.Record_ID_f = a.Record_ID
+                              AND aht.TypeOfPublication_f IN ('KN', 'SB', 'AT', 'BU', 'SP', 'UC')
+                        )
+                    )
+                    AND NOT EXISTS (
                         SELECT 1
                         FROM articlehastop aht
                         WHERE aht.Record_ID_f = a.Record_ID
-                          AND aht.TypeOfPublication_f IN ('KN', 'SB', 'AT', 'BU', 'SP', 'UC')
+                          AND aht.TypeOfPublication_f IN (
+                              'AR', 'AS', 'DI', 'DO', 'GL', 'LI',
+                              'MA', 'MO', 'MP', 'OT', 'PA', 'PD',
+                              'SD', 'TE', 'TR'
+                          )
                     )
                 )
                 """
@@ -478,6 +490,8 @@ def _list_periodical_editions(
     metric_levels: list[str],
     sort_by: str,
     sort_order: str,
+    include_total: bool,
+    known_total: int | None,
 ) -> EditionListResponse:
     params: dict[str, Any] = {}
     filters_sql = _build_periodical_filters(
@@ -498,21 +512,24 @@ def _list_periodical_editions(
         )
     """
 
-    total = int(
-        db.execute(
-            text(
-                f"""
-                SELECT COUNT(*) AS total
-                FROM journalnames jn
-                {latest_journal_join}
-                WHERE 1 = 1
-                {filters_sql}
-                """
-            ),
-            params,
-        ).scalar()
-        or 0
-    )
+    if include_total or known_total is None:
+        total = int(
+            db.execute(
+                text(
+                    f"""
+                    SELECT COUNT(*) AS total
+                    FROM journalnames jn
+                    {latest_journal_join}
+                    WHERE 1 = 1
+                    {filters_sql}
+                    """
+                ),
+                params,
+            ).scalar()
+            or 0
+        )
+    else:
+        total = known_total
 
     sort_by = (sort_by or "title").lower()
     sort_order = (sort_order or "asc").lower()
@@ -528,8 +545,48 @@ def _list_periodical_editions(
             PERIODICAL_SORT_FIELD_MAP["title"],
         )
 
-    params["limit"] = page_size
-    params["offset"] = (page - 1) * page_size
+    page_params = dict(params)
+    page_params["limit"] = page_size
+    page_params["offset"] = (page - 1) * page_size
+
+    id_rows = db.execute(
+        text(
+            f"""
+            SELECT
+                jn.JN_ID AS source_id
+            FROM journalnames jn
+            {latest_journal_join}
+            WHERE 1 = 1
+            {filters_sql}
+            ORDER BY {sort_expr} {sort_dir}, jn.JournalName ASC, jn.JN_ID ASC
+            LIMIT :limit OFFSET :offset
+            """
+        ),
+        page_params,
+    ).mappings().all()
+    source_ids = [int(row["source_id"]) for row in id_rows]
+
+    if not source_ids:
+        return EditionListResponse(
+            items=[],
+            pagination=PaginationMeta(
+                page=page,
+                page_size=page_size,
+                total=total,
+                total_pages=math.ceil(total / page_size) if total else 0,
+            ),
+        )
+
+    id_placeholders = ", ".join(
+        f":source_id_{index}" for index in range(len(source_ids))
+    )
+    order_placeholders = ", ".join(
+        f":source_id_{index}" for index in range(len(source_ids))
+    )
+    data_params: dict[str, Any] = {
+        f"source_id_{index}": source_id
+        for index, source_id in enumerate(source_ids)
+    }
 
     rows = db.execute(
         text(
@@ -552,13 +609,11 @@ def _list_periodical_editions(
                 ) AS publication_count
             FROM journalnames jn
             {latest_journal_join}
-            WHERE 1 = 1
-            {filters_sql}
-            ORDER BY {sort_expr} {sort_dir}, jn.JournalName ASC, jn.JN_ID ASC
-            LIMIT :limit OFFSET :offset
+            WHERE jn.JN_ID IN ({id_placeholders})
+            ORDER BY FIELD(jn.JN_ID, {order_placeholders})
             """
         ),
-        params,
+        data_params,
     ).mappings().all()
 
     items = [
@@ -603,6 +658,8 @@ def _list_nonperiodical_editions(
     edition_types: list[str],
     sort_by: str,
     sort_order: str,
+    include_total: bool,
+    known_total: int | None,
 ) -> EditionListResponse:
     params: dict[str, Any] = {}
     filters_sql = _build_nonperiodical_filters(
@@ -613,22 +670,25 @@ def _list_nonperiodical_editions(
         edition_types=edition_types,
     )
 
-    total = int(
-        db.execute(
-            text(
-                f"""
-                SELECT COUNT(DISTINCT a.Record_ID) AS total
-                FROM articles a
-                LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
-                LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
-                WHERE 1 = 1
-                {filters_sql}
-                """
-            ),
-            params,
-        ).scalar()
-        or 0
-    )
+    if include_total or known_total is None:
+        total = int(
+            db.execute(
+                text(
+                    f"""
+                    SELECT COUNT(DISTINCT a.Record_ID) AS total
+                    FROM articles a
+                    LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
+                    LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
+                    WHERE 1 = 1
+                    {filters_sql}
+                    """
+                ),
+                params,
+            ).scalar()
+            or 0
+        )
+    else:
+        total = known_total
 
     sort_by = (sort_by or "title").lower()
     sort_order = (sort_order or "asc").lower()
@@ -638,43 +698,29 @@ def _list_nonperiodical_editions(
         NONPERIODICAL_SORT_FIELD_MAP["title"],
     )
 
-    params["limit"] = page_size
-    params["offset"] = (page - 1) * page_size
+    page_params = dict(params)
+    page_params["limit"] = page_size
+    page_params["offset"] = (page - 1) * page_size
 
-    rows = db.execute(
+    id_rows = db.execute(
         text(
             f"""
             SELECT
-                *
+                source_id
             FROM (
                 SELECT
                     a.Record_ID AS source_id,
                     a.WorkFormType_f AS work_form_type,
-                    a.Author_of_Material_F7 AS author_of_material,
                     {NONPERIODICAL_TITLE_EXPR} AS title,
-                    {NONPERIODICAL_CONTRIBUTORS_EXPR} AS contributors,
                     a.ISBN_F41 AS identifier,
                     a.Date_of_Publication_F20 AS year,
-                    pn.PublisherName AS publisher,
-                    pp.PlaceName AS place,
                     (
                         SELECT jaa.Tirage
                         FROM journalarticlesattributes jaa
                         WHERE jaa.Record_ID_f = a.Record_ID
                           AND NULLIF(jaa.Tirage, '') IS NOT NULL
                         LIMIT 1
-                    ) AS tirage,
-                    (
-                        SELECT GROUP_CONCAT(DISTINCT aht.TypeOfPublication_f ORDER BY aht.TypeOfPublication_f SEPARATOR '|||')
-                        FROM articlehastop aht
-                        WHERE aht.Record_ID_f = a.Record_ID
-                    ) AS publication_type_flags_csv,
-                    (
-                        SELECT GROUP_CONCAT(DISTINCT top.TOP_Name ORDER BY top.TOP_Name SEPARATOR '|||')
-                        FROM articlehastop aht
-                        JOIN typesofpublications top ON top.TOP_Flag = aht.TypeOfPublication_f
-                        WHERE aht.Record_ID_f = a.Record_ID
-                    ) AS publication_type_names_csv
+                    ) AS tirage
                 FROM articles a
                 LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
                 LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
@@ -685,7 +731,71 @@ def _list_nonperiodical_editions(
             LIMIT :limit OFFSET :offset
             """
         ),
-        params,
+        page_params,
+    ).mappings().all()
+    source_ids = [int(row["source_id"]) for row in id_rows]
+
+    if not source_ids:
+        return EditionListResponse(
+            items=[],
+            pagination=PaginationMeta(
+                page=page,
+                page_size=page_size,
+                total=total,
+                total_pages=math.ceil(total / page_size) if total else 0,
+            ),
+        )
+
+    id_placeholders = ", ".join(
+        f":source_id_{index}" for index in range(len(source_ids))
+    )
+    order_placeholders = ", ".join(
+        f":source_id_{index}" for index in range(len(source_ids))
+    )
+    data_params: dict[str, Any] = {
+        f"source_id_{index}": source_id
+        for index, source_id in enumerate(source_ids)
+    }
+
+    rows = db.execute(
+        text(
+            f"""
+            SELECT
+                a.Record_ID AS source_id,
+                a.WorkFormType_f AS work_form_type,
+                a.Author_of_Material_F7 AS author_of_material,
+                {NONPERIODICAL_TITLE_EXPR} AS title,
+                {NONPERIODICAL_CONTRIBUTORS_EXPR} AS contributors,
+                a.ISBN_F41 AS identifier,
+                a.Date_of_Publication_F20 AS year,
+                pn.PublisherName AS publisher,
+                pp.PlaceName AS place,
+                (
+                    SELECT jaa.Tirage
+                    FROM journalarticlesattributes jaa
+                    WHERE jaa.Record_ID_f = a.Record_ID
+                      AND NULLIF(jaa.Tirage, '') IS NOT NULL
+                    LIMIT 1
+                ) AS tirage,
+                (
+                    SELECT GROUP_CONCAT(DISTINCT aht.TypeOfPublication_f ORDER BY aht.TypeOfPublication_f SEPARATOR '|||')
+                    FROM articlehastop aht
+                    WHERE aht.Record_ID_f = a.Record_ID
+                ) AS publication_type_flags_csv,
+                (
+                    SELECT GROUP_CONCAT(DISTINCT top.TOP_Name ORDER BY top.TOP_Name SEPARATOR '|||')
+                    FROM articlehastop aht
+                    JOIN typesofpublications top ON top.TOP_Flag = aht.TypeOfPublication_f
+                    WHERE aht.Record_ID_f = a.Record_ID
+                ) AS publication_type_names_csv
+            FROM articles a
+            LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
+            LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
+            WHERE a.Record_ID IN ({id_placeholders})
+            ORDER BY FIELD(a.Record_ID, {order_placeholders})
+            """
+        ),
+        data_params,
     ).mappings().all()
 
     items: list[EditionListItem] = []
@@ -738,6 +848,8 @@ def list_editions(
     edition_types: list[str] | None = None,
     sort_by: str = "title",
     sort_order: str = "asc",
+    include_total: bool = True,
+    known_total: int | None = None,
 ) -> EditionListResponse:
     normalized_kind = "nonperiodical" if kind == "nonperiodical" else "periodical"
 
@@ -752,6 +864,8 @@ def list_editions(
             edition_types=_normalize_str_list(edition_types),
             sort_by=sort_by,
             sort_order=sort_order,
+            include_total=include_total,
+            known_total=known_total,
         )
 
     return _list_periodical_editions(
@@ -764,6 +878,8 @@ def list_editions(
         metric_levels=_normalize_str_list(metric_levels),
         sort_by=sort_by,
         sort_order=sort_order,
+        include_total=include_total,
+        known_total=known_total,
     )
 
 
