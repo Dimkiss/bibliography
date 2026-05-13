@@ -32,6 +32,57 @@ export type EditionMetricHistoryItemDto = {
   value: string | null;
 };
 
+export type EditionDetailMetricDto = {
+  year: number;
+  white_list_level: string | null;
+  wos_quartile: string | null;
+  impact_factor: string | null;
+  scopus_quartile: string | null;
+  rinc: boolean;
+  rinc_core: boolean;
+  vak: boolean;
+};
+
+export type EditionPublicationDto = {
+  id: number;
+  title: string | null;
+  authors: string | null;
+  doi: string | null;
+  year: number | null;
+  volume: string | null;
+  issue: string | null;
+  pages: string | null;
+  has_pdf: boolean;
+};
+
+export type RelatedEditionDto = {
+  kind: EditionKind;
+  source_id: number;
+  title: string | null;
+  identifier: string | null;
+};
+
+export type EditionDetailDto = {
+  id: string;
+  source_id: number;
+  kind: EditionKind;
+  title: string | null;
+  identifier: string | null;
+  identifier_label: string;
+  year: number | null;
+  publication_type: string | null;
+  contributors: string | null;
+  contributors_label: string | null;
+  date_of_meeting: string | null;
+  publisher: string | null;
+  place: string | null;
+  tirage: string | null;
+  insert_date: string | null;
+  metrics: EditionDetailMetricDto[];
+  publications: EditionPublicationDto[];
+  related_editions: RelatedEditionDto[];
+};
+
 export type EditionsPaginationDto = {
   page: number;
   page_size: number;
@@ -186,6 +237,22 @@ export async function getEditions(
     : `${API_BASE_URL}/editions`;
 
   const response = await fetch(url, {
+    method: 'GET',
+    headers: buildHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+
+  return response.json();
+}
+
+export async function getEditionDetail(
+  kind: EditionKind,
+  sourceId: number,
+): Promise<EditionDetailDto> {
+  const response = await fetch(`${API_BASE_URL}/editions/${kind}/${sourceId}`, {
     method: 'GET',
     headers: buildHeaders(),
   });

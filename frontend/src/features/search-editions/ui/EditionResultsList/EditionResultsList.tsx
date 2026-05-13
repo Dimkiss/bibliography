@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 
 import {
+  buildEditionDetailsPath,
   type EditionKind,
   type EditionListItemDto,
   type EditionSortOrder,
   type EditionsSortFieldValue,
 } from '@/entities/edition';
+import { navigateTo } from '@/shared/lib/navigation';
 import { EditionListView } from './EditionListView';
 import { EditionResultsToolbar } from './EditionResultsToolbar';
 import { EditionTableView } from './EditionTableView';
@@ -96,6 +98,22 @@ export function EditionResultsList({
     setActionMessage(message);
   };
 
+  const handleOpenEdition = (item: EditionListItemDto) => {
+    navigateTo(buildEditionDetailsPath(item.kind, item.source_id));
+  };
+
+  const handleOpenEditionByKeyboard = (
+    event: KeyboardEvent<HTMLElement>,
+    item: EditionListItemDto,
+  ) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    handleOpenEdition(item);
+  };
+
   const resultView =
     viewMode === 'table' ? (
       <EditionTableView
@@ -108,6 +126,8 @@ export function EditionResultsList({
         openActionMenuId={openActionMenuId}
         sortField={sortField}
         sortOrder={sortOrder}
+        onOpenEdition={handleOpenEdition}
+        onOpenEditionByKeyboard={handleOpenEditionByKeyboard}
         onToggleItemSelection={onToggleItemSelection}
         onTogglePageSelection={onTogglePageSelection}
         onToggleActionMenu={handleToggleActionMenu}
@@ -122,6 +142,8 @@ export function EditionResultsList({
         items={items}
         selectedIdSet={selectedIdSet}
         openActionMenuId={openActionMenuId}
+        onOpenEdition={handleOpenEdition}
+        onOpenEditionByKeyboard={handleOpenEditionByKeyboard}
         onToggleItemSelection={onToggleItemSelection}
         onToggleActionMenu={handleToggleActionMenu}
         onEdit={() => handleUnavailableAction('Редактирование изданий пока недоступно.')}

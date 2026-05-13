@@ -51,7 +51,14 @@ function getActiveNavItem(
     return 'home';
   }
 
-  const matchedItem = navItems.find((item) => item.path === pathname);
+  const matchedItem = navItems.find((item) => {
+    if (item.path === '/') {
+      return false;
+    }
+
+    return pathname === item.path || pathname.startsWith(`${item.path}/`);
+  });
+
   return matchedItem?.id ?? 'home';
 }
 

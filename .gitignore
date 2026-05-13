@@ -35,6 +35,7 @@ Thumbs.db
 # База / дампы
 # =========================
 db/
+legacy_admin_reference/
 *.sql
 *.sqlite3
 бд.txt

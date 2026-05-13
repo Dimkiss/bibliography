@@ -147,3 +147,7 @@ export function formatWhiteListLevel(value?: string | null): string {
 
   return /^[1-4]$/.test(normalized) ? `УБС ${normalized}` : normalized;
 }
+
+export function buildEditionDetailsPath(kind: EditionKind, sourceId: number): string {
+  return `/journals/${kind}/${sourceId}`;
+}

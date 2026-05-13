@@ -8,15 +8,24 @@ from sqlalchemy.orm import Session
 
 from app.schemas.article import PaginationMeta
 from app.schemas.edition import (
+    EditionDetailMetricItem,
+    EditionDetailResponse,
     EditionFilterOption,
     EditionFiltersResponse,
     EditionListItem,
     EditionListResponse,
     EditionMetricHistoryItem,
+    EditionPublicationItem,
+    RelatedEditionItem,
 )
+from app.services.articles import pdf_files
 
 DEFAULT_PAGE_SIZE = 10
 MAX_PAGE_SIZE = 100
+
+
+class EditionNotFoundError(Exception):
+    pass
 
 METRIC_LEVEL_OPTIONS: list[EditionFilterOption] = [
     EditionFilterOption(value="q1", label="Q1"),
@@ -183,6 +192,18 @@ def _clean_display_text(value: str | None) -> str | None:
     while normalized.startswith("/"):
         normalized = normalized[1:].strip()
 
+    return normalized or None
+
+
+def _format_date_value(value: Any) -> str | None:
+    return value.isoformat() if hasattr(value, "isoformat") else value
+
+
+def _format_decimal_value(value: Any) -> str | None:
+    if value is None:
+        return None
+
+    normalized = str(value).strip()
     return normalized or None
 
 
@@ -529,6 +550,20 @@ def _derive_contributors_label(row: dict[str, Any], publication_type: str) -> st
         return "Редакторы"
 
     return "Авторы"
+
+
+def _build_edition_publication_item(row: dict[str, Any]) -> EditionPublicationItem:
+    return EditionPublicationItem(
+        id=int(row["id"]),
+        title=_clean_display_text(row.get("title")),
+        authors=_clean_display_text(row.get("authors")),
+        doi=row.get("doi"),
+        year=row.get("year"),
+        volume=_clean_display_text(row.get("volume")),
+        issue=_clean_display_text(row.get("issue")),
+        pages=_clean_display_text(row.get("pages")),
+        has_pdf=pdf_files.article_pdf_exists(int(row["id"])),
+    )
 
 
 def _list_periodical_editions(
@@ -917,6 +952,298 @@ def _list_nonperiodical_editions(
             total_pages=math.ceil(total / page_size) if total else 0,
         ),
     )
+
+
+def _get_related_periodical_editions(
+    db: Session,
+    source_id: int,
+) -> list[RelatedEditionItem]:
+    rows = db.execute(
+        text(
+            """
+            SELECT DISTINCT
+                related.source_id,
+                related.title,
+                related.identifier
+            FROM (
+                SELECT
+                    related_jn.JN_ID AS source_id,
+                    related_jn.JournalName AS title,
+                    NULLIF(related_jn.ISSN, '') AS identifier
+                FROM journalnames current_jn
+                JOIN journalsinonims js
+                  ON js.Sinonim = current_jn.JournalName
+                  OR js.JournalName = current_jn.JournalName
+                JOIN journalnames related_jn ON related_jn.JN_ID = js.JN_ID_f
+                WHERE current_jn.JN_ID = :source_id
+
+                UNION
+
+                SELECT
+                    related_jn.JN_ID AS source_id,
+                    related_jn.JournalName AS title,
+                    NULLIF(related_jn.ISSN, '') AS identifier
+                FROM journalnames current_jn
+                JOIN journalsinonims js ON js.JN_ID_f = current_jn.JN_ID
+                JOIN journalnames related_jn ON related_jn.JournalName = js.Sinonim
+                WHERE current_jn.JN_ID = :source_id
+            ) related
+            WHERE related.source_id <> :source_id
+            ORDER BY related.title
+            """
+        ),
+        {"source_id": source_id},
+    ).mappings().all()
+
+    return [
+        RelatedEditionItem(
+            kind="periodical",
+            source_id=int(row["source_id"]),
+            title=_clean_display_text(row.get("title")),
+            identifier=row.get("identifier"),
+        )
+        for row in rows
+    ]
+
+
+def _get_periodical_detail(db: Session, source_id: int) -> EditionDetailResponse:
+    row = db.execute(
+        text(
+            """
+            SELECT
+                jn.JN_ID AS source_id,
+                jn.JournalName AS title,
+                NULLIF(jn.ISSN, '') AS identifier,
+                (
+                    SELECT MAX(a.InsertDate)
+                    FROM articles a
+                    JOIN journals article_j ON article_j.J_ID = a.Journal_ID_f
+                    WHERE article_j.JN_ID_f = jn.JN_ID
+                ) AS insert_date
+            FROM journalnames jn
+            WHERE jn.JN_ID = :source_id
+            """
+        ),
+        {"source_id": source_id},
+    ).mappings().first()
+
+    if row is None:
+        raise EditionNotFoundError("Издание не найдено.")
+
+    metric_rows = db.execute(
+        text(
+            """
+            SELECT
+                j.Year AS year,
+                NULLIF(NULLIF(CAST(j.LWL AS CHAR), ''), '0') AS white_list_level,
+                NULLIF(j.Quartile, '') AS wos_quartile,
+                j.Impact_Factor AS impact_factor,
+                NULLIF(j.QuartileScopus, '') AS scopus_quartile,
+                COALESCE(j.Rints, 0) AS rinc_flag,
+                COALESCE(j.RintsCore, 0) AS rinc_core_flag,
+                COALESCE(j.BAK, 0) AS vak_flag
+            FROM journals j
+            WHERE j.JN_ID_f = :source_id
+            ORDER BY j.Year DESC, j.J_ID DESC
+            """
+        ),
+        {"source_id": source_id},
+    ).mappings().all()
+
+    publication_rows = db.execute(
+        text(
+            """
+            SELECT
+                a.Record_ID AS id,
+                COALESCE(
+                    NULLIF(a.Title_Analitic_F4, ''),
+                    NULLIF(a.Title_of_Material_F9, ''),
+                    NULLIF(a.Edition_F15, '')
+                ) AS title,
+                COALESCE(
+                    NULLIF(a.Author_Analitic_F1, ''),
+                    (
+                        SELECT GROUP_CONCAT(au.authorName ORDER BY aha.AHA_ID SEPARATOR ', ')
+                        FROM articlehasauthor aha
+                        JOIN authors au ON au.authorID = aha.authorID_f
+                        WHERE aha.Record_ID_f = a.Record_ID
+                    )
+                ) AS authors,
+                a.DOI AS doi,
+                a.Date_of_Publication_F20 AS year,
+                a.VolumeID_F22 AS volume,
+                a.IssueID_F24 AS issue,
+                a.Pages_F25 AS pages
+            FROM articles a
+            JOIN journals j ON j.J_ID = a.Journal_ID_f
+            WHERE j.JN_ID_f = :source_id
+            ORDER BY
+                a.Date_of_Publication_F20 DESC,
+                CAST(NULLIF(a.VolumeID_F22, '') AS UNSIGNED) DESC,
+                a.VolumeID_F22 DESC,
+                CAST(NULLIF(a.IssueID_F24, '') AS UNSIGNED) ASC,
+                CAST(NULLIF(a.Pages_F25, '') AS UNSIGNED) ASC,
+                a.Record_ID ASC
+            """
+        ),
+        {"source_id": source_id},
+    ).mappings().all()
+
+    row_dict = dict(row)
+
+    return EditionDetailResponse(
+        id=f"periodical:{source_id}",
+        source_id=source_id,
+        kind="periodical",
+        title=_clean_display_text(row_dict.get("title")),
+        identifier=row_dict.get("identifier"),
+        identifier_label="ISSN",
+        publication_type="Журнал",
+        insert_date=_format_date_value(row_dict.get("insert_date")),
+        metrics=[
+            EditionDetailMetricItem(
+                year=int(metric_row["year"]),
+                white_list_level=metric_row.get("white_list_level"),
+                wos_quartile=_normalize_quartile(metric_row.get("wos_quartile")),
+                impact_factor=_format_decimal_value(metric_row.get("impact_factor")),
+                scopus_quartile=_normalize_quartile(metric_row.get("scopus_quartile")),
+                rinc=_format_boolean(metric_row.get("rinc_flag")),
+                rinc_core=_format_boolean(metric_row.get("rinc_core_flag")),
+                vak=_format_boolean(metric_row.get("vak_flag")),
+            )
+            for metric_row in metric_rows
+        ],
+        publications=[
+            _build_edition_publication_item(dict(publication_row))
+            for publication_row in publication_rows
+        ],
+        related_editions=_get_related_periodical_editions(db, source_id),
+    )
+
+
+def _get_nonperiodical_detail(db: Session, source_id: int) -> EditionDetailResponse:
+    row = db.execute(
+        text(
+            f"""
+            SELECT
+                a.Record_ID AS source_id,
+                a.WorkFormType_f AS work_form_type,
+                a.Author_of_Material_F7 AS author_of_material,
+                {NONPERIODICAL_TITLE_EXPR} AS title,
+                {NONPERIODICAL_CONTRIBUTORS_EXPR} AS contributors,
+                a.ISBN_F41 AS identifier,
+                a.Date_of_Publication_F20 AS year,
+                a.DateOfMeeting_F12 AS date_of_meeting,
+                pn.PublisherName AS publisher,
+                pp.PlaceName AS place,
+                a.InsertDate AS insert_date,
+                {NONPERIODICAL_EDITION_KEY_EXPR} AS edition_key,
+                (
+                    SELECT jaa.Tirage
+                    FROM journalarticlesattributes jaa
+                    WHERE jaa.Record_ID_f = a.Record_ID
+                      AND NULLIF(jaa.Tirage, '') IS NOT NULL
+                    LIMIT 1
+                ) AS tirage,
+                (
+                    SELECT GROUP_CONCAT(DISTINCT aht.TypeOfPublication_f ORDER BY aht.TypeOfPublication_f SEPARATOR '|||')
+                    FROM articlehastop aht
+                    WHERE aht.Record_ID_f = a.Record_ID
+                ) AS publication_type_flags_csv,
+                (
+                    SELECT GROUP_CONCAT(DISTINCT top.TOP_Name ORDER BY top.TOP_Name SEPARATOR '|||')
+                    FROM articlehastop aht
+                    JOIN typesofpublications top ON top.TOP_Flag = aht.TypeOfPublication_f
+                    WHERE aht.Record_ID_f = a.Record_ID
+                ) AS publication_type_names_csv
+            FROM articles a
+            LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
+            LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
+            WHERE a.Record_ID = :source_id
+              AND COALESCE(a.WorkFormType_f, '') <> 'J'
+            """
+        ),
+        {"source_id": source_id},
+    ).mappings().first()
+
+    if row is None:
+        raise EditionNotFoundError("Издание не найдено.")
+
+    row_dict = dict(row)
+    publication_type = _derive_nonperiodical_type(row_dict)
+    edition_key = row_dict.get("edition_key")
+
+    publication_rows = db.execute(
+        text(
+            f"""
+            SELECT
+                a.Record_ID AS id,
+                COALESCE(
+                    NULLIF(a.Title_Analitic_F4, ''),
+                    NULLIF(a.Title_of_Material_F9, ''),
+                    NULLIF(a.Edition_F15, '')
+                ) AS title,
+                COALESCE(
+                    NULLIF(a.Author_Analitic_F1, ''),
+                    (
+                        SELECT GROUP_CONCAT(au.authorName ORDER BY aha.AHA_ID SEPARATOR ', ')
+                        FROM articlehasauthor aha
+                        JOIN authors au ON au.authorID = aha.authorID_f
+                        WHERE aha.Record_ID_f = a.Record_ID
+                    )
+                ) AS authors,
+                a.DOI AS doi,
+                a.Date_of_Publication_F20 AS year,
+                a.VolumeID_F22 AS volume,
+                a.IssueID_F24 AS issue,
+                a.Pages_F25 AS pages
+            FROM articles a
+            WHERE COALESCE(a.WorkFormType_f, '') <> 'J'
+              AND {NONPERIODICAL_EDITION_KEY_EXPR} = :edition_key
+            ORDER BY
+                CAST(NULLIF(a.Pages_F25, '') AS UNSIGNED) ASC,
+                a.Pages_F25 ASC,
+                a.Record_ID ASC
+            """
+        ),
+        {"edition_key": edition_key},
+    ).mappings().all()
+
+    return EditionDetailResponse(
+        id=f"nonperiodical:{source_id}",
+        source_id=source_id,
+        kind="nonperiodical",
+        title=_clean_display_text(row_dict.get("title")),
+        identifier=row_dict.get("identifier"),
+        identifier_label="ISBN",
+        year=row_dict.get("year"),
+        publication_type=publication_type,
+        contributors=_clean_display_text(row_dict.get("contributors")),
+        contributors_label=_derive_contributors_label(row_dict, publication_type),
+        date_of_meeting=_clean_display_text(row_dict.get("date_of_meeting")),
+        publisher=_clean_display_text(row_dict.get("publisher")),
+        place=_clean_display_text(row_dict.get("place")),
+        tirage=_clean_display_text(row_dict.get("tirage")),
+        insert_date=_format_date_value(row_dict.get("insert_date")),
+        publications=[
+            _build_edition_publication_item(dict(publication_row))
+            for publication_row in publication_rows
+        ],
+    )
+
+
+def get_edition_detail(
+    *,
+    db: Session,
+    kind: str,
+    source_id: int,
+) -> EditionDetailResponse:
+    normalized_kind = "nonperiodical" if kind == "nonperiodical" else "periodical"
+
+    if normalized_kind == "nonperiodical":
+        return _get_nonperiodical_detail(db, source_id)
+
+    return _get_periodical_detail(db, source_id)
 
 
 def list_editions(

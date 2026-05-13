@@ -1,3 +1,5 @@
+import type { KeyboardEvent } from 'react';
+
 import {
   formatEditionPresence,
   type EditionKind,
@@ -26,6 +28,11 @@ type EditionTableViewProps = {
   openActionMenuId: string | null;
   sortField: EditionsSortFieldValue;
   sortOrder: EditionSortOrder;
+  onOpenEdition: (item: EditionListItemDto) => void;
+  onOpenEditionByKeyboard: (
+    event: KeyboardEvent<HTMLElement>,
+    item: EditionListItemDto,
+  ) => void;
   onToggleItemSelection: (id: string) => void;
   onTogglePageSelection: (ids: string[], shouldSelect: boolean) => void;
   onToggleActionMenu: (id: string) => void;
@@ -45,6 +52,8 @@ export function EditionTableView({
   openActionMenuId,
   sortField,
   sortOrder,
+  onOpenEdition,
+  onOpenEditionByKeyboard,
   onToggleItemSelection,
   onTogglePageSelection,
   onToggleActionMenu,
@@ -161,6 +170,10 @@ export function EditionTableView({
               <tr
                 key={item.id}
                 className={isSelected ? styles.tableRowSelected : ''}
+                onClick={() => onOpenEdition(item)}
+                onKeyDown={(event) => onOpenEditionByKeyboard(event, item)}
+                role="button"
+                tabIndex={0}
               >
                 <td className={styles.tableSelectCell}>
                   <button

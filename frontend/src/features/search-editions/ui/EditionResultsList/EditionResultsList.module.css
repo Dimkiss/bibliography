@@ -88,6 +88,7 @@
   border-radius: 10px;
   background: var(--color-surface);
   color: var(--add_notes);
+  cursor: pointer;
   transition:
     background-color 0.15s ease,
     box-shadow 0.15s ease,
@@ -293,6 +294,10 @@
 
 .table tbody tr:hover {
   background: var(--color-surface-hover);
+}
+
+.table tbody tr {
+  cursor: pointer;
 }
 
 .periodicalTable th:nth-child(1) {

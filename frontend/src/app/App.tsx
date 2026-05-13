@@ -6,6 +6,7 @@ import { LoginPage } from '@/pages/LoginPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { PublicationsPage } from '@/pages/PublicationsPage';
 import { EditionsPage } from '@/pages/EditionsPage';
+import { EditionDetailsPage } from '@/pages/EditionDetailsPage';
 import { PublicationDetailsPage } from '@/pages/PublicationDetailsPage';
 import { PublicationsCreatePage } from '@/pages/PublicationsCreatePage';
 import { UserManagementPage } from '@/pages/UserManagementPage';
@@ -30,6 +31,10 @@ function AppRoutes() {
 
   const isPublicationDetailsPage = useMemo(() => {
     return /^\/articles\/\d+$/.test(pathname);
+  }, [pathname]);
+
+  const isEditionDetailsPage = useMemo(() => {
+    return /^\/journals\/(?:periodical|nonperiodical)\/\d+$/.test(pathname);
   }, [pathname]);
 
   if (pathname === '/login') {
@@ -58,6 +63,10 @@ function AppRoutes() {
 
   if (pathname === '/journals') {
     return <EditionsPage key={locationPath} />;
+  }
+
+  if (isEditionDetailsPage) {
+    return <EditionDetailsPage />;
   }
 
   if (isPublicationDetailsPage) {

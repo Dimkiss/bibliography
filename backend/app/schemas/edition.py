@@ -45,6 +45,57 @@ class EditionListItem(BaseModel):
     publication_count: int = 0
 
 
+class EditionDetailMetricItem(BaseModel):
+    year: int
+    white_list_level: str | None = None
+    wos_quartile: str | None = None
+    impact_factor: str | None = None
+    scopus_quartile: str | None = None
+    rinc: bool = False
+    rinc_core: bool = False
+    vak: bool = False
+
+
+class EditionPublicationItem(BaseModel):
+    id: int
+    title: str | None = None
+    authors: str | None = None
+    doi: str | None = None
+    year: int | None = None
+    volume: str | None = None
+    issue: str | None = None
+    pages: str | None = None
+    has_pdf: bool = False
+
+
+class RelatedEditionItem(BaseModel):
+    kind: EditionKind
+    source_id: int
+    title: str | None = None
+    identifier: str | None = None
+
+
+class EditionDetailResponse(BaseModel):
+    id: str
+    source_id: int
+    kind: EditionKind
+    title: str | None = None
+    identifier: str | None = None
+    identifier_label: str
+    year: int | None = None
+    publication_type: str | None = None
+    contributors: str | None = None
+    contributors_label: str | None = None
+    date_of_meeting: str | None = None
+    publisher: str | None = None
+    place: str | None = None
+    tirage: str | None = None
+    insert_date: str | None = None
+    metrics: list[EditionDetailMetricItem] = Field(default_factory=list)
+    publications: list[EditionPublicationItem] = Field(default_factory=list)
+    related_editions: list[RelatedEditionItem] = Field(default_factory=list)
+
+
 class EditionListResponse(BaseModel):
     items: list[EditionListItem]
     pagination: PaginationMeta

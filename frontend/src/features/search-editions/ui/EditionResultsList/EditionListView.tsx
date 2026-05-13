@@ -1,3 +1,5 @@
+import type { KeyboardEvent } from 'react';
+
 import {
   type EditionKind,
   type EditionListItemDto,
@@ -13,6 +15,11 @@ type EditionListViewProps = {
   items: EditionListItemDto[];
   selectedIdSet: Set<string>;
   openActionMenuId: string | null;
+  onOpenEdition: (item: EditionListItemDto) => void;
+  onOpenEditionByKeyboard: (
+    event: KeyboardEvent<HTMLElement>,
+    item: EditionListItemDto,
+  ) => void;
   onToggleItemSelection: (id: string) => void;
   onToggleActionMenu: (id: string) => void;
   onEdit: () => void;
@@ -24,6 +31,8 @@ export function EditionListView({
   items,
   selectedIdSet,
   openActionMenuId,
+  onOpenEdition,
+  onOpenEditionByKeyboard,
   onToggleItemSelection,
   onToggleActionMenu,
   onEdit,
@@ -44,6 +53,10 @@ export function EditionListView({
             ]
               .filter(Boolean)
               .join(' ')}
+            onClick={() => onOpenEdition(item)}
+            onKeyDown={(event) => onOpenEditionByKeyboard(event, item)}
+            role="button"
+            tabIndex={0}
           >
             <button
               type="button"

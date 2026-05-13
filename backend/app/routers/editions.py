@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.schemas.edition import EditionFiltersResponse, EditionListResponse
+from app.schemas.edition import (
+    EditionDetailResponse,
+    EditionFiltersResponse,
+    EditionListResponse,
+)
 from app.services import editions as edition_service
 
 router = APIRouter(prefix="/editions", tags=["editions"])
@@ -50,3 +54,19 @@ def list_editions(
 @router.get("/filters", response_model=EditionFiltersResponse)
 def get_edition_filters(db: Session = Depends(get_db)) -> EditionFiltersResponse:
     return edition_service.get_edition_filters(db)
+
+
+@router.get("/{kind}/{source_id}", response_model=EditionDetailResponse)
+def get_edition_detail(
+    kind: str,
+    source_id: int,
+    db: Session = Depends(get_db),
+) -> EditionDetailResponse:
+    try:
+        return edition_service.get_edition_detail(
+            db=db,
+            kind=kind,
+            source_id=source_id,
+        )
+    except edition_service.EditionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
