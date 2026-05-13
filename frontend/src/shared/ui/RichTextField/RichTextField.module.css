@@ -1,0 +1,203 @@
+.root {
+  position: relative;
+  width: 100%;
+  min-height: 168px;
+  overflow: visible;
+  display: grid;
+  grid-template-rows: auto minmax(112px, 1fr);
+  border: 1px solid var(--color-outline-strong);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.root:hover:not(.disabled) {
+  border-color: var(--color-text-primary);
+}
+
+.root:focus-within:not(.disabled) {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.label {
+  position: absolute;
+  top: 44px;
+  left: 14px;
+  right: 14px;
+  z-index: 2;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: var(--type-body-lg-letter);
+  pointer-events: none;
+  transition:
+    top 0.15s ease,
+    left 0.15s ease,
+    right 0.15s ease,
+    transform 0.15s ease,
+    padding 0.15s ease,
+    background-color 0.15s ease,
+    font-size 0.15s ease,
+    line-height 0.15s ease,
+    letter-spacing 0.15s ease;
+}
+
+.withFloatingLabel .label {
+  top: 0;
+  left: 12px;
+  right: auto;
+  transform: translateY(-50%);
+  padding: 0 var(--space-1);
+  background: var(--color-surface);
+  font-size: var(--type-label-sm-size);
+  line-height: var(--type-label-sm-line);
+  letter-spacing: var(--type-label-sm-letter);
+}
+
+.toolbar {
+  min-height: var(--control-height-sm);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-outline-soft);
+}
+
+.toolbarButton {
+  min-width: 32px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-control-text);
+  cursor: pointer;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
+  letter-spacing: 0;
+}
+
+.toolbarButton:hover:not(:disabled) {
+  background: var(--state-on-surface-hover);
+}
+
+.toolbarButton:active:not(:disabled) {
+  background: var(--state-on-surface-active);
+}
+
+.toolbarButtonActive {
+  background: var(--button-tonal);
+  color: var(--color-icon-muted);
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 20px;
+  margin: 0 var(--space-1);
+  background: var(--color-outline-soft);
+}
+
+.toolbarButton:disabled {
+  color: var(--disabled-text);
+  cursor: not-allowed;
+}
+
+.placeholder {
+  position: absolute;
+  top: 42px;
+  left: 14px;
+  right: 14px;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: var(--type-body-lg-letter);
+  pointer-events: none;
+}
+
+.root:focus-within .placeholder {
+  opacity: 0;
+}
+
+.editorContent {
+  min-width: 0;
+  min-height: 112px;
+  overflow: auto;
+  resize: vertical;
+}
+
+.editor {
+  min-height: 112px;
+  padding: var(--space-3) 14px;
+  outline: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: var(--type-body-lg-letter);
+  overflow-wrap: anywhere;
+}
+
+.editor p {
+  margin: 0;
+}
+
+.editor p + p {
+  margin-top: var(--space-3);
+}
+
+.editor strong {
+  font-weight: var(--font-weight-bold);
+}
+
+.editor em {
+  font-style: italic;
+}
+
+.editor u {
+  text-decoration: underline;
+}
+
+.editor s {
+  text-decoration: line-through;
+}
+
+.editor sub,
+.editor sup {
+  line-height: 0;
+}
+
+.editor ul,
+.editor ol {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.editor li + li {
+  margin-top: var(--space-1);
+}
+
+.editor p + ul,
+.editor p + ol,
+.editor ul + p,
+.editor ol + p {
+  margin-top: var(--space-3);
+}
+
+.disabled {
+  border-color: var(--disabled-border);
+  background: rgba(29, 27, 32, 0.04);
+  color: var(--disabled-text);
+}

@@ -56,6 +56,7 @@ export function KeywordSearchInput({
   const [areKeywordsOverflowing, setAreKeywordsOverflowing] = useState(false);
   const [draft, setDraft] = useState('');
   const keywords = useMemo(() => parseKeywords(value), [value]);
+  const hasEndContent = Boolean(endContent || onRemoveCriterion);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -75,7 +76,7 @@ export function KeywordSearchInput({
       const chipsGap = Math.max(0, measure.children.length - 1) * 10;
       const minInputWidth = draft.trim() || !keywords.length ? 160 : 32;
       const fieldHorizontalSpace = 24;
-      const clearButtonSpace = 44;
+      const clearButtonSpace = hasEndContent ? 44 : 0;
       const requiredWidth =
         chipsWidth +
         chipsGap +
@@ -98,7 +99,7 @@ export function KeywordSearchInput({
       window.cancelAnimationFrame(animationFrame);
       resizeObserver?.disconnect();
     };
-  }, [draft, keywords]);
+  }, [draft, hasEndContent, keywords]);
 
   const commitDraft = () => {
     const input = inputRef.current;
@@ -136,8 +137,8 @@ export function KeywordSearchInput({
 
     if (event.key === 'Enter' || event.key === ',' || event.key === ';') {
       if (input.value.trim()) {
-          event.preventDefault();
-          commitDraft();
+        event.preventDefault();
+        commitDraft();
       }
       return;
     }
@@ -168,7 +169,12 @@ export function KeywordSearchInput({
         onKeyDown={handleKeyDown}
         onBlur={commitDraft}
         onRootClick={() => inputRef.current?.focus()}
-        fieldClassName={styles.field}
+        fieldClassName={[
+          styles.field,
+          hasEndContent ? styles.fieldWithEndContent : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         inputClassName={[
           styles.input,
           draft.trim() || !keywords.length ? styles.inputActive : '',

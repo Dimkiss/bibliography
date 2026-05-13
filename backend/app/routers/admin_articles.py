@@ -63,6 +63,7 @@ def admin_list_journals(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
     all: bool = Query(default=False),
+    include_total: bool = Query(default=True),
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -72,6 +73,7 @@ def admin_list_journals(
         page=page,
         page_size=page_size,
         all_items=all,
+        include_total=include_total,
     )
 
 @router.get("/publication-types", response_model=list[PublicationTypeOption])

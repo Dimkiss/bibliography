@@ -29,6 +29,83 @@ from app.services.articles.pagination import (
     build_pagination_meta,
 )
 
+MAX_PUBLICATION_AUTHOR_CANDIDATES = 100
+
+
+def _split_publication_authors(value: str | None) -> list[str]:
+    if not value:
+        return []
+
+    authors: list[str] = []
+    seen: set[str] = set()
+
+    for raw_author in value.replace(";", ",").split(","):
+        author = raw_author.strip()
+        if not author:
+            continue
+
+        lowered = author.lower()
+        if lowered in seen:
+            continue
+
+        seen.add(lowered)
+        authors.append(author)
+
+    return authors
+
+
+def _search_publication_author_names(
+    db: Session,
+    *,
+    search: str,
+    limit: int,
+    excluded_labels: set[str],
+) -> list[AuthorOptionItem]:
+    stripped = search.strip()
+    if not stripped:
+        return []
+
+    params = {"search": f"%{stripped}%"}
+    rows = db.execute(
+        text(
+            """
+            SELECT Author_Analitic_F1 AS authors_text
+            FROM articles
+            WHERE Author_Analitic_F1 LIKE :search
+            UNION ALL
+            SELECT Author_of_Material_F7 AS authors_text
+            FROM articles
+            WHERE Author_of_Material_F7 LIKE :search
+            LIMIT 1000
+            """
+        ),
+        params,
+    ).mappings().all()
+
+    items: list[AuthorOptionItem] = []
+    seen = set(excluded_labels)
+    normalized_search = stripped.lower()
+
+    for row in rows:
+        for author in _split_publication_authors(row.get("authors_text")):
+            lowered_author = author.lower()
+            if normalized_search not in lowered_author or lowered_author in seen:
+                continue
+
+            seen.add(lowered_author)
+            items.append(
+                AuthorOptionItem(
+                    id=None,
+                    label=author,
+                    source="publication_author",
+                )
+            )
+
+            if len(items) >= limit:
+                return items
+
+    return items
+
 
 def list_article_authors(
     db: Session,
@@ -46,6 +123,7 @@ def list_article_authors(
         where_sql = """
         WHERE
             a.authorName LIKE :search
+            OR a.nickname LIKE :search
             OR a.email LIKE :search
             OR a.position LIKE :search
             OR CAST(a.authorID AS CHAR) LIKE :search
@@ -74,12 +152,13 @@ def list_article_authors(
         all_items=all_items,
     )
 
-    rows = db.execute(
+    employee_rows = db.execute(
         text(
             f"""
             SELECT
                 a.authorID AS id,
                 a.authorName AS label,
+                a.nickname AS nickname,
                 a.email AS email,
                 a.position AS position,
                 d.DepartmentCode AS department_id,
@@ -94,17 +173,34 @@ def list_article_authors(
         params,
     ).mappings().all()
 
-    items = [
+    employee_items = [
         AuthorOptionItem(
             id=int(row["id"]),
             label=row["label"],
+            source="employee",
+            nickname=row.get("nickname"),
             email=row.get("email"),
             position=row.get("position"),
             department_id=row.get("department_id"),
             department_name=row.get("department_name"),
         )
-        for row in rows
+        for row in employee_rows
     ]
+
+    if search and search.strip():
+        publication_author_items = _search_publication_author_names(
+            db,
+            search=search,
+            limit=MAX_PUBLICATION_AUTHOR_CANDIDATES,
+            excluded_labels=set(),
+        )
+        publication_author_labels = {item.label.lower() for item in publication_author_items}
+        employee_items = [
+            item for item in employee_items if item.label.lower() not in publication_author_labels
+        ]
+        items = [*publication_author_items, *employee_items][:page_size]
+    else:
+        items = employee_items
 
     return AuthorOptionListResponse(
         items=items,
@@ -124,6 +220,7 @@ def list_journals(
     page: int,
     page_size: int,
     all_items: bool,
+    include_total: bool = True,
 ) -> JournalOptionListResponse:
     params: dict[str, Any] = {}
     where_sql = ""
@@ -142,20 +239,22 @@ def list_journals(
             OR CAST(j.J_ID AS CHAR) LIKE :search
         """
 
-    total = int(
-        db.execute(
-            text(
-                f"""
-                SELECT COUNT(*) AS total
-                FROM journals j
-                LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
-                {where_sql}
-                """
-            ),
-            params,
-        ).scalar()
-        or 0
-    )
+    total = 0
+    if include_total:
+        total = int(
+            db.execute(
+                text(
+                    f"""
+                    SELECT COUNT(*) AS total
+                    FROM journals j
+                    LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
+                    {where_sql}
+                    """
+                ),
+                params,
+            ).scalar()
+            or 0
+        )
 
     limit_sql = apply_pagination_sql(
         params=params,
@@ -205,7 +304,7 @@ def list_journals(
     return JournalOptionListResponse(
         items=items,
         pagination=build_pagination_meta(
-            total=total,
+            total=total if include_total else len(items),
             page=page,
             page_size=page_size,
             all_items=all_items,

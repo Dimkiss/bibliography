@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '@/shared/config/api';
 import { getAuthHeaders } from '@/shared/lib/auth';
+import { getPublications } from '@/entities/publication';
 
 export type AdminPaginationDto = {
   page: number;
@@ -23,8 +24,10 @@ export type JournalOptionDto = AdminOptionDto & {
 export type PublisherOptionDto = AdminOptionDto;
 
 export type AuthorOptionDto = {
-  id: number;
+  id: number | null;
   label: string;
+  source: 'employee' | 'publication_author';
+  nickname: string | null;
   email: string | null;
   position: string | null;
   department_id: number | null;
@@ -111,6 +114,7 @@ export type CreateAdminArticlePayload = {
 type SearchListParams = {
   query?: string;
   all?: boolean;
+  includeTotal?: boolean;
   page?: number;
   pageSize?: number;
 };
@@ -149,6 +153,7 @@ function makeSearchParams(params: {
   searchKey: 'search' | 'query';
   query?: string;
   all?: boolean;
+  includeTotal?: boolean;
   page?: number;
   pageSize?: number;
 }): URLSearchParams {
@@ -163,6 +168,10 @@ function makeSearchParams(params: {
   } else {
     searchParams.set('page', String(params.page ?? 1));
     searchParams.set('page_size', String(params.pageSize ?? 20));
+  }
+
+  if (typeof params.includeTotal === 'boolean') {
+    searchParams.set('include_total', String(params.includeTotal));
   }
 
   return searchParams;
@@ -209,6 +218,7 @@ export async function getAdminAuthors(
     searchKey: 'search',
     query: params.query,
     all: params.all,
+    includeTotal: params.includeTotal,
     page: params.page,
     pageSize: params.pageSize,
   });
@@ -270,7 +280,8 @@ export async function searchAdminJournals(query: string): Promise<AdminOptionDto
   const response = await getAdminJournals({
     query,
     page: 1,
-    pageSize: 20,
+    pageSize: 100,
+    includeTotal: false,
   });
 
   return response.items.map((item) => ({
@@ -294,13 +305,24 @@ export async function searchAdminPublishers(query: string): Promise<AdminOptionD
 }
 
 export async function searchAdminArticles(query: string): Promise<ArticleSearchItemDto[]> {
-  const response = await getAdminRelatedArticles({
-    query,
+  const response = await getPublications({
+    title: query,
     page: 1,
     pageSize: 20,
+    includeTotal: false,
+    knownTotal: 0,
+    sortBy: 'year',
+    sortOrder: 'desc',
   });
 
-  return response.items;
+  return response.items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    authors: item.authors,
+    journal: item.journal,
+    year: item.year,
+    doi: item.doi,
+  }));
 }
 
 export async function createAdminArticle(

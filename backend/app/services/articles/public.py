@@ -261,6 +261,7 @@ def _build_common_filters(
             (
                 a.Title_Analitic_F4 LIKE :title
                 OR a.DOI LIKE :title
+                OR CAST(a.Record_ID AS CHAR) LIKE :title
             )
             """
         )

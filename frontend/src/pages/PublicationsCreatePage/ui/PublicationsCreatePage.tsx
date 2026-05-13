@@ -3,9 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Footer } from '@/widgets/Footer';
 import { Header } from '@/widgets/Header';
 import { useAuth } from '@/features/auth';
+import { KeywordSearchInput } from '@/features/search-publications';
 import {
   createAdminArticle,
   getAdminPublicationTypes,
+  getAdminAuthors,
   getAdminWorkFormTypes,
   searchAdminArticles,
   searchAdminJournals,
@@ -13,18 +15,36 @@ import {
   uploadAdminArticlePdf,
   type AdminOptionDto,
   type ArticleSearchItemDto,
+  type AuthorOptionDto,
   type PublicationTypeDto,
   type WorkFormTypeDto,
 } from '@/features/create-publication';
 import { navigateTo } from '@/shared/lib/navigation';
 import { ADMIN_ROLE_ID } from '@/entities/role';
 import { Button } from '@/shared/ui/Button';
+import { Checkbox } from '@/shared/ui/Checkbox';
+import { Icon } from '@/shared/ui/Icon';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
+import { RichTextField } from '@/shared/ui/RichTextField';
+import { Select } from '@/shared/ui/Select';
+import { TextButton } from '@/shared/ui/TextButton';
+import { TextField } from '@/shared/ui/TextField';
 import styles from './PublicationsCreatePage.module.css';
 
 type FormVariant = 'article' | 'book-chapter' | 'book-monograph' | 'conference';
-type RelatedRelationType = 'original' | 'translation';
-type SelectorMode = 'journal' | 'publisher' | 'source' | 'related' | null;
+type ArticleLanguage = 'R' | 'F' | '';
+type SelectorMode = 'journal' | 'publisher' | 'source' | 'related' | 'author' | null;
+
+type SelectedAuthor = {
+  author: AuthorOptionDto;
+  affiliation: string;
+  correspondingAuthor: boolean;
+};
+
+type ClearFieldButtonProps = {
+  label: string;
+  onClick: () => void;
+};
 
 type FormState = {
   workFormType: string;
@@ -41,7 +61,6 @@ type FormState = {
   year: string;
   abstract: string;
   keywordsInput: string;
-  relatedRelationType: RelatedRelationType;
   relatedArticle: ArticleSearchItemDto | null;
   isbn: string;
   tirage: string;
@@ -66,7 +85,6 @@ const INITIAL_FORM: FormState = {
   year: '',
   abstract: '',
   keywordsInput: '',
-  relatedRelationType: 'original',
   relatedArticle: null,
   isbn: '',
   tirage: '',
@@ -75,6 +93,22 @@ const INITIAL_FORM: FormState = {
   pdfFileName: '',
   pdfFile: null,
 };
+
+function ClearFieldButton({ label, onClick }: ClearFieldButtonProps) {
+  return (
+    <button
+      type="button"
+      className={styles.clearFieldButton}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      aria-label={label}
+    >
+      <Icon name="close" size={20} />
+    </button>
+  );
+}
 
 function getWorkFormLabel(item: WorkFormTypeDto): string {
   return item.label_ru?.trim() || item.label?.trim() || item.value;
@@ -116,6 +150,118 @@ function normalizeKeywords(value: string): string[] {
       (item, index, array) =>
         array.findIndex((entry) => entry.toLowerCase() === item.toLowerCase()) === index,
     );
+}
+
+function normalizeSearchText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^a-zа-я0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function transliterateRuToLat(value: string): string {
+  const map: Record<string, string> = {
+    а: 'a',
+    б: 'b',
+    в: 'v',
+    г: 'g',
+    д: 'd',
+    е: 'e',
+    ё: 'e',
+    ж: 'zh',
+    з: 'z',
+    и: 'i',
+    й: 'y',
+    к: 'k',
+    л: 'l',
+    м: 'm',
+    н: 'n',
+    о: 'o',
+    п: 'p',
+    р: 'r',
+    с: 's',
+    т: 't',
+    у: 'u',
+    ф: 'f',
+    х: 'kh',
+    ц: 'ts',
+    ч: 'ch',
+    ш: 'sh',
+    щ: 'shch',
+    ъ: '',
+    ы: 'y',
+    ь: '',
+    э: 'e',
+    ю: 'yu',
+    я: 'ya',
+  };
+
+  return value
+    .toLowerCase()
+    .split('')
+    .map((char) => map[char] ?? char)
+    .join('');
+}
+
+function getAuthorLastNameVariants(author: AuthorOptionDto): string[] {
+  const [lastName = ''] = author.label.trim().split(/\s+/);
+  const nicknameVariants = (author.nickname ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return [lastName, ...nicknameVariants].filter(Boolean);
+}
+
+function buildAuthorMatchVariants(author: AuthorOptionDto): string[] {
+  const [, firstName = '', patronymic = ''] = author.label.trim().split(/\s+/);
+  const firstInitial = firstName.charAt(0);
+  const patronymicInitial = patronymic.charAt(0);
+  const variants: string[] = [];
+
+  for (const lastName of getAuthorLastNameVariants(author)) {
+    variants.push(lastName);
+
+    if (firstInitial) {
+      variants.push(`${lastName} ${firstInitial}`);
+      variants.push(`${lastName} ${firstInitial}.`);
+    }
+
+    if (firstInitial && patronymicInitial) {
+      variants.push(`${lastName} ${firstInitial}${patronymicInitial}`);
+      variants.push(`${lastName} ${firstInitial}.${patronymicInitial}.`);
+      variants.push(`${lastName} ${firstInitial} ${patronymicInitial}`);
+    }
+  }
+
+  return Array.from(
+    new Set(
+      variants.flatMap((variant) => [
+        normalizeSearchText(variant),
+        normalizeSearchText(transliterateRuToLat(variant)),
+      ]),
+    ),
+  ).filter(Boolean);
+}
+
+function findAuthorsInText(authorsText: string, authors: AuthorOptionDto[]): AuthorOptionDto[] {
+  const normalizedText = normalizeSearchText(authorsText);
+  const transliteratedText = normalizeSearchText(transliterateRuToLat(authorsText));
+
+  if (!normalizedText) {
+    return [];
+  }
+
+  return authors.filter(
+    (author) =>
+      author.id !== null &&
+      author.source === 'employee' &&
+      buildAuthorMatchVariants(author).some(
+        (variant) => normalizedText.includes(variant) || transliteratedText.includes(variant),
+      ),
+  );
 }
 
 function deriveYear(year: string, publicationDate: string): number | null {
@@ -185,16 +331,41 @@ function getSourceItemTitle(item: ArticleSearchItemDto): string {
   return item.title || item.journal || `Публикация #${item.id}`;
 }
 
-function buildEmptyForm(
-  prev: FormState,
-  workFormType: string,
-  publicationTypeFlag: string,
-): FormState {
+function getRelatedArticleLabel(articleLanguage: ArticleLanguage): string {
+  if (articleLanguage === 'R') {
+    return 'Переводная версия';
+  }
+
+  if (articleLanguage === 'F') {
+    return 'Оригинальная версия';
+  }
+
+  return 'Связанная статья';
+}
+
+function detectArticleLanguage(title: string): ArticleLanguage {
+  const value = title.trim();
+
+  if (!value) {
+    return '';
+  }
+
+  if (/[а-яё]/i.test(value)) {
+    return 'R';
+  }
+
+  if (/[a-z]/i.test(value)) {
+    return 'F';
+  }
+
+  return '';
+}
+
+function buildEmptyForm(workFormType: string, publicationTypeFlag: string): FormState {
   return {
     ...INITIAL_FORM,
     workFormType,
     publicationTypeFlag,
-    relatedRelationType: prev.relatedRelationType,
   };
 }
 
@@ -204,6 +375,8 @@ export function PublicationsCreatePage() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [workForms, setWorkForms] = useState<WorkFormTypeDto[]>([]);
   const [publicationTypes, setPublicationTypes] = useState<PublicationTypeDto[]>([]);
+  const [allAuthors, setAllAuthors] = useState<AuthorOptionDto[]>([]);
+  const [selectedAuthors, setSelectedAuthors] = useState<SelectedAuthor[]>([]);
   const [isBootLoading, setIsBootLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -214,10 +387,12 @@ export function PublicationsCreatePage() {
   const [selectorLoading, setSelectorLoading] = useState(false);
   const [journalResults, setJournalResults] = useState<AdminOptionDto[]>([]);
   const [publisherResults, setPublisherResults] = useState<AdminOptionDto[]>([]);
+  const [authorResults, setAuthorResults] = useState<AuthorOptionDto[]>([]);
   const [sourceResults, setSourceResults] = useState<ArticleSearchItemDto[]>([]);
   const [relatedResults, setRelatedResults] = useState<ArticleSearchItemDto[]>([]);
 
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
+  const publicationDateInputRef = useRef<HTMLInputElement | null>(null);
 
   const isRoleAllowed = Boolean(isAuthenticated && user?.role_id === ADMIN_ROLE_ID);
 
@@ -266,9 +441,12 @@ export function PublicationsCreatePage() {
         }
 
         setPublicationTypes(publicationTypeItems);
-        setForm((prev) =>
-          buildEmptyForm(prev, defaultWorkForm.value, publicationTypeItems[0]?.value ?? ''),
-        );
+        setForm(buildEmptyForm(defaultWorkForm.value, publicationTypeItems[0]?.value ?? ''));
+
+        const authorsResponse = await getAdminAuthors({ all: true });
+        if (isMounted) {
+          setAllAuthors(authorsResponse.items);
+        }
       } catch (caughtError) {
         if (!isMounted) {
           return;
@@ -311,6 +489,10 @@ export function PublicationsCreatePage() {
   const sourceLabel = useMemo(() => getSourceLabel(variant), [variant]);
   const showPublicationSubtype = variant !== 'article' && publicationTypes.length > 0;
   const resolvedYear = deriveYear(form.year, form.publicationDate);
+  const detectedArticleLanguage = useMemo(
+    () => detectArticleLanguage(form.title),
+    [form.title],
+  );
 
   const isSubmitDisabled =
     isSubmitting ||
@@ -327,6 +509,24 @@ export function PublicationsCreatePage() {
     }
 
     let isMounted = true;
+    const isArticleSelector = selectorMode === 'source' || selectorMode === 'related';
+    const isSearchRequiredSelector =
+      isArticleSelector || selectorMode === 'author' || selectorMode === 'journal';
+    const trimmedSelectorQuery = selectorQuery.trim();
+
+    if (isSearchRequiredSelector && !trimmedSelectorQuery) {
+      setSelectorLoading(false);
+      if (selectorMode === 'source') {
+        setSourceResults([]);
+      } else if (selectorMode === 'related') {
+        setRelatedResults([]);
+      } else if (selectorMode === 'journal') {
+        setJournalResults([]);
+      } else {
+        setAuthorResults([]);
+      }
+      return;
+    }
 
     async function loadSelectorItems() {
       setSelectorLoading(true);
@@ -344,6 +544,18 @@ export function PublicationsCreatePage() {
           const items = await searchAdminPublishers(selectorQuery);
           if (isMounted) {
             setPublisherResults(items);
+          }
+          return;
+        }
+
+        if (selectorMode === 'author') {
+          const response = await getAdminAuthors({
+            query: selectorQuery,
+            page: 1,
+            pageSize: 100,
+          });
+          if (isMounted) {
+            setAuthorResults(response.items);
           }
           return;
         }
@@ -377,10 +589,21 @@ export function PublicationsCreatePage() {
       }
     }
 
-    void loadSelectorItems();
+    const loadTimer = isSearchRequiredSelector
+      ? window.setTimeout(() => {
+          void loadSelectorItems();
+        }, 300)
+      : null;
+
+    if (!isSearchRequiredSelector) {
+      void loadSelectorItems();
+    }
 
     return () => {
       isMounted = false;
+      if (loadTimer !== null) {
+        window.clearTimeout(loadTimer);
+      }
     };
   }, [selectorMode, selectorQuery]);
 
@@ -397,7 +620,8 @@ export function PublicationsCreatePage() {
     try {
       const items = await getAdminPublicationTypes(nextValue);
       setPublicationTypes(items);
-      setForm((prev) => buildEmptyForm(prev, nextValue, items[0]?.value ?? ''));
+      setSelectedAuthors([]);
+      setForm(() => buildEmptyForm(nextValue, items[0]?.value ?? ''));
     } catch (caughtError) {
       setPublicationTypes([]);
       setError(
@@ -410,10 +634,19 @@ export function PublicationsCreatePage() {
 
   const handlePublicationTypeChange = (nextValue: string) => {
     setSelectorMode(null);
-    setForm((prev) => ({
-      ...buildEmptyForm(prev, prev.workFormType, nextValue),
-      relatedRelationType: prev.relatedRelationType,
-    }));
+    setSelectedAuthors([]);
+    setForm((prev) => buildEmptyForm(prev.workFormType, nextValue));
+  };
+
+  const openPublicationDatePicker = () => {
+    const input = publicationDateInputRef.current;
+
+    if (!input) {
+      return;
+    }
+
+    input.showPicker?.();
+    input.focus();
   };
 
   const openSelector = (mode: SelectorMode) => {
@@ -431,11 +664,71 @@ export function PublicationsCreatePage() {
       setSelectorQuery(form.journal?.label ?? '');
     } else if (mode === 'publisher') {
       setSelectorQuery(form.publisher?.label ?? '');
+    } else if (mode === 'author') {
+      setSelectorQuery('');
     } else {
       setSelectorQuery(form.relatedArticle?.title ?? '');
     }
 
     setSelectorMode(mode);
+  };
+
+  const appendAuthorToText = (authorName: string) => {
+    setForm((prev) => {
+      const currentAuthors = prev.authorsText
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+      const hasAuthor = currentAuthors.some(
+        (item) => item.toLowerCase() === authorName.toLowerCase(),
+      );
+
+      return {
+        ...prev,
+        authorsText: hasAuthor
+          ? prev.authorsText
+          : [...currentAuthors, authorName].join(', '),
+      };
+    });
+  };
+
+  const syncAuthorsFromText = () => {
+    setError('');
+    setSuccessMessage('');
+
+    const matchedAuthors = findAuthorsInText(form.authorsText, allAuthors);
+
+    setSelectedAuthors((prev) => {
+      const prevById = new Map(prev.map((item) => [item.author.id, item]));
+
+      return matchedAuthors.map((author) => ({
+        author,
+        affiliation: prevById.get(author.id)?.affiliation ?? '1',
+        correspondingAuthor: prevById.get(author.id)?.correspondingAuthor ?? false,
+      }));
+    });
+  };
+
+  const updateSelectedAuthor = (
+    authorId: number,
+    patch: Partial<Pick<SelectedAuthor, 'affiliation' | 'correspondingAuthor'>>,
+  ) => {
+    setSelectedAuthors((prev) =>
+      prev.map((item) => {
+        if (item.author.id !== authorId) {
+          return patch.correspondingAuthor ? { ...item, correspondingAuthor: false } : item;
+        }
+
+        return {
+          ...item,
+          ...patch,
+        };
+      }),
+    );
+  };
+
+  const removeSelectedAuthor = (authorId: number) => {
+    setSelectedAuthors((prev) => prev.filter((item) => item.author.id !== authorId));
   };
 
   const handleSubmit = async () => {
@@ -461,19 +754,23 @@ export function PublicationsCreatePage() {
       title: form.title.trim(),
       year: resolvedYear,
       authors_text: form.authorsText.trim() || null,
+      authors: selectedAuthors
+        .filter((item) => item.author.id !== null)
+        .map((item) => ({
+          author_id: item.author.id as number,
+          affiliation: Number(item.affiliation) || 1,
+          corresponding_author: item.correspondingAuthor,
+        })),
       abstract: form.abstract.trim() || null,
       doi: form.doi.trim() || null,
       work_form_type: form.workFormType || null,
       publication_type_flags: form.publicationTypeFlag ? [form.publicationTypeFlag] : [],
       keywords: normalizeKeywords(form.keywordsInput),
+      article_language: detectedArticleLanguage || null,
       original_version_id:
-        form.relatedArticle && form.relatedRelationType === 'original'
-          ? form.relatedArticle.id
-          : null,
+        form.relatedArticle && detectedArticleLanguage === 'F' ? form.relatedArticle.id : null,
       translation_version_id:
-        form.relatedArticle && form.relatedRelationType === 'translation'
-          ? form.relatedArticle.id
-          : null,
+        form.relatedArticle && detectedArticleLanguage === 'R' ? form.relatedArticle.id : null,
     };
 
     const payload =
@@ -521,7 +818,8 @@ export function PublicationsCreatePage() {
       }
       setSuccessMessage(`Публикация успешно добавлена. ID: ${createdArticle.id}`);
       setSelectorMode(null);
-      setForm((prev) => buildEmptyForm(prev, prev.workFormType, prev.publicationTypeFlag));
+      setSelectedAuthors([]);
+      setForm((prev) => buildEmptyForm(prev.workFormType, prev.publicationTypeFlag));
       if (pdfInputRef.current) {
         pdfInputRef.current.value = '';
       }
@@ -554,15 +852,23 @@ export function PublicationsCreatePage() {
               ×
             </button>
           </div>
-          <input
-            className={styles.queryInput}
+          <TextField
+            variant="plain"
+            height={40}
+            radius={4}
+            rootClassName={styles.selectorSearchField}
+            fieldClassName={styles.formTextField}
+            inputClassName={styles.formTextFieldInput}
             value={selectorQuery}
             onChange={(event) => setSelectorQuery(event.target.value)}
-            placeholder="Поиск издания"
+            placeholder="Поиск по названию, ISSN или ID"
           />
           <div className={styles.selectorResults}>
             {selectorLoading ? <div className={styles.selectorHint}>Загрузка…</div> : null}
-            {!selectorLoading && journalResults.length === 0 ? (
+            {!selectorLoading && !selectorQuery.trim() ? (
+              <div className={styles.selectorHint}>Введите название, ISSN или ID издания.</div>
+            ) : null}
+            {!selectorLoading && selectorQuery.trim() && journalResults.length === 0 ? (
               <div className={styles.selectorHint}>Совпадения не найдены.</div>
             ) : null}
             {journalResults.map((item) => (
@@ -595,8 +901,13 @@ export function PublicationsCreatePage() {
               ×
             </button>
           </div>
-          <input
-            className={styles.queryInput}
+          <TextField
+            variant="plain"
+            height={40}
+            radius={4}
+            rootClassName={styles.selectorSearchField}
+            fieldClassName={styles.formTextField}
+            inputClassName={styles.formTextFieldInput}
             value={selectorQuery}
             onChange={(event) => setSelectorQuery(event.target.value)}
             placeholder="Поиск издательства"
@@ -627,6 +938,61 @@ export function PublicationsCreatePage() {
       );
     }
 
+    if (selectorMode === 'author') {
+      return (
+        <div className={styles.selectorPanel}>
+          <div className={styles.selectorHeader}>
+            <div className={styles.selectorTitle}>Выбор автора</div>
+            <button type="button" className={styles.selectorClose} onClick={closeSelector}>
+              ×
+            </button>
+          </div>
+          <TextField
+            variant="plain"
+            height={40}
+            radius={4}
+            rootClassName={styles.selectorSearchField}
+            fieldClassName={styles.formTextField}
+            inputClassName={styles.formTextFieldInput}
+            value={selectorQuery}
+            onChange={(event) => setSelectorQuery(event.target.value)}
+            placeholder="Поиск по ФИО"
+          />
+          <div className={styles.selectorResults}>
+            {selectorLoading ? <div className={styles.selectorHint}>Загрузка…</div> : null}
+            {!selectorLoading && !selectorQuery.trim() ? (
+              <div className={styles.selectorHint}>Введите ФИО автора.</div>
+            ) : null}
+            {!selectorLoading && selectorQuery.trim() && authorResults.length === 0 ? (
+              <div className={styles.selectorHint}>Совпадения не найдены.</div>
+            ) : null}
+            {authorResults.map((item) => (
+              <button
+                key={`${item.source}-${item.id ?? item.label}`}
+                type="button"
+                className={styles.selectorItem}
+                onClick={() => {
+                  appendAuthorToText(item.label);
+                  closeSelector();
+                }}
+              >
+                <div className={styles.selectorItemTitle}>{item.label}</div>
+                {item.source === 'publication_author' ? (
+                  <div className={styles.selectorItemMeta}>Автор из публикаций</div>
+                ) : item.department_name || item.position ? (
+                  <div className={styles.selectorItemMeta}>
+                    {['Сотрудник', item.department_name, item.position].filter(Boolean).join(' · ')}
+                  </div>
+                ) : item.source === 'employee' ? (
+                  <div className={styles.selectorItemMeta}>Сотрудник</div>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     if (selectorMode === 'source') {
       return (
         <div className={styles.selectorPanel}>
@@ -638,15 +1004,23 @@ export function PublicationsCreatePage() {
               ×
             </button>
           </div>
-          <input
-            className={styles.queryInput}
+          <TextField
+            variant="plain"
+            height={40}
+            radius={4}
+            rootClassName={styles.selectorSearchField}
+            fieldClassName={styles.formTextField}
+            inputClassName={styles.formTextFieldInput}
             value={selectorQuery}
             onChange={(event) => setSelectorQuery(event.target.value)}
-            placeholder={`Поиск: ${sourceLabel.toLowerCase()}`}
+            placeholder="Поиск по названию, DOI или ID"
           />
           <div className={styles.selectorResults}>
             {selectorLoading ? <div className={styles.selectorHint}>Загрузка…</div> : null}
-            {!selectorLoading && sourceResults.length === 0 ? (
+            {!selectorLoading && !selectorQuery.trim() ? (
+              <div className={styles.selectorHint}>Введите название, DOI или ID статьи.</div>
+            ) : null}
+            {!selectorLoading && selectorQuery.trim() && sourceResults.length === 0 ? (
               <div className={styles.selectorHint}>Совпадения не найдены.</div>
             ) : null}
             {sourceResults.map((item) => (
@@ -679,51 +1053,26 @@ export function PublicationsCreatePage() {
             ×
           </button>
         </div>
-        <div className={styles.relatedModeRow}>
-          <button
-            type="button"
-            className={[
-              styles.relationToggle,
-              form.relatedRelationType === 'original' ? styles.relationToggleActive : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onClick={() =>
-              setForm((prev) => ({
-                ...prev,
-                relatedRelationType: 'original',
-              }))
-            }
-          >
-            Оригинал
-          </button>
-          <button
-            type="button"
-            className={[
-              styles.relationToggle,
-              form.relatedRelationType === 'translation' ? styles.relationToggleActive : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onClick={() =>
-              setForm((prev) => ({
-                ...prev,
-                relatedRelationType: 'translation',
-              }))
-            }
-          >
-            Перевод
-          </button>
+        <div className={styles.selectorHint}>
+          Будет сохранено как: {getRelatedArticleLabel(detectedArticleLanguage).toLowerCase()}.
         </div>
-        <input
-          className={styles.queryInput}
+        <TextField
+          variant="plain"
+          height={40}
+          radius={4}
+          rootClassName={styles.selectorSearchField}
+          fieldClassName={styles.formTextField}
+          inputClassName={styles.formTextFieldInput}
           value={selectorQuery}
           onChange={(event) => setSelectorQuery(event.target.value)}
-          placeholder="Поиск статьи"
+          placeholder="Поиск по названию, DOI или ID"
         />
         <div className={styles.selectorResults}>
           {selectorLoading ? <div className={styles.selectorHint}>Загрузка…</div> : null}
-          {!selectorLoading && relatedResults.length === 0 ? (
+          {!selectorLoading && !selectorQuery.trim() ? (
+            <div className={styles.selectorHint}>Введите название, DOI или ID статьи.</div>
+          ) : null}
+          {!selectorLoading && selectorQuery.trim() && relatedResults.length === 0 ? (
             <div className={styles.selectorHint}>Совпадения не найдены.</div>
           ) : null}
           {relatedResults.map((item) => (
@@ -791,36 +1140,44 @@ export function PublicationsCreatePage() {
             <div className={styles.typeRow}>
               <div className={styles.typeLabel}>Тип публикации</div>
 
-              <select
-                className={[styles.selectField, styles.primarySelect].join(' ')}
+              <Select
+                className={styles.primarySelect}
+                width={191}
+                menuWidth={220}
+                ariaLabel="Тип публикации"
+                options={workForms.map((item) => ({
+                  value: item.value,
+                  label: getWorkFormLabel(item),
+                }))}
                 value={form.workFormType}
-                onChange={(event) => void handleWorkFormChange(event.target.value)}
-              >
-                {workForms.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {getWorkFormLabel(item)}
-                  </option>
-                ))}
-              </select>
+                onChange={(nextValue) => void handleWorkFormChange(nextValue)}
+              />
 
               {showPublicationSubtype ? (
-                <select
-                  className={[styles.selectField, styles.secondarySelect].join(' ')}
+                <Select
+                  className={styles.secondarySelect}
+                  variant="outlined"
+                  width={191}
+                  menuWidth={220}
+                  ariaLabel="Подтип публикации"
+                  options={publicationTypes.map((item) => ({
+                    value: item.value,
+                    label: item.label,
+                  }))}
                   value={form.publicationTypeFlag}
-                  onChange={(event) => handlePublicationTypeChange(event.target.value)}
-                >
-                  {publicationTypes.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={handlePublicationTypeChange}
+                />
               ) : null}
             </div>
 
             <div className={styles.formBody}>
-              <input
-                className={styles.textInput}
+              <TextField
+                label={getTitlePlaceholder(variant)}
+                height={40}
+                radius={4}
+                rootClassName={styles.fullWidthField}
+                fieldClassName={styles.formTextField}
+                inputClassName={styles.formTextFieldInput}
                 value={form.title}
                 onChange={(event) =>
                   setForm((prev) => ({
@@ -828,11 +1185,15 @@ export function PublicationsCreatePage() {
                     title: event.target.value,
                   }))
                 }
-                placeholder={getTitlePlaceholder(variant)}
               />
 
-              <input
-                className={styles.textInput}
+              <TextField
+                label={getAuthorsPlaceholder(variant)}
+                height={40}
+                radius={4}
+                rootClassName={styles.fullWidthField}
+                fieldClassName={styles.formTextField}
+                inputClassName={styles.formTextFieldInput}
                 value={form.authorsText}
                 onChange={(event) =>
                   setForm((prev) => ({
@@ -840,16 +1201,111 @@ export function PublicationsCreatePage() {
                     authorsText: event.target.value,
                   }))
                 }
-                placeholder={getAuthorsPlaceholder(variant)}
               />
+
+              {selectedAuthors.length > 0 ? (
+                <div className={styles.authorsPanel}>
+                  <div className={styles.selectedAuthorsList}>
+                    {selectedAuthors.map((item) => (
+                      <div key={item.author.id} className={styles.selectedAuthorRow}>
+                        <div className={styles.selectedAuthorName}>{item.author.label}</div>
+                        <label className={styles.affiliationControl}>
+                          <span>Количество аффилиаций</span>
+                          <input
+                            className={styles.affiliationInput}
+                            type="number"
+                            min="1"
+                            max="9"
+                            value={item.affiliation}
+                            onChange={(event) =>
+                              updateSelectedAuthor(item.author.id as number, {
+                                affiliation: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          className={styles.correspondingButton}
+                          onClick={() =>
+                            updateSelectedAuthor(item.author.id as number, {
+                              correspondingAuthor: !item.correspondingAuthor,
+                            })
+                          }
+                        >
+                          <Checkbox checked={item.correspondingAuthor} />
+                          <span>Автор для переписки</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.authorDeleteButton}
+                          onClick={() => removeSelectedAuthor(item.author.id as number)}
+                          aria-label={`Удалить автора ${item.author.label}`}
+                        >
+                          <Icon name="delete" size={20} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className={styles.authorsActions}>
+                    <TextButton
+                      label="Обновить"
+                      iconName="sync"
+                      className={styles.authorsTextButton}
+                      onClick={syncAuthorsFromText}
+                    />
+                    <OutlineButton
+                      label="Добавить"
+                      iconName="add"
+                      className={styles.addAuthorButton}
+                      onClick={() => openSelector('author')}
+                    />
+                  </div>
+                </div>
+              ) : form.authorsText.trim() ? (
+                <div className={styles.authorsEmptyActions}>
+                  <TextButton
+                    label="Обновить"
+                    iconName="sync"
+                    className={styles.authorsTextButton}
+                    onClick={syncAuthorsFromText}
+                  />
+                  <OutlineButton
+                    label="Добавить"
+                    iconName="add"
+                    className={styles.addAuthorButton}
+                    onClick={() => openSelector('author')}
+                  />
+                </div>
+              ) : null}
+
+              {selectorMode === 'author' ? renderSelectorPanel() : null}
 
               {variant === 'article' ? (
                 <div className={styles.lookupRow}>
-                  <input
-                    className={styles.lookupInput}
+                  <TextField
+                    label="Издание"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={[styles.formTextField, styles.lookupTextField].join(' ')}
+                    inputClassName={styles.formTextFieldInput}
                     value={form.journal?.label ?? ''}
                     readOnly
-                    placeholder="Издание"
+                    endContent={
+                      form.journal ? (
+                        <ClearFieldButton
+                          label="Очистить издание"
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              journal: null,
+                            }))
+                          }
+                        />
+                      ) : null
+                    }
                   />
                   <Button
                     label="Выбрать"
@@ -861,8 +1317,13 @@ export function PublicationsCreatePage() {
 
               {variant === 'book-chapter' || variant === 'conference' ? (
                 <div className={styles.lookupRow}>
-                  <input
-                    className={styles.lookupInput}
+                  <TextField
+                    label={sourceLabel}
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={[styles.formTextField, styles.lookupTextField].join(' ')}
+                    inputClassName={styles.formTextFieldInput}
                     value={form.sourceText}
                     onChange={(event) =>
                       setForm((prev) => ({
@@ -870,7 +1331,6 @@ export function PublicationsCreatePage() {
                         sourceText: event.target.value,
                       }))
                     }
-                    placeholder={sourceLabel}
                   />
                   <Button
                     label="Выбрать"
@@ -881,8 +1341,13 @@ export function PublicationsCreatePage() {
               ) : null}
 
               {variant === 'book-monograph' ? (
-                <input
-                  className={styles.textInput}
+                <TextField
+                  label="Редакция"
+                  height={40}
+                  radius={4}
+                  rootClassName={styles.fullWidthField}
+                  fieldClassName={styles.formTextField}
+                  inputClassName={styles.formTextFieldInput}
                   value={form.notes}
                   onChange={(event) =>
                     setForm((prev) => ({
@@ -890,17 +1355,33 @@ export function PublicationsCreatePage() {
                       notes: event.target.value,
                     }))
                   }
-                  placeholder="Редакция"
                 />
               ) : null}
 
               {variant === 'book-monograph' || variant === 'conference' ? (
                 <div className={styles.lookupRow}>
-                  <input
-                    className={styles.lookupInput}
+                  <TextField
+                    label="Издательство"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={[styles.formTextField, styles.lookupTextField].join(' ')}
+                    inputClassName={styles.formTextFieldInput}
                     value={form.publisher?.label ?? ''}
                     readOnly
-                    placeholder="Издательство"
+                    endContent={
+                      form.publisher ? (
+                        <ClearFieldButton
+                          label="Очистить издательство"
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              publisher: null,
+                            }))
+                          }
+                        />
+                      ) : null
+                    }
                   />
                   <Button
                     label="Выбрать"
@@ -918,8 +1399,13 @@ export function PublicationsCreatePage() {
 
               {variant === 'article' ? (
                 <div className={styles.rowThreeArticle}>
-                  <input
-                    className={styles.textInput}
+                  <TextField
+                    label="DOI"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={styles.formTextField}
+                    inputClassName={styles.formTextFieldInput}
                     value={form.doi}
                     onChange={(event) =>
                       setForm((prev) => ({
@@ -927,10 +1413,14 @@ export function PublicationsCreatePage() {
                         doi: event.target.value,
                       }))
                     }
-                    placeholder="DOI"
                   />
-                  <input
-                    className={styles.textInput}
+                  <TextField
+                    label="Страницы"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={styles.formTextField}
+                    inputClassName={styles.formTextFieldInput}
                     value={form.pages}
                     onChange={(event) =>
                       setForm((prev) => ({
@@ -938,10 +1428,20 @@ export function PublicationsCreatePage() {
                         pages: event.target.value,
                       }))
                     }
-                    placeholder="Страницы"
                   />
-                  <input
-                    className={styles.textInput}
+                  <TextField
+                    ref={publicationDateInputRef}
+                    label="Дата"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={styles.formTextField}
+                    inputClassName={[
+                      styles.formTextFieldInput,
+                      styles.dateFieldInput,
+                    ].join(' ')}
+                    trailingIcon="calendar_month"
+                    onTrailingIconClick={openPublicationDatePicker}
                     type="date"
                     value={form.publicationDate}
                     onChange={(event) =>
@@ -950,7 +1450,6 @@ export function PublicationsCreatePage() {
                         publicationDate: event.target.value,
                       }))
                     }
-                    placeholder="Дата"
                   />
                 </div>
               ) : null}
@@ -958,8 +1457,13 @@ export function PublicationsCreatePage() {
               {variant === 'book-chapter' || variant === 'conference' ? (
                 <>
                   <div className={styles.rowTwo}>
-                    <input
-                      className={styles.textInput}
+                    <TextField
+                      label="DOI"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
                       value={form.doi}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -967,10 +1471,14 @@ export function PublicationsCreatePage() {
                           doi: event.target.value,
                         }))
                       }
-                      placeholder="DOI"
                     />
-                    <input
-                      className={styles.textInput}
+                    <TextField
+                      label="URL"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
                       value={form.url}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -978,13 +1486,17 @@ export function PublicationsCreatePage() {
                           url: event.target.value,
                         }))
                       }
-                      placeholder="URL"
                     />
                   </div>
 
                   <div className={styles.rowTwoLeft}>
-                    <input
-                      className={styles.textInput}
+                    <TextField
+                      label="Страницы"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
                       value={form.pages}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -992,10 +1504,20 @@ export function PublicationsCreatePage() {
                           pages: event.target.value,
                         }))
                       }
-                      placeholder="Страницы"
                     />
-                    <input
-                      className={styles.textInput}
+                    <TextField
+                      ref={publicationDateInputRef}
+                      label="Дата"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={[
+                        styles.formTextFieldInput,
+                        styles.dateFieldInput,
+                      ].join(' ')}
+                      trailingIcon="calendar_month"
+                      onTrailingIconClick={openPublicationDatePicker}
                       type="date"
                       value={form.publicationDate}
                       onChange={(event) =>
@@ -1004,7 +1526,6 @@ export function PublicationsCreatePage() {
                           publicationDate: event.target.value,
                         }))
                       }
-                      placeholder="Дата"
                     />
                   </div>
                 </>
@@ -1013,8 +1534,13 @@ export function PublicationsCreatePage() {
               {variant === 'book-monograph' ? (
                 <>
                   <div className={styles.rowTwo}>
-                    <input
-                      className={styles.textInput}
+                    <TextField
+                      label="ISBN"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
                       value={form.isbn}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -1022,10 +1548,14 @@ export function PublicationsCreatePage() {
                           isbn: event.target.value,
                         }))
                       }
-                      placeholder="ISBN"
                     />
-                    <input
-                      className={styles.textInput}
+                    <TextField
+                      label="DOI"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
                       value={form.doi}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -1033,13 +1563,17 @@ export function PublicationsCreatePage() {
                           doi: event.target.value,
                         }))
                       }
-                      placeholder="DOI"
                     />
                   </div>
 
                   <div className={styles.rowThree}>
-                    <input
-                      className={styles.textInput}
+                    <TextField
+                      label="Год"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
                       type="number"
                       value={form.year}
                       onChange={(event) =>
@@ -1048,10 +1582,14 @@ export function PublicationsCreatePage() {
                           year: event.target.value,
                         }))
                       }
-                      placeholder="Год"
                     />
-                    <input
-                      className={styles.textInput}
+                    <TextField
+                      label="Тираж"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
                       value={form.tirage}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -1059,10 +1597,14 @@ export function PublicationsCreatePage() {
                           tirage: event.target.value,
                         }))
                       }
-                      placeholder="Тираж"
                     />
-                    <input
-                      className={styles.textInput}
+                    <TextField
+                      label="Объем работы"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
                       value={form.extentOfWork}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -1070,42 +1612,66 @@ export function PublicationsCreatePage() {
                           extentOfWork: event.target.value,
                         }))
                       }
-                      placeholder="Объем работы"
                     />
                   </div>
                 </>
               ) : null}
 
-              <textarea
-                className={styles.textareaField}
+              <RichTextField
+                label="Аннотация"
+                placeholder="Аннотация"
                 value={form.abstract}
-                onChange={(event) =>
+                onChange={(nextValue) =>
                   setForm((prev) => ({
                     ...prev,
-                    abstract: event.target.value,
+                    abstract: nextValue,
                   }))
                 }
-                placeholder="Аннотация"
               />
 
-              <input
-                className={styles.textInput}
-                value={form.keywordsInput}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    keywordsInput: event.target.value,
-                  }))
-                }
-                placeholder="Ключевые слова"
-              />
+              <div className={styles.keywordsField}>
+                {form.keywordsInput.trim() ? (
+                  <span className={styles.keywordsLabel}>Ключевые слова</span>
+                ) : null}
+                <KeywordSearchInput
+                  value={form.keywordsInput}
+                  placeholder="Ключевые слова"
+                  onChange={(nextValue) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      keywordsInput: nextValue,
+                    }))
+                  }
+                />
+              </div>
 
               <div className={styles.lookupRow}>
-                <input
-                  className={styles.lookupInput}
+                <TextField
+                  label="Файл PDF"
+                  height={40}
+                  radius={4}
+                  rootClassName={styles.fullWidthField}
+                  fieldClassName={[styles.formTextField, styles.lookupTextField].join(' ')}
+                  inputClassName={styles.formTextFieldInput}
                   value={form.pdfFileName}
                   readOnly
-                  placeholder="Файл PDF"
+                  endContent={
+                    form.pdfFileName ? (
+                      <ClearFieldButton
+                        label="Очистить файл PDF"
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            pdfFileName: '',
+                            pdfFile: null,
+                          }));
+                          if (pdfInputRef.current) {
+                            pdfInputRef.current.value = '';
+                          }
+                        }}
+                      />
+                    ) : null
+                  }
                 />
                 <Button
                   label="Обзор"
@@ -1130,19 +1696,71 @@ export function PublicationsCreatePage() {
 
               {variant === 'article' ? (
                 <>
-                  <div className={styles.lookupRow}>
-                    <input
-                      className={styles.lookupInput}
-                      value={form.relatedArticle ? getSourceItemTitle(form.relatedArticle) : ''}
-                      readOnly
-                      placeholder="Связанная статья"
-                    />
-                    <Button
-                      label="Выбрать"
-                      className={styles.sideButton}
-                      onClick={() => openSelector('related')}
-                    />
-                  </div>
+                  {!form.relatedArticle ? (
+                    <div className={styles.lookupRow}>
+                      <TextField
+                        label="Связанная статья"
+                        height={40}
+                        radius={4}
+                        rootClassName={styles.fullWidthField}
+                        fieldClassName={[styles.formTextField, styles.lookupTextField].join(' ')}
+                        inputClassName={styles.formTextFieldInput}
+                        value=""
+                        readOnly
+                      />
+                      <Button
+                        label="Выбрать"
+                        className={styles.sideButton}
+                        onClick={() => openSelector('related')}
+                      />
+                    </div>
+                  ) : null}
+
+                  {form.relatedArticle ? (
+                    <div className={styles.relatedArticleCard}>
+                      <span className={styles.relatedArticleLabel}>
+                        {getRelatedArticleLabel(detectedArticleLanguage)}
+                      </span>
+                      <div className={styles.relatedArticleContent}>
+                        <div className={styles.relatedArticleMain}>
+                          <div className={styles.relatedArticleTitle}>
+                            {getSourceItemTitle(form.relatedArticle)}
+                          </div>
+                          {form.relatedArticle.authors ? (
+                            <div className={styles.relatedArticleAuthors}>
+                              {form.relatedArticle.authors}
+                            </div>
+                          ) : null}
+                          {form.relatedArticle.doi ? (
+                            <div className={styles.relatedArticleDoi}>
+                              <span>DOI:</span> {form.relatedArticle.doi}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className={styles.relatedArticleMeta}>
+                          {form.relatedArticle.journal ? (
+                            <span>{form.relatedArticle.journal}</span>
+                          ) : null}
+                          {form.relatedArticle.year ? (
+                            <span>{form.relatedArticle.year}</span>
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          className={styles.relatedArticleUnlink}
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              relatedArticle: null,
+                            }))
+                          }
+                          aria-label="Отвязать связанную статью"
+                        >
+                          <Icon name="link_off" size={24} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
 
                   {selectorMode === 'related' ? renderSelectorPanel() : null}
                 </>

@@ -194,8 +194,10 @@ class ArticleSearchResponse(BaseModel):
 
 
 class AuthorOptionItem(BaseModel):
-    id: int
+    id: int | None = None
     label: str
+    source: Literal["employee", "publication_author"] = "employee"
+    nickname: str | None = None
     email: str | None = None
     position: str | None = None
     department_id: int | None = None

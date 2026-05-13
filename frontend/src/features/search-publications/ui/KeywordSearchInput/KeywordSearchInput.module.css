@@ -8,8 +8,11 @@
 
 .root .field {
   position: relative;
-  padding-right: 44px;
   cursor: text;
+}
+
+.root .fieldWithEndContent {
+  padding-right: 44px;
 }
 
 .input {

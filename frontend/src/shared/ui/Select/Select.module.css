@@ -1,0 +1,165 @@
+.root {
+  position: relative;
+  width: var(--select-width, max-content);
+  max-width: 100%;
+}
+
+.trigger {
+  width: 100%;
+  min-width: 32px;
+  height: var(--control-height-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--color-control-text);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+.tonal .trigger {
+  background: var(--button-tonal);
+}
+
+.outlined .trigger {
+  border-color: var(--color-outline);
+  background: var(--color-surface);
+}
+
+.trigger:hover:not(:disabled) {
+  background: var(--color-tonal-hover);
+}
+
+.outlined .trigger:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.trigger:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.trigger:disabled {
+  cursor: not-allowed;
+}
+
+.disabled .trigger {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-control-text);
+}
+
+.triggerLabel {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
+  letter-spacing: var(--type-label-md-letter);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arrowIcon {
+  flex: 0 0 auto;
+  color: inherit;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  z-index: 30;
+  width: var(--select-menu-width, 220px);
+  min-width: min(112px, 100%);
+  max-width: min(280px, calc(100vw - 32px));
+  max-height: 280px;
+  padding: var(--space-3) 0;
+  overflow: auto;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-menu);
+  box-shadow: var(--shadow-menu-md);
+}
+
+.option {
+  width: 100%;
+  min-height: var(--menu-option-height);
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.option:hover:not(:disabled),
+.option:focus-visible:not(:disabled) {
+  outline: none;
+  background: var(--state-text-hover);
+}
+
+.optionSelected {
+  background: var(--button-tonal);
+  color: var(--color-icon-muted);
+}
+
+.option:disabled {
+  color: var(--disabled-text);
+  cursor: not-allowed;
+}
+
+.optionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  color: var(--color-text-muted);
+}
+
+.optionText {
+  min-width: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.optionLabel,
+.supportingText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionLabel {
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: 0;
+}
+
+.supportingText {
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
