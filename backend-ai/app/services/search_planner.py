@@ -68,10 +68,28 @@ REFINE_REQUEST_PATTERNS: tuple[str, ...] = (
 )
 
 
+NON_SEARCH_REQUEST_PATTERNS: tuple[str, ...] = (
+    r"^\s*(?:привет|здравствуй|здравствуйте|добрый\s+день|спасибо|ок|понял[аи]?)\s*[.!?]*\s*$",
+    r"\bкто\s+ты\b",
+    r"\bчто\s+ты\s+умеешь\b",
+    r"\b(?:какая|какую|что\s+за)\s+ты\s+модель\b",
+    r"\b(?:какая|какую|что\s+за)\s+(?:у\s+тебя\s+)?модель\b",
+    r"\bна\s+какой\s+модели\s+ты\b",
+    r"\bкак(?:ая|ой)?\s+модель\s+(?:используется|подключена)\b",
+)
+
+
 def _is_refine_request(message: str) -> bool:
     return any(
         re.search(pattern, message, flags=re.IGNORECASE)
         for pattern in REFINE_REQUEST_PATTERNS
+    )
+
+
+def _is_non_search_request(message: str) -> bool:
+    return any(
+        re.search(pattern, message, flags=re.IGNORECASE)
+        for pattern in NON_SEARCH_REQUEST_PATTERNS
     )
 
 
@@ -80,6 +98,17 @@ def _build_unsupported_refine_plan() -> SearchPlanResponse:
         intent="clarify",
         explanation=(
             "Уточнение среди уже найденных публикаций пока не подключено. "
+            "Текущая выдача не изменена."
+        ),
+        filters=SearchPlanFilters(),
+    )
+
+
+def _build_non_search_plan() -> SearchPlanResponse:
+    return SearchPlanResponse(
+        intent="clarify",
+        explanation=(
+            "Я обрабатываю только запросы на поиск публикаций. "
             "Текущая выдача не изменена."
         ),
         filters=SearchPlanFilters(),
@@ -253,6 +282,9 @@ def build_rule_based_search_plan(message: str) -> SearchPlanResponse:
 
 
 def build_search_plan(message: str) -> SearchPlanResponse:
+    if _is_non_search_request(message):
+        return _build_non_search_plan()
+
     if _is_refine_request(message):
         return _build_unsupported_refine_plan()
 
