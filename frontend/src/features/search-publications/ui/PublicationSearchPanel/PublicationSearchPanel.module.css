@@ -8,6 +8,49 @@
   gap: var(--space-3);
 }
 
+.aiSearchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.aiSearchInputWrap {
+  min-width: 0;
+}
+
+.aiSearchInput {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--Text-field);
+  border-radius: 14px;
+  background: var(--color-surface);
+  color: var(--blue);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+}
+
+.aiSearchInput:focus {
+  outline: none;
+  border-color: var(--Vector);
+  box-shadow: 0 0 0 3px rgba(90, 132, 239, 0.14);
+}
+
+.aiSearchInput:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.aiSearchExplanation {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
 .topRow,
 .criteriaRow {
   display: grid;
@@ -117,6 +160,7 @@
 }
 
 @media (max-width: 960px) {
+  .aiSearchRow,
   .topRow,
   .criteriaRow,
   .actionsRow {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   buildPublicationsQueryFromForm,
+  createAiPublicationSearchPlan,
   getPublicationFilters,
   getPublications,
   hasPublicationSearchCriteria,
@@ -98,6 +99,7 @@ function normalizeSearchForm(value: unknown): PublicationSearchFormState {
   return {
     yearFrom: typeof form.yearFrom === 'string' ? form.yearFrom : '',
     yearTo: typeof form.yearTo === 'string' ? form.yearTo : '',
+    textQuery: typeof form.textQuery === 'string' ? form.textQuery : '',
     author: typeof form.author === 'string' ? form.author : '',
     title: typeof form.title === 'string' ? form.title : '',
     journal: typeof form.journal === 'string' ? form.journal : '',
@@ -206,6 +208,7 @@ function getInitialSearchStateFromUrl(): {
     yearTo,
     author: searchParams.get('author') ?? '',
     title: searchParams.get('title') ?? '',
+    textQuery: searchParams.get('text_query') ?? searchParams.get('textQuery') ?? '',
     journal: searchParams.get('journal') ?? '',
     keyword: searchParams.get('keyword') ?? '',
     publicationTypes: getTrimmedListParams(searchParams, 'publication_types'),
@@ -263,6 +266,10 @@ function appendSearchParamList(
   });
 }
 
+function getSearchParamName(field: SearchFieldKey): string {
+  return field === 'textQuery' ? 'text_query' : field;
+}
+
 function buildPublicationsUrl(
   form: PublicationSearchFormState,
   activeFields: SearchFieldKey[],
@@ -277,7 +284,7 @@ function buildPublicationsUrl(
     const value = form[field].trim();
 
     if (value) {
-      searchParams.set(field, value);
+      searchParams.set(getSearchParamName(field), value);
     }
   });
 
@@ -432,6 +439,9 @@ export function usePublicationsSearchPageState() {
   );
   const [isFiltersLoading, setIsFiltersLoading] = useState(true);
   const [isResultsLoading, setIsResultsLoading] = useState(false);
+  const [isAiPlanning, setIsAiPlanning] = useState(false);
+  const [aiSearchQuery, setAiSearchQuery] = useState('');
+  const [aiSearchExplanation, setAiSearchExplanation] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(initialSearchState.hasSearched);
   const [error, setError] = useState<string | null>(null);
 
@@ -666,6 +676,69 @@ export function usePublicationsSearchPageState() {
     }));
   };
 
+  const handleAiSearch = async () => {
+    const message = aiSearchQuery.trim();
+
+    if (!message) {
+      return;
+    }
+
+    try {
+      setIsAiPlanning(true);
+      setError(null);
+
+      const plan = await createAiPublicationSearchPlan(message);
+      const nextForm: PublicationSearchFormState = {
+        ...cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM),
+        textQuery: plan.filters.text_query ?? '',
+        title: plan.filters.title ?? '',
+        author: plan.filters.author ?? '',
+        journal: plan.filters.journal ?? '',
+        keyword: plan.filters.keyword.join(', '),
+        yearFrom:
+          typeof plan.filters.year_from === 'number'
+            ? String(plan.filters.year_from)
+            : '',
+        yearTo:
+          typeof plan.filters.year_to === 'number'
+            ? String(plan.filters.year_to)
+            : '',
+        publicationTypes: plan.filters.publication_types,
+        databases: plan.filters.databases,
+        originalTranslationMode: plan.filters.original_translation_mode,
+      };
+      const nextActiveFields = SEARCH_FIELD_OPTIONS.map((option) => option.key).filter(
+        (field) => nextForm[field].trim(),
+      );
+      const normalizedActiveFields: SearchFieldKey[] = nextActiveFields.length
+        ? nextActiveFields
+        : ['textQuery'];
+
+      setAiSearchExplanation(plan.explanation);
+      setForm(nextForm);
+      setActiveFields(normalizedActiveFields);
+      setAppliedForm(cloneSearchForm(nextForm));
+      setAppliedFields([...normalizedActiveFields]);
+      setHasSearched(true);
+      shouldIncludeTotal.current = true;
+      setSelectedPublicationIds([]);
+      setPagination((prev) => ({
+        ...prev,
+        page: 1,
+      }));
+      setSortField(plan.sort.by);
+      setSortOrder(plan.sort.order);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Не удалось сформировать план поиска.',
+      );
+    } finally {
+      setIsAiPlanning(false);
+    }
+  };
+
   const handleReset = () => {
     window.sessionStorage.removeItem(PUBLICATIONS_SEARCH_STATE_KEY);
     setForm(cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM));
@@ -675,6 +748,8 @@ export function usePublicationsSearchPageState() {
     setSortField('year');
     setSortOrder('desc');
     shouldIncludeTotal.current = true;
+    setAiSearchQuery('');
+    setAiSearchExplanation(null);
     setItems([]);
     setSelectedPublicationIds([]);
     setError(null);
@@ -768,10 +843,14 @@ export function usePublicationsSearchPageState() {
     viewMode,
     sortField,
     sortOrder,
+    isAiPlanning,
     isFiltersLoading,
     isResultsLoading,
     hasSearched,
     error,
+    aiSearchQuery,
+    aiSearchExplanation,
+    setAiSearchQuery,
     setViewMode,
     handleFieldChange,
     handleYearRangeChange,
@@ -779,6 +858,7 @@ export function usePublicationsSearchPageState() {
     handleDatabasesChange,
     handleOriginalTranslationModeChange,
     handleActiveFieldsChange,
+    handleAiSearch,
     handleSearch,
     handleReset,
     handleToggleItemSelection,

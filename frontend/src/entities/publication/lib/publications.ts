@@ -6,11 +6,17 @@ import type {
   RelatedPublicationDto,
 } from '../api/publications';
 
-export type SearchFieldKey = 'author' | 'title' | 'journal' | 'keyword';
+export type SearchFieldKey =
+  | 'textQuery'
+  | 'author'
+  | 'title'
+  | 'journal'
+  | 'keyword';
 
 export type PublicationSearchFormState = {
   yearFrom: string;
   yearTo: string;
+  textQuery: string;
   author: string;
   title: string;
   journal: string;
@@ -21,6 +27,7 @@ export type PublicationSearchFormState = {
 };
 
 export const SEARCH_FIELD_OPTIONS: Array<{ key: SearchFieldKey; label: string }> = [
+  { key: 'textQuery', label: 'Текстовый запрос' },
   { key: 'author', label: 'Автор' },
   { key: 'title', label: 'Название' },
   { key: 'journal', label: 'Издание' },
@@ -30,6 +37,7 @@ export const SEARCH_FIELD_OPTIONS: Array<{ key: SearchFieldKey; label: string }>
 export const INITIAL_PUBLICATION_SEARCH_FORM: PublicationSearchFormState = {
   yearFrom: '',
   yearTo: '',
+  textQuery: '',
   author: '',
   title: '',
   journal: '',
@@ -77,6 +85,8 @@ export function formatSearchFieldLabel(field: SearchFieldKey): string {
 
 export function getSearchFieldPlaceholder(field: SearchFieldKey): string {
   switch (field) {
+    case 'textQuery':
+      return 'Поиск по названию, аннотации, DOI и ключевым словам';
     case 'author':
       return 'Введите фамилию или имя автора';
     case 'title':

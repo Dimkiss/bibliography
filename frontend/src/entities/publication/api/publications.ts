@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/shared/config/api';
+import { AI_API_BASE_URL, API_BASE_URL } from '@/shared/config/api';
 import { getAuthHeaders } from '@/shared/lib/auth';
 
 export type PublicationPreviewDto = {
@@ -99,6 +99,7 @@ export type PublicationDetailDto = {
 export type GetPublicationsParams = {
   page?: number;
   pageSize?: number;
+  textQuery?: string;
   title?: string;
   author?: string;
   journal?: string;
@@ -108,10 +109,39 @@ export type GetPublicationsParams = {
   publicationTypes?: string[];
   databases?: string[];
   originalTranslationMode?: string;
+  articleIds?: number[];
   sortBy?: PublicationSortField;
   sortOrder?: PublicationSortOrder;
   includeTotal?: boolean;
   knownTotal?: number;
+};
+
+export type AiPublicationSearchPlanFiltersDto = {
+  text_query: string | null;
+  title: string | null;
+  author: string | null;
+  journal: string | null;
+  keyword: string[];
+  year_from: number | null;
+  year_to: number | null;
+  publication_types: string[];
+  databases: string[];
+  original_translation_mode: 'all' | 'original_only' | 'translation_only';
+  article_ids: number[];
+};
+
+export type AiPublicationSearchPlanDto = {
+  intent: 'search' | 'clarify';
+  explanation: string;
+  filters: AiPublicationSearchPlanFiltersDto;
+  semantic: {
+    query: string | null;
+    scope: 'metadata' | 'pdf' | 'metadata_and_pdf';
+  };
+  sort: {
+    by: PublicationSortField;
+    order: PublicationSortOrder;
+  };
 };
 
 function splitSearchValues(value: string): string[] {
@@ -213,6 +243,10 @@ export async function getPublications(
     searchParams.set('page_size', String(params.pageSize));
   }
 
+  if (params.textQuery?.trim()) {
+    searchParams.set('text_query', params.textQuery.trim());
+  }
+
   if (params.title?.trim()) {
     searchParams.set('title', params.title.trim());
   }
@@ -262,6 +296,12 @@ export async function getPublications(
     );
   }
 
+  params.articleIds?.forEach((value) => {
+    if (Number.isInteger(value) && value > 0) {
+      searchParams.append('article_ids', String(value));
+    }
+  });
+
   if (params.sortBy) {
     searchParams.set('sort_by', params.sortBy);
   }
@@ -286,6 +326,25 @@ export async function getPublications(
   const response = await fetch(url, {
     method: 'GET',
     headers: buildHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+
+  return response.json();
+}
+
+export async function createAiPublicationSearchPlan(
+  message: string,
+): Promise<AiPublicationSearchPlanDto> {
+  const response = await fetch(`${AI_API_BASE_URL}/ai/publications/search-plan`, {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ message }),
   });
 
   if (!response.ok) {

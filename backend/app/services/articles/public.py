@@ -152,6 +152,28 @@ def _parse_keyword_terms(value: str | list[str] | None) -> list[str]:
     return terms
 
 
+def _parse_text_query_terms(value: str | None) -> list[str]:
+    if not value:
+        return []
+
+    terms: list[str] = []
+    seen_terms: set[str] = set()
+
+    for raw_term in value.replace(";", " ").replace(",", " ").split():
+        term = raw_term.strip()
+        if not term:
+            continue
+
+        normalized_term = term.lower()
+        if normalized_term in seen_terms:
+            continue
+
+        seen_terms.add(normalized_term)
+        terms.append(term)
+
+    return terms
+
+
 def _build_publication_type_condition(
     publication_types: list[str],
     params: dict[str, Any],
@@ -242,6 +264,7 @@ def _parse_csv_list(value: str | None) -> list[str]:
 
 def _build_common_filters(
     params: dict[str, Any],
+    text_query: str | None,
     title: str | None,
     author: str | None,
     journal: str | None,
@@ -253,6 +276,27 @@ def _build_common_filters(
     original_translation_mode: str,
 ) -> str:
     conditions: list[str] = []
+
+    text_query_terms = _parse_text_query_terms(text_query)
+    for index, text_query_term in enumerate(text_query_terms):
+        param_name = f"text_query_{index}"
+        params[param_name] = f"%{text_query_term}%"
+        conditions.append(
+            f"""
+            (
+                a.Title_Analitic_F4 LIKE :{param_name}
+                OR a.Abstract_F43 LIKE :{param_name}
+                OR a.DOI LIKE :{param_name}
+                OR EXISTS (
+                    SELECT 1
+                    FROM articlehaskeywords ahk
+                    JOIN keywords k ON k.K_ID = ahk.Keyword_ID_f
+                    WHERE ahk.Record_ID_f = a.Record_ID
+                      AND k.Keyword LIKE :{param_name}
+                )
+            )
+            """
+        )
 
     if title and title.strip():
         params["title"] = f"%{title.strip()}%"
@@ -523,6 +567,7 @@ def list_articles(
     db: Session,
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
+    text_query: str | None = None,
     title: str | None = None,
     author: str | None = None,
     journal: str | None = None,
@@ -531,6 +576,7 @@ def list_articles(
     year_to: int | None = None,
     publication_types: list[str] | None = None,
     databases: list[str] | None = None,
+    article_ids: list[int] | None = None,
     original_translation_mode: str = "all",
     sort_by: str = "year",
     sort_order: str = "desc",
@@ -539,6 +585,11 @@ def list_articles(
 ) -> ArticleListResponse:
     publication_types = _normalize_str_list(publication_types)
     databases = _normalize_str_list(databases)
+    article_ids = [
+        article_id
+        for article_id in dict.fromkeys(article_ids or [])
+        if article_id > 0
+    ]
 
     sort_by = (sort_by or "year").lower()
     sort_order = (sort_order or "desc").lower()
@@ -554,6 +605,7 @@ def list_articles(
     params: dict[str, Any] = {}
     filters_sql = _build_common_filters(
         params=params,
+        text_query=text_query,
         title=title,
         author=author,
         journal=journal,
@@ -564,6 +616,14 @@ def list_articles(
         databases=databases,
         original_translation_mode=original_translation_mode,
     )
+
+    if article_ids:
+        article_id_placeholders = _build_in_clause(
+            "filter_article_id",
+            [str(article_id) for article_id in article_ids],
+            params,
+        )
+        filters_sql += f"\nAND a.Record_ID IN ({article_id_placeholders})"
 
     if include_total or known_total is None:
         count_query = text(

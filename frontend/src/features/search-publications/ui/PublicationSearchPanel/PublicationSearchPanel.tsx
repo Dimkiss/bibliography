@@ -25,6 +25,11 @@ type PublicationSearchPanelProps = {
   databases: PublicationsFilterOption[];
   originalTranslationModes: PublicationsFilterOption[];
   isLoading?: boolean;
+  aiSearchValue: string;
+  aiSearchExplanation?: string | null;
+  isAiPlanning?: boolean;
+  onAiSearchChange: (nextValue: string) => void;
+  onAiSearchSubmit: () => void;
   onFieldChange: (field: SearchFieldKey, nextValue: string) => void;
   onYearRangeChange: (nextValue: { from: string; to: string }) => void;
   onPublicationTypesChange: (nextValue: string[]) => void;
@@ -44,6 +49,11 @@ export function PublicationSearchPanel({
   databases,
   originalTranslationModes,
   isLoading = false,
+  aiSearchValue,
+  aiSearchExplanation,
+  isAiPlanning = false,
+  onAiSearchChange,
+  onAiSearchSubmit,
   onFieldChange,
   onYearRangeChange,
   onPublicationTypesChange,
@@ -128,6 +138,14 @@ export function PublicationSearchPanel({
     onSubmit();
   };
 
+  const handleAiSubmit = () => {
+    if (isAiPlanning || !aiSearchValue.trim()) {
+      return;
+    }
+
+    onAiSearchSubmit();
+  };
+
   const renderSearchCriterion = (field: SearchFieldKey, index: number) => (
     <SearchCriterionRow
       field={field}
@@ -150,6 +168,36 @@ export function PublicationSearchPanel({
   return (
     <section className={styles.section}>
       <form className={`app-surface ${styles.panel}`} onSubmit={handleSubmit}>
+        <div className={styles.aiSearchRow}>
+          <div className={styles.aiSearchInputWrap}>
+            <input
+              className={styles.aiSearchInput}
+              value={aiSearchValue}
+              placeholder="Например: найди статьи о рыбах за последние 10 лет в Scopus"
+              disabled={isAiPlanning}
+              onChange={(event) => onAiSearchChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  handleAiSubmit();
+                }
+              }}
+            />
+            {aiSearchExplanation ? (
+              <p className={styles.aiSearchExplanation}>{aiSearchExplanation}</p>
+            ) : null}
+          </div>
+
+          <Button
+            label={isAiPlanning ? 'План...' : 'ИИ-поиск'}
+            size="normal"
+            width={132}
+            iconName="search"
+            disabled={isAiPlanning || !aiSearchValue.trim()}
+            onClick={handleAiSubmit}
+          />
+        </div>
+
         <div className={styles.topRow}>
           <YearSearchDropdown
             ref={yearDropdownRef}

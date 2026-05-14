@@ -45,7 +45,16 @@ export function PublicationsPage() {
               publicationTypes={search.filters.publication_types}
               databases={search.filters.databases}
               originalTranslationModes={search.filters.original_translation_modes}
-              isLoading={search.isFiltersLoading || search.isResultsLoading}
+              isLoading={
+                search.isFiltersLoading ||
+                search.isResultsLoading ||
+                search.isAiPlanning
+              }
+              aiSearchValue={search.aiSearchQuery}
+              aiSearchExplanation={search.aiSearchExplanation}
+              isAiPlanning={search.isAiPlanning}
+              onAiSearchChange={search.setAiSearchQuery}
+              onAiSearchSubmit={search.handleAiSearch}
               onFieldChange={search.handleFieldChange}
               onYearRangeChange={search.handleYearRangeChange}
               onPublicationTypesChange={search.handlePublicationTypesChange}
