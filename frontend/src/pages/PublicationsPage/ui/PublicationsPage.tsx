@@ -1,6 +1,7 @@
 import { Footer } from '@/widgets/Footer';
 import { Header } from '@/widgets/Header';
 import {
+  PublicationAiSearchChat,
   PublicationResultsList,
   PublicationSearchPanel,
   PublicationsPagination,
@@ -45,16 +46,7 @@ export function PublicationsPage() {
               publicationTypes={search.filters.publication_types}
               databases={search.filters.databases}
               originalTranslationModes={search.filters.original_translation_modes}
-              isLoading={
-                search.isFiltersLoading ||
-                search.isResultsLoading ||
-                search.isAiPlanning
-              }
-              aiSearchValue={search.aiSearchQuery}
-              aiSearchExplanation={search.aiSearchExplanation}
-              isAiPlanning={search.isAiPlanning}
-              onAiSearchChange={search.setAiSearchQuery}
-              onAiSearchSubmit={search.handleAiSearch}
+              isLoading={search.isFiltersLoading || search.isResultsLoading}
               onFieldChange={search.handleFieldChange}
               onYearRangeChange={search.handleYearRangeChange}
               onPublicationTypesChange={search.handlePublicationTypesChange}
@@ -67,11 +59,19 @@ export function PublicationsPage() {
               onReset={search.handleReset}
             />
 
+            <PublicationAiSearchChat
+              isPlanning={search.isAiPlanning}
+              resetRevision={search.aiResetRevision}
+              onSubmit={search.handleAiSearch}
+              onReset={search.handleReset}
+            />
+
             {search.hasSearched ? (
               <div className={`app-surface ${styles.resultsBlock}`}>
                 <PublicationResultsList
                   items={search.items}
                   total={search.pagination.total}
+                  hasTextQuery={Boolean(search.appliedForm.textQuery.trim())}
                   startIndex={
                     (search.pagination.page - 1) * search.pagination.page_size
                   }

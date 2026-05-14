@@ -4,6 +4,11 @@ import re
 from datetime import date
 
 from app.schemas.search_plan import SearchPlanFilters, SearchPlanResponse
+from app.services.llm_planner import (
+    LlmPlanningError,
+    build_llm_search_plan,
+    is_llm_planner_enabled,
+)
 
 
 DATABASE_PATTERNS: tuple[tuple[str, str], ...] = (
@@ -53,6 +58,32 @@ STOP_WORDS = {
     "которые",
     "которых",
 }
+
+
+REFINE_REQUEST_PATTERNS: tuple[str, ...] = (
+    r"\bсреди\s+(?:результатов|найденн(?:ых|ого|ыми)|них)\b",
+    r"\bиз\s+найденн(?:ых|ого|ыми)\b",
+    r"\bв\s+найденн(?:ых|ом|ыми)\b",
+    r"\bуточни\s+(?:по|среди|в)\b",
+)
+
+
+def _is_refine_request(message: str) -> bool:
+    return any(
+        re.search(pattern, message, flags=re.IGNORECASE)
+        for pattern in REFINE_REQUEST_PATTERNS
+    )
+
+
+def _build_unsupported_refine_plan() -> SearchPlanResponse:
+    return SearchPlanResponse(
+        intent="clarify",
+        explanation=(
+            "Уточнение среди уже найденных публикаций пока не подключено. "
+            "Текущая выдача не изменена."
+        ),
+        filters=SearchPlanFilters(),
+    )
 
 
 def _dedupe(values: list[str]) -> list[str]:
@@ -193,7 +224,7 @@ def _build_explanation(filters: SearchPlanFilters) -> str:
     return "Сформирован план поиска: " + "; ".join(parts) + "."
 
 
-def build_search_plan(message: str) -> SearchPlanResponse:
+def build_rule_based_search_plan(message: str) -> SearchPlanResponse:
     current_year = date.today().year
     cleaned_message = message.strip()
 
@@ -219,3 +250,16 @@ def build_search_plan(message: str) -> SearchPlanResponse:
         explanation=_build_explanation(filters),
         filters=filters,
     )
+
+
+def build_search_plan(message: str) -> SearchPlanResponse:
+    if _is_refine_request(message):
+        return _build_unsupported_refine_plan()
+
+    if is_llm_planner_enabled():
+        try:
+            return build_llm_search_plan(message)
+        except LlmPlanningError:
+            pass
+
+    return build_rule_based_search_plan(message)

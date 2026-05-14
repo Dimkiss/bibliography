@@ -26,6 +26,7 @@ type PublicationResultsListProps = {
   items: PublicationListItemDto[];
   total: number;
   startIndex?: number;
+  hasTextQuery?: boolean;
   isLoading?: boolean;
   error?: string | null;
   selectedIds: number[];
@@ -44,6 +45,7 @@ export function PublicationResultsList({
   items,
   total,
   startIndex = 0,
+  hasTextQuery = false,
   isLoading = false,
   error = null,
   selectedIds,
@@ -236,6 +238,7 @@ export function PublicationResultsList({
       <PublicationResultsToolbar
         total={total}
         selectedCount={selectedIds.length}
+        hasTextQuery={hasTextQuery}
         pageIds={pageIds}
         isAllPageSelected={isAllPageSelected}
         isPageSelectionIndeterminate={isPageSelectionIndeterminate}

@@ -31,7 +31,7 @@ class SearchPlanSemantic(BaseModel):
 
 
 class SearchPlanSort(BaseModel):
-    by: Literal["authors", "title", "journal", "year", "doi", "quartile"] = "year"
+    by: Literal["authors", "title", "journal", "year", "doi", "quartile", "relevance"] = "year"
     order: Literal["asc", "desc"] = "desc"
 
 

@@ -1,0 +1,1 @@
+export { PublicationAiSearchChat } from './PublicationAiSearchChat';

@@ -13,6 +13,7 @@ import styles from './PublicationResultsList.module.css';
 type PublicationResultsToolbarProps = {
   total: number;
   selectedCount: number;
+  hasTextQuery: boolean;
   pageIds: number[];
   isAllPageSelected: boolean;
   isPageSelectionIndeterminate: boolean;
@@ -28,6 +29,7 @@ type PublicationResultsToolbarProps = {
 export function PublicationResultsToolbar({
   total,
   selectedCount,
+  hasTextQuery,
   pageIds,
   isAllPageSelected,
   isPageSelectionIndeterminate,
@@ -39,6 +41,11 @@ export function PublicationResultsToolbar({
   onSortFieldChange,
   onSortOrderChange,
 }: PublicationResultsToolbarProps) {
+  const sortOptions = hasTextQuery
+    ? PUBLICATIONS_SORT_FIELD_OPTIONS
+    : PUBLICATIONS_SORT_FIELD_OPTIONS.filter((option) => option.value !== 'relevance');
+  const resolvedSortField = !hasTextQuery && sortField === 'relevance' ? 'year' : sortField;
+
   return (
     <>
       <div className={styles.summaryRow}>
@@ -76,8 +83,8 @@ export function PublicationResultsToolbar({
           </button>
 
           <OrderMenu
-            options={PUBLICATIONS_SORT_FIELD_OPTIONS}
-            value={sortField}
+            options={sortOptions}
+            value={resolvedSortField}
             order={sortOrder}
             fallbackLabel="Год"
             selectAriaLabel="Выбрать поле сортировки"

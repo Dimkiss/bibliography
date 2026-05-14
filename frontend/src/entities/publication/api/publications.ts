@@ -46,6 +46,7 @@ export type PublicationFiltersDto = {
 };
 
 export type PublicationSortField =
+  | 'relevance'
   | 'authors'
   | 'title'
   | 'journal'

@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-7);
+  width: 100%;
+  min-width: 0;
   padding: 28px 36px 24px 40px;
   border: 1px solid var(--outline);
   border-radius: 12px;
@@ -49,6 +51,7 @@
   font-weight: var(--font-weight-regular);
   line-height: 32px;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .authors {
@@ -59,6 +62,7 @@
   font-weight: var(--font-weight-semibold);
   line-height: var(--type-body-md-line);
   letter-spacing: var(--type-label-md-letter);
+  overflow-wrap: anywhere;
 }
 
 .actions,
@@ -99,6 +103,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  min-width: 0;
 }
 
 .sectionTitle {
@@ -115,6 +120,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  min-width: 0;
   padding: 0 56px;
 }
 
@@ -126,6 +132,58 @@
   line-height: var(--type-body-md-line);
   letter-spacing: var(--type-body-md-letter);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.abstractRichText {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.abstractRichText p {
+  margin: 0;
+}
+
+.abstractRichText p + p,
+.abstractRichText p + ul,
+.abstractRichText p + ol,
+.abstractRichText ul + p,
+.abstractRichText ol + p {
+  margin-top: var(--space-3);
+}
+
+.abstractRichText strong,
+.abstractRichText b {
+  font-weight: var(--font-weight-bold);
+}
+
+.abstractRichText em,
+.abstractRichText i {
+  font-style: italic;
+}
+
+.abstractRichText u {
+  text-decoration: underline;
+}
+
+.abstractRichText s {
+  text-decoration: line-through;
+}
+
+.abstractRichText sub,
+.abstractRichText sup {
+  line-height: 0;
+}
+
+.abstractRichText ul,
+.abstractRichText ol {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.abstractRichText li + li {
+  margin-top: var(--space-1);
 }
 
 .doiRow {
@@ -135,6 +193,7 @@
   font-size: var(--type-body-lg-size);
   line-height: var(--type-body-lg-line);
   letter-spacing: 0.15px;
+  overflow-wrap: anywhere;
 }
 
 .doiLabel {
@@ -143,6 +202,8 @@
 
 .doiLink {
   color: var(--color-link);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .doiMuted {
@@ -163,6 +224,8 @@
   font-weight: var(--font-weight-medium);
   line-height: var(--type-body-lg-line);
   letter-spacing: 0.15px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .journalNameButton:hover {
@@ -204,6 +267,7 @@
 
 .metaValue {
   font-weight: var(--font-weight-regular);
+  overflow-wrap: anywhere;
 }
 
 .keywords {
@@ -227,6 +291,8 @@
   font-weight: var(--font-weight-medium);
   line-height: var(--type-body-md-line);
   letter-spacing: var(--type-label-md-letter);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .emptyText {
@@ -316,6 +382,8 @@
   font-weight: var(--font-weight-medium);
   line-height: var(--type-body-lg-line);
   letter-spacing: 0.15px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .relatedTitleButton:hover {
@@ -330,6 +398,8 @@
   font-weight: var(--font-weight-regular);
   line-height: var(--type-body-sm-line);
   letter-spacing: var(--type-body-sm-letter);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .relatedDoi {
@@ -341,12 +411,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  min-width: 0;
   color: var(--color-text-primary);
   font-family: var(--font-family-ui);
   font-size: var(--type-body-md-size);
   font-weight: var(--font-weight-regular);
   line-height: var(--type-body-md-line);
   letter-spacing: var(--type-body-md-letter);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .relatedActions {

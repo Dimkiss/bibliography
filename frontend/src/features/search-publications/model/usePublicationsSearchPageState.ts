@@ -9,6 +9,7 @@ import {
   INITIAL_PUBLICATION_SEARCH_FORM,
   SEARCH_FIELD_OPTIONS,
   type FilterOptionDto,
+  type AiPublicationSearchPlanDto,
   type PublicationFiltersDto,
   type PublicationListItemDto,
   type PublicationSearchFormState,
@@ -70,7 +71,7 @@ function isSearchFieldKey(value: string): value is SearchFieldKey {
 }
 
 function isSortFieldValue(value: string): value is PublicationsSortFieldValue {
-  return ['authors', 'title', 'journal', 'year', 'doi', 'quartile'].includes(value);
+  return ['relevance', 'authors', 'title', 'journal', 'year', 'doi', 'quartile'].includes(value);
 }
 
 function isPublicationResultsViewMode(value: unknown): value is PublicationResultsViewMode {
@@ -164,6 +165,25 @@ function normalizeOriginalTranslationModes(
     ...data,
     original_translation_modes: normalizedModes,
   };
+}
+
+function hasAiSearchPlanCriteria(plan: AiPublicationSearchPlanDto): boolean {
+  const { filters } = plan;
+
+  return Boolean(
+    filters.text_query?.trim() ||
+      filters.title?.trim() ||
+      filters.author?.trim() ||
+      filters.journal?.trim() ||
+      filters.keyword.some((value) => value.trim()) ||
+      filters.publication_types.some((value) => value.trim()) ||
+      filters.databases.some((value) => value.trim()) ||
+      filters.article_ids.length ||
+      typeof filters.year_from === 'number' ||
+      typeof filters.year_to === 'number' ||
+      (filters.original_translation_mode.trim() &&
+        filters.original_translation_mode !== 'all'),
+  );
 }
 
 function getPositiveNumberParam(
@@ -442,6 +462,7 @@ export function usePublicationsSearchPageState() {
   const [isAiPlanning, setIsAiPlanning] = useState(false);
   const [aiSearchQuery, setAiSearchQuery] = useState('');
   const [aiSearchExplanation, setAiSearchExplanation] = useState<string | null>(null);
+  const [aiResetRevision, setAiResetRevision] = useState(0);
   const [hasSearched, setHasSearched] = useState(initialSearchState.hasSearched);
   const [error, setError] = useState<string | null>(null);
 
@@ -676,18 +697,27 @@ export function usePublicationsSearchPageState() {
     }));
   };
 
-  const handleAiSearch = async () => {
-    const message = aiSearchQuery.trim();
+  const handleAiSearch = async (
+    messageOverride?: string,
+  ): Promise<AiPublicationSearchPlanDto | null> => {
+    const message = (messageOverride ?? aiSearchQuery).trim();
 
     if (!message) {
-      return;
+      return null;
     }
 
     try {
       setIsAiPlanning(true);
       setError(null);
+      setAiSearchQuery(message);
 
       const plan = await createAiPublicationSearchPlan(message);
+      setAiSearchExplanation(plan.explanation);
+
+      if (plan.intent === 'clarify' || !hasAiSearchPlanCriteria(plan)) {
+        return plan;
+      }
+
       const nextForm: PublicationSearchFormState = {
         ...cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM),
         textQuery: plan.filters.text_query ?? '',
@@ -714,7 +744,6 @@ export function usePublicationsSearchPageState() {
         ? nextActiveFields
         : ['textQuery'];
 
-      setAiSearchExplanation(plan.explanation);
       setForm(nextForm);
       setActiveFields(normalizedActiveFields);
       setAppliedForm(cloneSearchForm(nextForm));
@@ -728,12 +757,17 @@ export function usePublicationsSearchPageState() {
       }));
       setSortField(plan.sort.by);
       setSortOrder(plan.sort.order);
+      return plan;
     } catch (caughtError) {
-      setError(
+      const messageText =
         caughtError instanceof Error
           ? caughtError.message
-          : 'Не удалось сформировать план поиска.',
+          : 'Не удалось сформировать план поиска.';
+
+      setError(
+        messageText,
       );
+      throw new Error(messageText);
     } finally {
       setIsAiPlanning(false);
     }
@@ -750,6 +784,7 @@ export function usePublicationsSearchPageState() {
     shouldIncludeTotal.current = true;
     setAiSearchQuery('');
     setAiSearchExplanation(null);
+    setAiResetRevision((prev) => prev + 1);
     setItems([]);
     setSelectedPublicationIds([]);
     setError(null);
@@ -836,6 +871,7 @@ export function usePublicationsSearchPageState() {
   return {
     filters,
     form,
+    appliedForm,
     activeFields,
     items,
     pagination,
@@ -850,6 +886,7 @@ export function usePublicationsSearchPageState() {
     error,
     aiSearchQuery,
     aiSearchExplanation,
+    aiResetRevision,
     setAiSearchQuery,
     setViewMode,
     handleFieldChange,

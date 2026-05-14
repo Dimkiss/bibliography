@@ -47,6 +47,94 @@ function formatMetricValue(metric: PublicationMetricDto): string {
   return metric.value || '—';
 }
 
+const ALLOWED_RICH_TEXT_TAGS = new Set([
+  'p',
+  'br',
+  'strong',
+  'b',
+  'em',
+  'i',
+  'u',
+  's',
+  'sub',
+  'sup',
+  'ul',
+  'ol',
+  'li',
+]);
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizePublicationRichText(value: string): string {
+  if (!value.trim()) {
+    return '';
+  }
+
+  if (typeof DOMParser === 'undefined') {
+    return escapeHtml(value);
+  }
+
+  const parser = new DOMParser();
+  const document = parser.parseFromString(value, 'text/html');
+  const output = document.createElement('div');
+
+  const sanitizeNode = (node: Node): Node | null => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return document.createTextNode(node.textContent ?? '');
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return null;
+    }
+
+    const sourceElement = node as HTMLElement;
+    const tagName = sourceElement.tagName.toLowerCase();
+
+    if (!ALLOWED_RICH_TEXT_TAGS.has(tagName)) {
+      const fragment = document.createDocumentFragment();
+
+      sourceElement.childNodes.forEach((childNode) => {
+        const sanitizedChild = sanitizeNode(childNode);
+
+        if (sanitizedChild) {
+          fragment.appendChild(sanitizedChild);
+        }
+      });
+
+      return fragment;
+    }
+
+    const sanitizedElement = document.createElement(tagName);
+
+    sourceElement.childNodes.forEach((childNode) => {
+      const sanitizedChild = sanitizeNode(childNode);
+
+      if (sanitizedChild) {
+        sanitizedElement.appendChild(sanitizedChild);
+      }
+    });
+
+    return sanitizedElement;
+  };
+
+  document.body.childNodes.forEach((node) => {
+    const sanitizedNode = sanitizeNode(node);
+
+    if (sanitizedNode) {
+      output.appendChild(sanitizedNode);
+    }
+  });
+
+  return output.innerHTML;
+}
+
 function RelatedPublicationCard({
   item,
 }: {
@@ -203,6 +291,10 @@ export function PublicationDetailsPage() {
   }, [copyMessage]);
 
   const doiUrl = buildDoiUrl(item?.doi);
+  const abstractHtml = useMemo(
+    () => sanitizePublicationRichText(item?.abstract ?? ''),
+    [item?.abstract],
+  );
   const editionDetailsPath =
     item?.edition_kind && typeof item.edition_source_id === 'number'
       ? buildEditionDetailsPath(item.edition_kind, item.edition_source_id)
@@ -309,7 +401,14 @@ export function PublicationDetailsPage() {
                   <h2 className={styles.sectionTitle}>Аннотация</h2>
                   <div className={styles.sectionBody}>
                     <div className={styles.abstract}>
-                      {item.abstract || 'Аннотация отсутствует.'}
+                      {abstractHtml ? (
+                        <div
+                          className={styles.abstractRichText}
+                          dangerouslySetInnerHTML={{ __html: abstractHtml }}
+                        />
+                      ) : (
+                        'Аннотация отсутствует.'
+                      )}
                     </div>
 
                     <div className={styles.doiRow}>

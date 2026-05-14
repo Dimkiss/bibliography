@@ -53,6 +53,7 @@ export const PUBLICATIONS_SORT_FIELD_OPTIONS: Array<{
   value: PublicationsSortFieldValue;
   label: string;
 }> = [
+  { value: 'relevance', label: 'Релевантность' },
   { value: 'authors', label: 'Авторы' },
   { value: 'title', label: 'Название' },
   { value: 'journal', label: 'Издание' },

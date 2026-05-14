@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from typing import Any
 
 from sqlalchemy import text
@@ -87,6 +88,8 @@ SORT_FIELD_MAP = {
     "quartile": "COALESCE(NULLIF(j.Quartile, ''), NULLIF(j.QuartileScopus, ''))",
 }
 
+TEXT_QUERY_RELEVANCE_SORT_FIELD = "relevance"
+
 QUARTILE_SORT_VALUE = "UPPER(TRIM(COALESCE(NULLIF(j.Quartile, ''), NULLIF(j.QuartileScopus, ''))))"
 
 QUARTILE_SORT_RANK = f"""
@@ -172,6 +175,103 @@ def _parse_text_query_terms(value: str | None) -> list[str]:
         terms.append(term)
 
     return terms
+
+
+def _build_text_query_like_patterns(term: str) -> list[str]:
+    stripped_term = term.strip()
+    if not stripped_term:
+        return []
+
+    patterns = [f"%{stripped_term}%"]
+    normalized_term = stripped_term.lower()
+
+    if re.search(r"[а-яё]", normalized_term, flags=re.IGNORECASE):
+        russian_endings = (
+            "иями",
+            "ями",
+            "ами",
+            "ого",
+            "ему",
+            "ому",
+            "ыми",
+            "ими",
+            "ых",
+            "их",
+            "ой",
+            "ей",
+            "ий",
+            "ый",
+            "ая",
+            "ое",
+            "ые",
+            "ую",
+            "юю",
+            "ом",
+            "ем",
+            "ах",
+            "ях",
+            "ов",
+            "ев",
+            "а",
+            "я",
+            "ы",
+            "и",
+            "у",
+            "ю",
+            "е",
+        )
+
+        for ending in russian_endings:
+            if normalized_term.endswith(ending) and len(stripped_term) - len(ending) >= 4:
+                stem = stripped_term[: -len(ending)]
+                patterns.append(f"%{stem}%")
+                break
+
+    return list(dict.fromkeys(patterns))
+
+
+def _build_text_query_match_sql(param_name: str) -> str:
+    return f"""
+    (
+        a.Title_Analitic_F4 LIKE :{param_name}
+        OR a.Abstract_F43 LIKE :{param_name}
+        OR a.DOI LIKE :{param_name}
+        OR EXISTS (
+            SELECT 1
+            FROM articlehaskeywords ahk
+            JOIN keywords k ON k.K_ID = ahk.Keyword_ID_f
+            WHERE ahk.Record_ID_f = a.Record_ID
+              AND k.Keyword LIKE :{param_name}
+        )
+    )
+    """
+
+
+def _build_text_query_score_sql(pattern_param_names: list[str]) -> str:
+    if not pattern_param_names:
+        return "0"
+
+    score_parts: list[str] = []
+
+    for param_name in pattern_param_names:
+        score_parts.extend(
+            [
+                f"CASE WHEN a.Title_Analitic_F4 LIKE :{param_name} THEN 12 ELSE 0 END",
+                f"""
+                CASE WHEN EXISTS (
+                    SELECT 1
+                    FROM articlehaskeywords ahk
+                    JOIN keywords k ON k.K_ID = ahk.Keyword_ID_f
+                    WHERE ahk.Record_ID_f = a.Record_ID
+                      AND k.Keyword LIKE :{param_name}
+                ) THEN 10 ELSE 0 END
+                """,
+                f"CASE WHEN a.Abstract_F43 LIKE :{param_name} THEN 4 ELSE 0 END",
+                f"CASE WHEN a.DOI LIKE :{param_name} THEN 2 ELSE 0 END",
+            ]
+        )
+
+    return "(" + " + ".join(part.strip() for part in score_parts) + ")"
 
 
 def _build_publication_type_condition(
@@ -264,7 +364,7 @@ def _parse_csv_list(value: str | None) -> list[str]:
 
 def _build_common_filters(
     params: dict[str, Any],
-    text_query: str | None,
+    text_query_pattern_param_names: list[str],
     title: str | None,
     author: str | None,
     journal: str | None,
@@ -277,25 +377,14 @@ def _build_common_filters(
 ) -> str:
     conditions: list[str] = []
 
-    text_query_terms = _parse_text_query_terms(text_query)
-    for index, text_query_term in enumerate(text_query_terms):
-        param_name = f"text_query_{index}"
-        params[param_name] = f"%{text_query_term}%"
+    if text_query_pattern_param_names:
         conditions.append(
-            f"""
-            (
-                a.Title_Analitic_F4 LIKE :{param_name}
-                OR a.Abstract_F43 LIKE :{param_name}
-                OR a.DOI LIKE :{param_name}
-                OR EXISTS (
-                    SELECT 1
-                    FROM articlehaskeywords ahk
-                    JOIN keywords k ON k.K_ID = ahk.Keyword_ID_f
-                    WHERE ahk.Record_ID_f = a.Record_ID
-                      AND k.Keyword LIKE :{param_name}
-                )
+            "("
+            + " OR ".join(
+                f"({_build_text_query_match_sql(param_name).strip()})"
+                for param_name in text_query_pattern_param_names
             )
-            """
+            + ")"
         )
 
     if title and title.strip():
@@ -426,6 +515,48 @@ def _build_common_filters(
         return ""
 
     return "\nAND " + "\nAND ".join(f"({condition.strip()})" for condition in conditions)
+
+
+def _prepare_text_query_patterns(
+    text_query: str | None,
+    params: dict[str, Any],
+) -> tuple[list[str], list[list[str]]]:
+    pattern_param_names: list[str] = []
+    term_pattern_param_names: list[list[str]] = []
+
+    for index, text_query_term in enumerate(_parse_text_query_terms(text_query)):
+        current_term_param_names: list[str] = []
+
+        for pattern_index, pattern in enumerate(
+            _build_text_query_like_patterns(text_query_term)
+        ):
+            param_name = f"text_query_{index}_{pattern_index}"
+            params[param_name] = pattern
+            pattern_param_names.append(param_name)
+            current_term_param_names.append(param_name)
+
+        if current_term_param_names:
+            term_pattern_param_names.append(current_term_param_names)
+
+    return pattern_param_names, term_pattern_param_names
+
+
+def _build_text_query_coverage_sql(
+    term_pattern_param_names: list[list[str]],
+) -> str | None:
+    if len(term_pattern_param_names) <= 1:
+        return None
+
+    term_match_parts: list[str] = []
+
+    for pattern_param_names in term_pattern_param_names:
+        term_match_sql = " OR ".join(
+            f"({_build_text_query_match_sql(param_name).strip()})"
+            for param_name in pattern_param_names
+        )
+        term_match_parts.append(f"CASE WHEN ({term_match_sql}) THEN 1 ELSE 0 END")
+
+    return "(" + " + ".join(term_match_parts) + ")"
 
 
 def _build_metrics(row: dict[str, Any]) -> list[ArticleMetricItem]:
@@ -594,18 +725,33 @@ def list_articles(
     sort_by = (sort_by or "year").lower()
     sort_order = (sort_order or "desc").lower()
 
+    params: dict[str, Any] = {}
+    text_query_pattern_param_names, text_query_term_pattern_param_names = _prepare_text_query_patterns(
+        text_query,
+        params,
+    )
+    relevance_score_sql = _build_text_query_score_sql(text_query_pattern_param_names)
+    text_query_coverage_sql = _build_text_query_coverage_sql(
+        text_query_term_pattern_param_names
+    )
+    is_relevance_sort = (
+        sort_by == TEXT_QUERY_RELEVANCE_SORT_FIELD
+        and bool(text_query_pattern_param_names)
+    )
     sort_expr = SORT_FIELD_MAP.get(sort_by, SORT_FIELD_MAP["year"])
     sort_dir = "ASC" if sort_order == "asc" else "DESC"
-    order_by_sql = (
-        f"{QUARTILE_SORT_RANK} {sort_dir}, a.Record_ID DESC"
-        if sort_by == "quartile"
-        else f"{sort_expr} {sort_dir}, a.Record_ID DESC"
-    )
+    if is_relevance_sort:
+        order_by_sql = f"relevance_score DESC, a.Date_of_Publication_F20 DESC, a.Record_ID DESC"
+    else:
+        order_by_sql = (
+            f"{QUARTILE_SORT_RANK} {sort_dir}, a.Record_ID DESC"
+            if sort_by == "quartile"
+            else f"{sort_expr} {sort_dir}, a.Record_ID DESC"
+        )
 
-    params: dict[str, Any] = {}
     filters_sql = _build_common_filters(
         params=params,
-        text_query=text_query,
+        text_query_pattern_param_names=text_query_pattern_param_names,
         title=title,
         author=author,
         journal=journal,
@@ -624,6 +770,9 @@ def list_articles(
             params,
         )
         filters_sql += f"\nAND a.Record_ID IN ({article_id_placeholders})"
+
+    if text_query_coverage_sql:
+        filters_sql += f"\nAND {text_query_coverage_sql} >= 2"
 
     if include_total or known_total is None:
         count_query = text(
@@ -649,7 +798,9 @@ def list_articles(
 
     id_query = text(
         f"""
-        SELECT a.Record_ID AS id
+        SELECT
+            a.Record_ID AS id,
+            {relevance_score_sql} AS relevance_score
         FROM articles a
         LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
         LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
