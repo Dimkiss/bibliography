@@ -11,4 +11,7 @@ router = APIRouter(prefix="/ai/publications", tags=["ai-publications"])
 def create_publication_search_plan(
     payload: SearchPlanRequest,
 ) -> SearchPlanResponse:
-    return build_search_plan(payload.message)
+    return build_search_plan(
+        payload.message,
+        current_filters=payload.current_filters,
+    )

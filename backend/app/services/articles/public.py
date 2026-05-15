@@ -365,6 +365,7 @@ def _parse_csv_list(value: str | None) -> list[str]:
 def _build_common_filters(
     params: dict[str, Any],
     text_query_pattern_param_names: list[str],
+    refine_text_query_pattern_param_names: list[str],
     title: str | None,
     author: str | None,
     journal: str | None,
@@ -383,6 +384,16 @@ def _build_common_filters(
             + " OR ".join(
                 f"({_build_text_query_match_sql(param_name).strip()})"
                 for param_name in text_query_pattern_param_names
+            )
+            + ")"
+        )
+
+    if refine_text_query_pattern_param_names:
+        conditions.append(
+            "("
+            + " OR ".join(
+                f"({_build_text_query_match_sql(param_name).strip()})"
+                for param_name in refine_text_query_pattern_param_names
             )
             + ")"
         )
@@ -520,6 +531,7 @@ def _build_common_filters(
 def _prepare_text_query_patterns(
     text_query: str | None,
     params: dict[str, Any],
+    param_prefix: str = "text_query",
 ) -> tuple[list[str], list[list[str]]]:
     pattern_param_names: list[str] = []
     term_pattern_param_names: list[list[str]] = []
@@ -530,7 +542,7 @@ def _prepare_text_query_patterns(
         for pattern_index, pattern in enumerate(
             _build_text_query_like_patterns(text_query_term)
         ):
-            param_name = f"text_query_{index}_{pattern_index}"
+            param_name = f"{param_prefix}_{index}_{pattern_index}"
             params[param_name] = pattern
             pattern_param_names.append(param_name)
             current_term_param_names.append(param_name)
@@ -699,6 +711,7 @@ def list_articles(
     page: int = 1,
     page_size: int = DEFAULT_PAGE_SIZE,
     text_query: str | None = None,
+    refine_text_query: str | None = None,
     title: str | None = None,
     author: str | None = None,
     journal: str | None = None,
@@ -730,13 +743,25 @@ def list_articles(
         text_query,
         params,
     )
-    relevance_score_sql = _build_text_query_score_sql(text_query_pattern_param_names)
+    refine_text_query_pattern_param_names, refine_text_query_term_pattern_param_names = _prepare_text_query_patterns(
+        refine_text_query,
+        params,
+        param_prefix="refine_text_query",
+    )
+    all_text_query_pattern_param_names = [
+        *text_query_pattern_param_names,
+        *refine_text_query_pattern_param_names,
+    ]
+    relevance_score_sql = _build_text_query_score_sql(all_text_query_pattern_param_names)
     text_query_coverage_sql = _build_text_query_coverage_sql(
         text_query_term_pattern_param_names
     )
+    refine_text_query_coverage_sql = _build_text_query_coverage_sql(
+        refine_text_query_term_pattern_param_names
+    )
     is_relevance_sort = (
         sort_by == TEXT_QUERY_RELEVANCE_SORT_FIELD
-        and bool(text_query_pattern_param_names)
+        and bool(all_text_query_pattern_param_names)
     )
     sort_expr = SORT_FIELD_MAP.get(sort_by, SORT_FIELD_MAP["year"])
     sort_dir = "ASC" if sort_order == "asc" else "DESC"
@@ -752,6 +777,7 @@ def list_articles(
     filters_sql = _build_common_filters(
         params=params,
         text_query_pattern_param_names=text_query_pattern_param_names,
+        refine_text_query_pattern_param_names=refine_text_query_pattern_param_names,
         title=title,
         author=author,
         journal=journal,
@@ -773,6 +799,9 @@ def list_articles(
 
     if text_query_coverage_sql:
         filters_sql += f"\nAND {text_query_coverage_sql} >= 2"
+
+    if refine_text_query_coverage_sql:
+        filters_sql += f"\nAND {refine_text_query_coverage_sql} >= 2"
 
     if include_total or known_total is None:
         count_query = text(

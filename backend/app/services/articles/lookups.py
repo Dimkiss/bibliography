@@ -578,7 +578,11 @@ def list_publishers(
 
     if search and search.strip():
         params["search"] = f"%{search.strip()}%"
-        where_sql = "WHERE PublisherName LIKE :search"
+        where_sql = """
+        WHERE
+            PublisherName LIKE :search
+            OR CAST(PN_ID AS CHAR) LIKE :search
+        """
 
     total = int(
         db.execute(

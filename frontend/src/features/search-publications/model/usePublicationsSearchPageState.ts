@@ -10,6 +10,7 @@ import {
   SEARCH_FIELD_OPTIONS,
   type FilterOptionDto,
   type AiPublicationSearchPlanDto,
+  type AiPublicationSearchPlanFiltersDto,
   type PublicationFiltersDto,
   type PublicationListItemDto,
   type PublicationSearchFormState,
@@ -101,6 +102,8 @@ function normalizeSearchForm(value: unknown): PublicationSearchFormState {
     yearFrom: typeof form.yearFrom === 'string' ? form.yearFrom : '',
     yearTo: typeof form.yearTo === 'string' ? form.yearTo : '',
     textQuery: typeof form.textQuery === 'string' ? form.textQuery : '',
+    refineTextQuery:
+      typeof form.refineTextQuery === 'string' ? form.refineTextQuery : '',
     author: typeof form.author === 'string' ? form.author : '',
     title: typeof form.title === 'string' ? form.title : '',
     journal: typeof form.journal === 'string' ? form.journal : '',
@@ -172,6 +175,7 @@ function hasAiSearchPlanCriteria(plan: AiPublicationSearchPlanDto): boolean {
 
   return Boolean(
     filters.text_query?.trim() ||
+      filters.refine_text_query?.trim() ||
       filters.title?.trim() ||
       filters.author?.trim() ||
       filters.journal?.trim() ||
@@ -184,6 +188,35 @@ function hasAiSearchPlanCriteria(plan: AiPublicationSearchPlanDto): boolean {
       (filters.original_translation_mode.trim() &&
         filters.original_translation_mode !== 'all'),
   );
+}
+
+function buildAiFiltersFromForm(
+  form: PublicationSearchFormState,
+  activeFields: SearchFieldKey[],
+): AiPublicationSearchPlanFiltersDto {
+  return {
+    text_query: activeFields.includes('textQuery') ? form.textQuery.trim() || null : null,
+    refine_text_query: form.refineTextQuery.trim() || null,
+    title: activeFields.includes('title') ? form.title.trim() || null : null,
+    author: activeFields.includes('author') ? form.author.trim() || null : null,
+    journal: activeFields.includes('journal') ? form.journal.trim() || null : null,
+    keyword: activeFields.includes('keyword')
+      ? form.keyword
+          .split(/[;,\n]/)
+          .map((value) => value.trim())
+          .filter(Boolean)
+      : [],
+    year_from: form.yearFrom.trim() ? Number(form.yearFrom) : null,
+    year_to: form.yearTo.trim() ? Number(form.yearTo) : null,
+    publication_types: [...form.publicationTypes],
+    databases: [...form.databases],
+    original_translation_mode:
+      form.originalTranslationMode === 'original_only' ||
+      form.originalTranslationMode === 'translation_only'
+        ? form.originalTranslationMode
+        : 'all',
+    article_ids: [],
+  };
 }
 
 function getPositiveNumberParam(
@@ -229,6 +262,10 @@ function getInitialSearchStateFromUrl(): {
     author: searchParams.get('author') ?? '',
     title: searchParams.get('title') ?? '',
     textQuery: searchParams.get('text_query') ?? searchParams.get('textQuery') ?? '',
+    refineTextQuery:
+      searchParams.get('refine_text_query') ??
+      searchParams.get('refineTextQuery') ??
+      '',
     journal: searchParams.get('journal') ?? '',
     keyword: searchParams.get('keyword') ?? '',
     publicationTypes: getTrimmedListParams(searchParams, 'publication_types'),
@@ -314,6 +351,10 @@ function buildPublicationsUrl(
 
   if (form.yearTo.trim()) {
     searchParams.set('year_to', form.yearTo.trim());
+  }
+
+  if (form.refineTextQuery.trim()) {
+    searchParams.set('refine_text_query', form.refineTextQuery.trim());
   }
 
   appendSearchParamList(searchParams, 'publication_types', form.publicationTypes);
@@ -711,7 +752,10 @@ export function usePublicationsSearchPageState() {
       setError(null);
       setAiSearchQuery(message);
 
-      const plan = await createAiPublicationSearchPlan(message);
+      const currentFilters = hasSearched
+        ? buildAiFiltersFromForm(appliedForm, appliedFields)
+        : undefined;
+      const plan = await createAiPublicationSearchPlan(message, currentFilters);
       setAiSearchExplanation(plan.explanation);
 
       if (plan.intent === 'clarify' || !hasAiSearchPlanCriteria(plan)) {
@@ -721,6 +765,7 @@ export function usePublicationsSearchPageState() {
       const nextForm: PublicationSearchFormState = {
         ...cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM),
         textQuery: plan.filters.text_query ?? '',
+        refineTextQuery: plan.filters.refine_text_query ?? '',
         title: plan.filters.title ?? '',
         author: plan.filters.author ?? '',
         journal: plan.filters.journal ?? '',

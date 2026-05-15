@@ -17,6 +17,7 @@ export type PublicationSearchFormState = {
   yearFrom: string;
   yearTo: string;
   textQuery: string;
+  refineTextQuery: string;
   author: string;
   title: string;
   journal: string;
@@ -38,6 +39,7 @@ export const INITIAL_PUBLICATION_SEARCH_FORM: PublicationSearchFormState = {
   yearFrom: '',
   yearTo: '',
   textQuery: '',
+  refineTextQuery: '',
   author: '',
   title: '',
   journal: '',
@@ -109,6 +111,10 @@ export function hasPublicationSearchCriteria(
     return true;
   }
 
+  if (form.refineTextQuery.trim()) {
+    return true;
+  }
+
   if (form.publicationTypes.some((value) => value.trim())) {
     return true;
   }
@@ -136,6 +142,7 @@ export function buildPublicationsQueryFromForm(
   const query: GetPublicationsParams = {
     page,
     pageSize,
+    refineTextQuery: form.refineTextQuery,
     publicationTypes: form.publicationTypes,
     databases: form.databases,
     originalTranslationMode: form.originalTranslationMode,

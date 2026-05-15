@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '@/shared/config/api';
 import { getAuthHeaders } from '@/shared/lib/auth';
 import { getPublications } from '@/entities/publication';
+import { getEditions, type EditionListItemDto } from '@/entities/edition';
 
 export type AdminPaginationDto = {
   page: number;
@@ -57,6 +58,13 @@ export type ArticleSearchItemDto = {
   journal: string | null;
   year: number | null;
   doi: string | null;
+};
+
+export type AdminEditionSourceDto = {
+  id: string;
+  source_id: number;
+  label: string;
+  meta: string;
 };
 
 export type ArticleSearchResponseDto = {
@@ -322,6 +330,45 @@ export async function searchAdminArticles(query: string): Promise<ArticleSearchI
     journal: item.journal,
     year: item.year,
     doi: item.doi,
+  }));
+}
+
+function formatEditionSourceLabel(item: EditionListItemDto): string {
+  return item.title?.trim() || `Издание #${item.source_id}`;
+}
+
+function formatEditionSourceMeta(item: EditionListItemDto): string {
+  return [
+    item.publication_type,
+    item.contributors,
+    item.publisher,
+    item.year ? String(item.year) : null,
+    item.identifier ? `${item.identifier_label}: ${item.identifier}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+export async function searchAdminEditionSources(
+  query: string,
+  editionType: 'monograph' | 'conference',
+): Promise<AdminEditionSourceDto[]> {
+  const response = await getEditions({
+    kind: 'nonperiodical',
+    query,
+    page: 1,
+    pageSize: 20,
+    editionTypes: [editionType],
+    sortBy: 'title',
+    sortOrder: 'asc',
+    includeTotal: false,
+  });
+
+  return response.items.map((item) => ({
+    id: item.id,
+    source_id: item.source_id,
+    label: formatEditionSourceLabel(item),
+    meta: formatEditionSourceMeta(item),
   }));
 }
 

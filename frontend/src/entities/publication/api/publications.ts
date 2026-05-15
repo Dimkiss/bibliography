@@ -101,6 +101,7 @@ export type GetPublicationsParams = {
   page?: number;
   pageSize?: number;
   textQuery?: string;
+  refineTextQuery?: string;
   title?: string;
   author?: string;
   journal?: string;
@@ -119,6 +120,7 @@ export type GetPublicationsParams = {
 
 export type AiPublicationSearchPlanFiltersDto = {
   text_query: string | null;
+  refine_text_query: string | null;
   title: string | null;
   author: string | null;
   journal: string | null;
@@ -248,6 +250,10 @@ export async function getPublications(
     searchParams.set('text_query', params.textQuery.trim());
   }
 
+  if (params.refineTextQuery?.trim()) {
+    searchParams.set('refine_text_query', params.refineTextQuery.trim());
+  }
+
   if (params.title?.trim()) {
     searchParams.set('title', params.title.trim());
   }
@@ -338,6 +344,7 @@ export async function getPublications(
 
 export async function createAiPublicationSearchPlan(
   message: string,
+  currentFilters?: AiPublicationSearchPlanFiltersDto,
 ): Promise<AiPublicationSearchPlanDto> {
   const response = await fetch(`${AI_API_BASE_URL}/ai/publications/search-plan`, {
     method: 'POST',
@@ -345,7 +352,7 @@ export async function createAiPublicationSearchPlan(
       accept: 'application/json',
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, current_filters: currentFilters ?? null }),
   });
 
   if (!response.ok) {

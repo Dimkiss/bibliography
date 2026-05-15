@@ -93,6 +93,7 @@ def _build_prompt(message: str) -> str:
 Правила:
 - Для общего тематического запроса заполняй filters.text_query.
 - text_query должен содержать только полезные термины поиска, без слов "найди", "статьи", "публикации".
+- filters.refine_text_query всегда оставляй null, уточнение текущей выдачи обрабатывает сервис.
 - Если пользователь указал период, заполни year_from/year_to.
 - "за последние N лет" означает от current_year - N до current_year.
 - Заполняй filters.databases только если пользователь явно назвал конкретную базу: Scopus, Web of Science, WoS, РИНЦ, ВАК или белый список.
@@ -112,6 +113,7 @@ def _build_prompt(message: str) -> str:
   "explanation": "Коротко по-русски, какие параметры применены.",
   "filters": {{
     "text_query": null,
+    "refine_text_query": null,
     "title": null,
     "author": null,
     "journal": null,

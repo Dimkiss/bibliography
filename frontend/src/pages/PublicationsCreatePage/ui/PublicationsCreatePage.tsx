@@ -9,11 +9,13 @@ import {
   getAdminPublicationTypes,
   getAdminAuthors,
   getAdminWorkFormTypes,
+  searchAdminEditionSources,
   searchAdminArticles,
   searchAdminJournals,
   searchAdminPublishers,
   uploadAdminArticlePdf,
   type AdminOptionDto,
+  type AdminEditionSourceDto,
   type ArticleSearchItemDto,
   type AuthorOptionDto,
   type PublicationTypeDto,
@@ -70,6 +72,9 @@ type FormState = {
   pdfFile: File | null;
 };
 
+const ENABLED_WORK_FORM_TYPES = new Set(['J', 'B', 'C']);
+const ENABLED_PUBLICATION_TYPE_FLAGS = new Set(['ST', 'GL', 'MO', 'MA']);
+
 const INITIAL_FORM: FormState = {
   workFormType: '',
   publicationTypeFlag: '',
@@ -111,7 +116,84 @@ function ClearFieldButton({ label, onClick }: ClearFieldButtonProps) {
 }
 
 function getWorkFormLabel(item: WorkFormTypeDto): string {
+  if (item.value === 'J') {
+    return 'Статья';
+  }
+
+  if (item.value === 'B') {
+    return 'Книжное издание';
+  }
+
+  if (item.value === 'C') {
+    return 'Материалы конференции';
+  }
+
   return item.label_ru?.trim() || item.label?.trim() || item.value;
+}
+
+function getPublicationTypeLabel(item: PublicationTypeDto): string {
+  if (item.value === 'GL') {
+    return 'Глава';
+  }
+
+  if (item.value === 'MO') {
+    return 'Монография';
+  }
+
+  if (item.value === 'MA') {
+    return 'Материалы конференции';
+  }
+
+  if (item.value === 'ST') {
+    return 'Статья';
+  }
+
+  return item.label;
+}
+
+function filterEnabledWorkForms(items: WorkFormTypeDto[]): WorkFormTypeDto[] {
+  return items.filter((item) => ENABLED_WORK_FORM_TYPES.has(item.value));
+}
+
+function filterEnabledPublicationTypes(
+  items: PublicationTypeDto[],
+  workFormType: string,
+): PublicationTypeDto[] {
+  if (workFormType === 'J') {
+    return items.filter((item) => item.value === 'ST');
+  }
+
+  if (workFormType === 'B') {
+    return items.filter((item) => item.value === 'GL' || item.value === 'MO');
+  }
+
+  if (workFormType === 'C') {
+    return items.filter((item) => item.value === 'MA');
+  }
+
+  return items.filter((item) => ENABLED_PUBLICATION_TYPE_FLAGS.has(item.value));
+}
+
+function getDefaultPublicationTypeFlag(
+  items: PublicationTypeDto[],
+  workFormType: string,
+): string {
+  const enabledItems = filterEnabledPublicationTypes(items, workFormType);
+  const preferredValue =
+    workFormType === 'J'
+      ? 'ST'
+      : workFormType === 'B'
+        ? 'GL'
+        : workFormType === 'C'
+          ? 'MA'
+          : '';
+
+  return (
+    enabledItems.find((item) => item.value === preferredValue)?.value ??
+    enabledItems[0]?.value ??
+    items[0]?.value ??
+    ''
+  );
 }
 
 function resolveVariant(
@@ -388,7 +470,7 @@ export function PublicationsCreatePage() {
   const [journalResults, setJournalResults] = useState<AdminOptionDto[]>([]);
   const [publisherResults, setPublisherResults] = useState<AdminOptionDto[]>([]);
   const [authorResults, setAuthorResults] = useState<AuthorOptionDto[]>([]);
-  const [sourceResults, setSourceResults] = useState<ArticleSearchItemDto[]>([]);
+  const [sourceResults, setSourceResults] = useState<AdminEditionSourceDto[]>([]);
   const [relatedResults, setRelatedResults] = useState<ArticleSearchItemDto[]>([]);
 
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
@@ -420,12 +502,13 @@ export function PublicationsCreatePage() {
           return;
         }
 
-        setWorkForms(workFormItems);
+        const enabledWorkFormItems = filterEnabledWorkForms(workFormItems);
+
+        setWorkForms(enabledWorkFormItems);
 
         const defaultWorkForm =
-          workFormItems.find((item) => getWorkFormLabel(item).toLowerCase().includes('стат')) ||
-          workFormItems.find((item) => item.value === 'J') ||
-          workFormItems[0] ||
+          enabledWorkFormItems.find((item) => item.value === 'J') ||
+          enabledWorkFormItems[0] ||
           null;
 
         if (!defaultWorkForm) {
@@ -441,7 +524,12 @@ export function PublicationsCreatePage() {
         }
 
         setPublicationTypes(publicationTypeItems);
-        setForm(buildEmptyForm(defaultWorkForm.value, publicationTypeItems[0]?.value ?? ''));
+        setForm(
+          buildEmptyForm(
+            defaultWorkForm.value,
+            getDefaultPublicationTypeFlag(publicationTypeItems, defaultWorkForm.value),
+          ),
+        );
 
         const authorsResponse = await getAdminAuthors({ all: true });
         if (isMounted) {
@@ -481,13 +569,18 @@ export function PublicationsCreatePage() {
     [form.publicationTypeFlag, publicationTypes],
   );
 
+  const availablePublicationTypes = useMemo(
+    () => filterEnabledPublicationTypes(publicationTypes, form.workFormType),
+    [form.workFormType, publicationTypes],
+  );
+
   const variant = useMemo(
     () => resolveVariant(selectedWorkForm, selectedPublicationType),
     [selectedWorkForm, selectedPublicationType],
   );
 
   const sourceLabel = useMemo(() => getSourceLabel(variant), [variant]);
-  const showPublicationSubtype = variant !== 'article' && publicationTypes.length > 0;
+  const showPublicationSubtype = variant !== 'article' && availablePublicationTypes.length > 0;
   const resolvedYear = deriveYear(form.year, form.publicationDate);
   const detectedArticleLanguage = useMemo(
     () => detectArticleLanguage(form.title),
@@ -511,7 +604,10 @@ export function PublicationsCreatePage() {
     let isMounted = true;
     const isArticleSelector = selectorMode === 'source' || selectorMode === 'related';
     const isSearchRequiredSelector =
-      isArticleSelector || selectorMode === 'author' || selectorMode === 'journal';
+      isArticleSelector ||
+      selectorMode === 'author' ||
+      selectorMode === 'journal' ||
+      selectorMode === 'publisher';
     const trimmedSelectorQuery = selectorQuery.trim();
 
     if (isSearchRequiredSelector && !trimmedSelectorQuery) {
@@ -522,6 +618,8 @@ export function PublicationsCreatePage() {
         setRelatedResults([]);
       } else if (selectorMode === 'journal') {
         setJournalResults([]);
+      } else if (selectorMode === 'publisher') {
+        setPublisherResults([]);
       } else {
         setAuthorResults([]);
       }
@@ -561,7 +659,10 @@ export function PublicationsCreatePage() {
         }
 
         if (selectorMode === 'source') {
-          const items = await searchAdminArticles(selectorQuery);
+          const items = await searchAdminEditionSources(
+            selectorQuery,
+            variant === 'conference' ? 'conference' : 'monograph',
+          );
           if (isMounted) {
             setSourceResults(items);
           }
@@ -605,7 +706,7 @@ export function PublicationsCreatePage() {
         window.clearTimeout(loadTimer);
       }
     };
-  }, [selectorMode, selectorQuery]);
+  }, [selectorMode, selectorQuery, variant]);
 
   const closeSelector = () => {
     setSelectorMode(null);
@@ -621,7 +722,7 @@ export function PublicationsCreatePage() {
       const items = await getAdminPublicationTypes(nextValue);
       setPublicationTypes(items);
       setSelectedAuthors([]);
-      setForm(() => buildEmptyForm(nextValue, items[0]?.value ?? ''));
+      setForm(() => buildEmptyForm(nextValue, getDefaultPublicationTypeFlag(items, nextValue)));
     } catch (caughtError) {
       setPublicationTypes([]);
       setError(
@@ -914,7 +1015,10 @@ export function PublicationsCreatePage() {
           />
           <div className={styles.selectorResults}>
             {selectorLoading ? <div className={styles.selectorHint}>Загрузка…</div> : null}
-            {!selectorLoading && publisherResults.length === 0 ? (
+            {!selectorLoading && !selectorQuery.trim() ? (
+              <div className={styles.selectorHint}>Введите название или ID издательства.</div>
+            ) : null}
+            {!selectorLoading && selectorQuery.trim() && publisherResults.length === 0 ? (
               <div className={styles.selectorHint}>Совпадения не найдены.</div>
             ) : null}
             {publisherResults.map((item) => (
@@ -1018,7 +1122,9 @@ export function PublicationsCreatePage() {
           <div className={styles.selectorResults}>
             {selectorLoading ? <div className={styles.selectorHint}>Загрузка…</div> : null}
             {!selectorLoading && !selectorQuery.trim() ? (
-              <div className={styles.selectorHint}>Введите название, DOI или ID статьи.</div>
+              <div className={styles.selectorHint}>
+                Введите название, ISBN, автора или издательство.
+              </div>
             ) : null}
             {!selectorLoading && selectorQuery.trim() && sourceResults.length === 0 ? (
               <div className={styles.selectorHint}>Совпадения не найдены.</div>
@@ -1031,13 +1137,15 @@ export function PublicationsCreatePage() {
                 onClick={() => {
                   setForm((prev) => ({
                     ...prev,
-                    sourceText: getSourceItemTitle(item),
+                    sourceText: item.label,
                   }));
                   closeSelector();
                 }}
               >
-                <div className={styles.selectorItemTitle}>{getSourceItemTitle(item)}</div>
-                <div className={styles.selectorItemMeta}>{formatArticleMeta(item)}</div>
+                <div className={styles.selectorItemTitle}>{item.label}</div>
+                {item.meta ? (
+                  <div className={styles.selectorItemMeta}>{item.meta}</div>
+                ) : null}
               </button>
             ))}
           </div>
@@ -1160,9 +1268,9 @@ export function PublicationsCreatePage() {
                   width={191}
                   menuWidth={220}
                   ariaLabel="Подтип публикации"
-                  options={publicationTypes.map((item) => ({
+                  options={availablePublicationTypes.map((item) => ({
                     value: item.value,
-                    label: item.label,
+                    label: getPublicationTypeLabel(item),
                   }))}
                   value={form.publicationTypeFlag}
                   onChange={handlePublicationTypeChange}

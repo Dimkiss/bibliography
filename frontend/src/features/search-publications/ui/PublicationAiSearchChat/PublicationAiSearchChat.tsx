@@ -49,6 +49,10 @@ function formatPlanItems(plan: AiPublicationSearchPlanDto): string[] {
     items.push(`Текст: ${filters.text_query.trim()}`);
   }
 
+  if (filters.refine_text_query?.trim()) {
+    items.push(`Уточнение: ${filters.refine_text_query.trim()}`);
+  }
+
   if (filters.title?.trim()) {
     items.push(`Название: ${filters.title.trim()}`);
   }

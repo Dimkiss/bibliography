@@ -60,8 +60,34 @@ STOP_WORDS = {
 }
 
 
+SEARCH_INTENT_PATTERNS: tuple[str, ...] = (
+    r"\b(?:найди|найти|покажи|показать|подбери|подобрать|ищи|искать)\b",
+    r"\b(?:стать[яьи]|статей|публикаци[яиюй]|публикаций|работ[ауы]|работ)\b",
+    r"\b(?:автор|автора|авторы|названи[еяю]|журнал|издани[ея]|doi|ключев(?:ые|ым|ых)\s+слов)\b",
+    r"\b(?:scopus|web\s+of\s+science|wos|ринц|вак|бел(?:ый|ом|ого|ому|ым)\s+спис)\b",
+    r"\b(?:19\d{2}|20\d{2})\b",
+    r"\bпоследн(?:ие|их|ий)\s+\d{1,2}\s+лет\b",
+)
+
+
+QUESTION_START_PATTERN = re.compile(
+    r"^\s*(?:кто|что|какой|какая|какое|какие|сколько|когда|где|почему|зачем|как)\b",
+    flags=re.IGNORECASE,
+)
+
+
+NON_PUBLICATION_TOPIC_PATTERNS: tuple[str, ...] = (
+    r"\b(?:погода|температура|дождь|снег|ветер)\b",
+    r"\b(?:время|час|дата|день\s+недели|сегодня|завтра|вчера)\b",
+    r"\b(?:курс\s+валют|доллар|евро|биткоин)\b",
+    r"\b(?:анекдот|шутк[ауи]|рецепт|переведи|переводчик)\b",
+    r"\b(?:qwen|ollama|chatgpt|gpt|llm|нейросет[ьи]|модель\s+ии)\b",
+)
+
+
 REFINE_REQUEST_PATTERNS: tuple[str, ...] = (
     r"\bсреди\s+(?:результатов|найденн(?:ых|ого|ыми)|них)\b",
+    r"\bсреди\s+публикаций\b",
     r"\bиз\s+найденн(?:ых|ого|ыми)\b",
     r"\bв\s+найденн(?:ых|ом|ыми)\b",
     r"\bуточни\s+(?:по|среди|в)\b",
@@ -87,10 +113,45 @@ def _is_refine_request(message: str) -> bool:
 
 
 def _is_non_search_request(message: str) -> bool:
+    return _classify_request(message) == "non_search"
+
+
+def _has_search_intent_marker(message: str) -> bool:
     return any(
         re.search(pattern, message, flags=re.IGNORECASE)
-        for pattern in NON_SEARCH_REQUEST_PATTERNS
+        for pattern in SEARCH_INTENT_PATTERNS
     )
+
+
+def _has_non_publication_topic_marker(message: str) -> bool:
+    return any(
+        re.search(pattern, message, flags=re.IGNORECASE)
+        for pattern in NON_PUBLICATION_TOPIC_PATTERNS
+    )
+
+
+def _classify_request(message: str) -> str:
+    text = message.strip()
+
+    if not text:
+        return "non_search"
+
+    if any(
+        re.search(pattern, text, flags=re.IGNORECASE)
+        for pattern in NON_SEARCH_REQUEST_PATTERNS
+    ):
+        return "non_search"
+
+    if _has_search_intent_marker(text):
+        return "search"
+
+    if _has_non_publication_topic_marker(text):
+        return "non_search"
+
+    if QUESTION_START_PATTERN.search(text) or text.endswith("?"):
+        return "non_search"
+
+    return "search" if len(_parse_search_terms(text)) >= 2 else "non_search"
 
 
 def _build_unsupported_refine_plan() -> SearchPlanResponse:
@@ -113,6 +174,35 @@ def _build_non_search_plan() -> SearchPlanResponse:
         ),
         filters=SearchPlanFilters(),
     )
+
+
+def _has_filter_criteria(filters: SearchPlanFilters | None) -> bool:
+    if filters is None:
+        return False
+
+    return bool(
+        (filters.text_query and filters.text_query.strip())
+        or (filters.refine_text_query and filters.refine_text_query.strip())
+        or (filters.title and filters.title.strip())
+        or (filters.author and filters.author.strip())
+        or (filters.journal and filters.journal.strip())
+        or any(value.strip() for value in filters.keyword)
+        or any(value.strip() for value in filters.publication_types)
+        or any(value.strip() for value in filters.databases)
+        or filters.article_ids
+        or filters.year_from is not None
+        or filters.year_to is not None
+        or filters.original_translation_mode != "all"
+    )
+
+
+def _parse_search_terms(message: str) -> list[str]:
+    normalized = re.sub(r"[^\w\s-]+", " ", message, flags=re.UNICODE)
+    return [
+        word.strip()
+        for word in normalized.split()
+        if word.strip() and word.strip().lower() not in STOP_WORDS
+    ]
 
 
 def _dedupe(values: list[str]) -> list[str]:
@@ -210,12 +300,7 @@ def _extract_original_translation_mode(message: str) -> tuple[str, str]:
 
 
 def _build_text_query(message: str) -> str | None:
-    normalized = re.sub(r"[^\w\s-]+", " ", message, flags=re.UNICODE)
-    words = [
-        word.strip()
-        for word in normalized.split()
-        if word.strip() and word.strip().lower() not in STOP_WORDS
-    ]
+    words = _parse_search_terms(message)
 
     if not words:
         return None
@@ -223,11 +308,123 @@ def _build_text_query(message: str) -> str | None:
     return " ".join(_dedupe(words))
 
 
-def _build_explanation(filters: SearchPlanFilters) -> str:
+def _clean_refine_message(message: str) -> str:
+    text = message
+
+    for pattern in REFINE_REQUEST_PATTERNS:
+        text = re.sub(pattern, " ", text, flags=re.IGNORECASE)
+
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _merge_optional_text(base_value: str | None, next_value: str | None) -> str | None:
+    values = [base_value or "", next_value or ""]
+    merged = _dedupe(
+        [
+            word
+            for value in values
+            for word in _parse_search_terms(value)
+        ]
+    )
+
+    return " ".join(merged) if merged else None
+
+
+def _merge_refine_plan(
+    base_filters: SearchPlanFilters,
+    refine_plan: SearchPlanResponse,
+) -> SearchPlanResponse:
+    next_filters = refine_plan.filters
+    refine_text_query = _merge_optional_text(
+        base_filters.refine_text_query,
+        next_filters.text_query,
+    )
+
+    merged_filters = SearchPlanFilters(
+        text_query=base_filters.text_query,
+        refine_text_query=refine_text_query,
+        title=next_filters.title or base_filters.title,
+        author=next_filters.author or base_filters.author,
+        journal=next_filters.journal or base_filters.journal,
+        keyword=_dedupe([*base_filters.keyword, *next_filters.keyword]),
+        year_from=(
+            max(base_filters.year_from, next_filters.year_from)
+            if base_filters.year_from is not None and next_filters.year_from is not None
+            else next_filters.year_from
+            if next_filters.year_from is not None
+            else base_filters.year_from
+        ),
+        year_to=(
+            min(base_filters.year_to, next_filters.year_to)
+            if base_filters.year_to is not None and next_filters.year_to is not None
+            else next_filters.year_to
+            if next_filters.year_to is not None
+            else base_filters.year_to
+        ),
+        publication_types=_dedupe(
+            [*base_filters.publication_types, *next_filters.publication_types]
+        ),
+        databases=_dedupe([*base_filters.databases, *next_filters.databases]),
+        original_translation_mode=(
+            next_filters.original_translation_mode
+            if next_filters.original_translation_mode != "all"
+            else base_filters.original_translation_mode
+        ),
+    )
+
+    return SearchPlanResponse(
+        intent="search",
+        explanation=_build_explanation(merged_filters, is_refine=True),
+        filters=merged_filters,
+        semantic=refine_plan.semantic,
+        sort=refine_plan.sort,
+    )
+
+
+def _build_refine_plan_from_message(
+    base_filters: SearchPlanFilters,
+    message: str,
+) -> SearchPlanResponse:
+    refine_text_query = _merge_optional_text(
+        base_filters.refine_text_query,
+        _build_text_query(message),
+    )
+
+    if not refine_text_query:
+        return _build_non_search_plan()
+
+    merged_filters = SearchPlanFilters(
+        text_query=base_filters.text_query,
+        refine_text_query=refine_text_query,
+        title=base_filters.title,
+        author=base_filters.author,
+        journal=base_filters.journal,
+        keyword=[*base_filters.keyword],
+        year_from=base_filters.year_from,
+        year_to=base_filters.year_to,
+        publication_types=[*base_filters.publication_types],
+        databases=[*base_filters.databases],
+        original_translation_mode=base_filters.original_translation_mode,
+    )
+
+    return SearchPlanResponse(
+        intent="search",
+        explanation=_build_explanation(merged_filters, is_refine=True),
+        filters=merged_filters,
+    )
+
+
+def _build_explanation(
+    filters: SearchPlanFilters,
+    is_refine: bool = False,
+) -> str:
     parts: list[str] = []
 
     if filters.text_query:
         parts.append(f"текстовый запрос: {filters.text_query}")
+
+    if filters.refine_text_query:
+        parts.append(f"уточнение: {filters.refine_text_query}")
 
     if filters.year_from is not None and filters.year_to is not None:
         if filters.year_from == filters.year_to:
@@ -250,7 +447,8 @@ def _build_explanation(filters: SearchPlanFilters) -> str:
     if not parts:
         return "Не удалось выделить точные параметры, использую исходную фразу как текстовый запрос."
 
-    return "Сформирован план поиска: " + "; ".join(parts) + "."
+    prefix = "Уточняю текущую выдачу: " if is_refine else "Сформирован план поиска: "
+    return prefix + "; ".join(parts) + "."
 
 
 def build_rule_based_search_plan(message: str) -> SearchPlanResponse:
@@ -281,13 +479,7 @@ def build_rule_based_search_plan(message: str) -> SearchPlanResponse:
     )
 
 
-def build_search_plan(message: str) -> SearchPlanResponse:
-    if _is_non_search_request(message):
-        return _build_non_search_plan()
-
-    if _is_refine_request(message):
-        return _build_unsupported_refine_plan()
-
+def _build_delta_search_plan(message: str) -> SearchPlanResponse:
     if is_llm_planner_enabled():
         try:
             return build_llm_search_plan(message)
@@ -295,3 +487,23 @@ def build_search_plan(message: str) -> SearchPlanResponse:
             pass
 
     return build_rule_based_search_plan(message)
+
+
+def build_search_plan(
+    message: str,
+    current_filters: SearchPlanFilters | None = None,
+) -> SearchPlanResponse:
+    if _is_non_search_request(message):
+        return _build_non_search_plan()
+
+    if _is_refine_request(message):
+        if not _has_filter_criteria(current_filters):
+            return _build_unsupported_refine_plan()
+
+        refine_message = _clean_refine_message(message)
+        if not _parse_search_terms(refine_message):
+            return _build_non_search_plan()
+
+        return _build_refine_plan_from_message(current_filters, refine_message)
+
+    return _build_delta_search_plan(message)
