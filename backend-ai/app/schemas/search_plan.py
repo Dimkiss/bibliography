@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class SearchPlanFilters(BaseModel):
     text_query: str | None = None
     refine_text_query: str | None = None
+    pdf_text_query: str | None = None
     title: str | None = None
     author: str | None = None
     journal: str | None = None

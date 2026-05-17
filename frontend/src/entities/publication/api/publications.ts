@@ -102,6 +102,7 @@ export type GetPublicationsParams = {
   pageSize?: number;
   textQuery?: string;
   refineTextQuery?: string;
+  pdfTextQuery?: string;
   title?: string;
   author?: string;
   journal?: string;
@@ -121,6 +122,7 @@ export type GetPublicationsParams = {
 export type AiPublicationSearchPlanFiltersDto = {
   text_query: string | null;
   refine_text_query: string | null;
+  pdf_text_query: string | null;
   title: string | null;
   author: string | null;
   journal: string | null;
@@ -252,6 +254,10 @@ export async function getPublications(
 
   if (params.refineTextQuery?.trim()) {
     searchParams.set('refine_text_query', params.refineTextQuery.trim());
+  }
+
+  if (params.pdfTextQuery?.trim()) {
+    searchParams.set('pdf_text_query', params.pdfTextQuery.trim());
   }
 
   if (params.title?.trim()) {

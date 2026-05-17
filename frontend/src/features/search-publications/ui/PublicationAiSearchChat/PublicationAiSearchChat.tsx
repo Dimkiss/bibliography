@@ -46,11 +46,15 @@ function formatPlanItems(plan: AiPublicationSearchPlanDto): string[] {
   const { filters } = plan;
 
   if (filters.text_query?.trim()) {
-    items.push(`Текст: ${filters.text_query.trim()}`);
+    items.push(`Метаданные: ${filters.text_query.trim()}`);
   }
 
   if (filters.refine_text_query?.trim()) {
     items.push(`Уточнение: ${filters.refine_text_query.trim()}`);
+  }
+
+  if (filters.pdf_text_query?.trim()) {
+    items.push(`PDF: ${filters.pdf_text_query.trim()}`);
   }
 
   if (filters.title?.trim()) {

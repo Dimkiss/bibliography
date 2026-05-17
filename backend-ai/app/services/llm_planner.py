@@ -94,6 +94,7 @@ def _build_prompt(message: str) -> str:
 - Для общего тематического запроса заполняй filters.text_query.
 - text_query должен содержать только полезные термины поиска, без слов "найди", "статьи", "публикации".
 - filters.refine_text_query всегда оставляй null, уточнение текущей выдачи обрабатывает сервис.
+- filters.pdf_text_query заполняй только если пользователь явно просит искать в PDF, полном тексте, тексте статьи или внутри публикации.
 - Если пользователь указал период, заполни year_from/year_to.
 - "за последние N лет" означает от current_year - N до current_year.
 - Заполняй filters.databases только если пользователь явно назвал конкретную базу: Scopus, Web of Science, WoS, РИНЦ, ВАК или белый список.
@@ -114,6 +115,7 @@ def _build_prompt(message: str) -> str:
   "filters": {{
     "text_query": null,
     "refine_text_query": null,
+    "pdf_text_query": null,
     "title": null,
     "author": null,
     "journal": null,

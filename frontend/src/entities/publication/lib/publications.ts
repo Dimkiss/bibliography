@@ -8,6 +8,7 @@ import type {
 
 export type SearchFieldKey =
   | 'textQuery'
+  | 'pdfTextQuery'
   | 'author'
   | 'title'
   | 'journal'
@@ -18,6 +19,7 @@ export type PublicationSearchFormState = {
   yearTo: string;
   textQuery: string;
   refineTextQuery: string;
+  pdfTextQuery: string;
   author: string;
   title: string;
   journal: string;
@@ -28,18 +30,23 @@ export type PublicationSearchFormState = {
 };
 
 export const SEARCH_FIELD_OPTIONS: Array<{ key: SearchFieldKey; label: string }> = [
-  { key: 'textQuery', label: 'Текстовый запрос' },
   { key: 'author', label: 'Автор' },
   { key: 'title', label: 'Название' },
   { key: 'journal', label: 'Издание' },
   { key: 'keyword', label: 'Ключевые слова' },
 ];
 
+const HIDDEN_SEARCH_FIELD_LABELS: Partial<Record<SearchFieldKey, string>> = {
+  textQuery: 'Текстовый запрос',
+  pdfTextQuery: 'Текст PDF',
+};
+
 export const INITIAL_PUBLICATION_SEARCH_FORM: PublicationSearchFormState = {
   yearFrom: '',
   yearTo: '',
   textQuery: '',
   refineTextQuery: '',
+  pdfTextQuery: '',
   author: '',
   title: '',
   journal: '',
@@ -83,13 +90,19 @@ export function buildDoiUrl(doi?: string | null): string | null {
 }
 
 export function formatSearchFieldLabel(field: SearchFieldKey): string {
-  return SEARCH_FIELD_OPTIONS.find((option) => option.key === field)?.label ?? field;
+  return (
+    SEARCH_FIELD_OPTIONS.find((option) => option.key === field)?.label ??
+    HIDDEN_SEARCH_FIELD_LABELS[field] ??
+    field
+  );
 }
 
 export function getSearchFieldPlaceholder(field: SearchFieldKey): string {
   switch (field) {
     case 'textQuery':
       return 'Поиск по названию, аннотации, DOI и ключевым словам';
+    case 'pdfTextQuery':
+      return 'Поиск по распознанному тексту PDF';
     case 'author':
       return 'Введите фамилию или имя автора';
     case 'title':
@@ -111,7 +124,11 @@ export function hasPublicationSearchCriteria(
     return true;
   }
 
-  if (form.refineTextQuery.trim()) {
+  if (
+    form.textQuery.trim() ||
+    form.refineTextQuery.trim() ||
+    form.pdfTextQuery.trim()
+  ) {
     return true;
   }
 
@@ -142,7 +159,9 @@ export function buildPublicationsQueryFromForm(
   const query: GetPublicationsParams = {
     page,
     pageSize,
+    textQuery: form.textQuery,
     refineTextQuery: form.refineTextQuery,
+    pdfTextQuery: form.pdfTextQuery,
     publicationTypes: form.publicationTypes,
     databases: form.databases,
     originalTranslationMode: form.originalTranslationMode,
@@ -158,15 +177,17 @@ export function buildPublicationsQueryFromForm(
     query.yearTo = Number(form.yearTo);
   }
 
-  activeFields.forEach((field) => {
-    const value = form[field].trim();
+  activeFields
+    .filter((field) => field !== 'textQuery' && field !== 'pdfTextQuery')
+    .forEach((field) => {
+      const value = form[field].trim();
 
-    if (!value) {
-      return;
-    }
+      if (!value) {
+        return;
+      }
 
-    query[field] = value;
-  });
+      query[field] = value;
+    });
 
   return query;
 }

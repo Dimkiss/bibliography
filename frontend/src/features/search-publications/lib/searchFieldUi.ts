@@ -2,6 +2,9 @@ import type { SearchFieldKey } from '@/entities/publication';
 
 export function getSearchFieldIconName(field: SearchFieldKey) {
   switch (field) {
+    case 'textQuery':
+    case 'pdfTextQuery':
+      return 'search';
     case 'author':
       return 'person';
     case 'title':

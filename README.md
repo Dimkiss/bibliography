@@ -5,6 +5,7 @@
 ## Стек
 
 - Backend: FastAPI, SQLAlchemy, PyMySQL, JWT
+- AI service: FastAPI, Ollama, скрипты подготовки PDF-текста
 - Database: MySQL 5.7
 - Frontend: React 19, TypeScript, Vite, CSS Modules
 - Charts: Recharts
@@ -35,6 +36,7 @@ docker compose up --build
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000
 - Swagger: http://localhost:8000/docs
+- AI Swagger: http://localhost:8001/docs
 
 При первом запуске MySQL импортирует дамп `db/bibl_new.sql` в базу `bibl_new`. Данные сохраняются в Docker volume `db-data`.
 
@@ -88,6 +90,42 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 
 Если она не задана, используется `http://127.0.0.1:8000`.
 
+### AI-сервис и PDF-индекс
+
+AI-поиск работает отдельным сервисом `ai-agent` и использует Ollama.
+
+Первый запуск модели:
+
+```powershell
+docker compose up -d --build ai-agent ollama
+docker compose exec ollama ollama pull qwen2.5:3b-instruct
+```
+
+Скрипты подготовки PDF-текста находятся в `backend-ai/scripts`.
+Они не запускаются основным backend автоматически.
+
+Аудит PDF и разделение на файлы со списками `article_id`:
+
+```powershell
+docker compose exec ai-agent python scripts/audit_pdf_text_layers.py --pdf-dir /app/db/pdf --output-dir /app/db/pdf_text_index --overwrite
+```
+
+Нарезка распознанных PDF на чанки:
+
+```powershell
+docker compose exec ai-agent python scripts/index_pdf_texts.py --pdf-dir /app/db/pdf --output-dir /app/db/pdf_text_index --article-ids-file /app/db/pdf_text_index/has_text_article_ids.txt --overwrite
+```
+
+Импорт готового индекса в MySQL:
+
+```powershell
+docker compose exec ai-agent python scripts/import_pdf_text_index.py --index-dir /app/db/pdf_text_index --overwrite
+```
+
+Если `chunks.jsonl` и `status.jsonl` уже подготовлены на другом компьютере,
+повторно резать PDF не нужно: достаточно перенести каталог `db/pdf_text_index`
+и выполнить только импорт.
+
 ## Проверки
 
 Frontend:
@@ -110,6 +148,11 @@ backend/
     schemas/        # Pydantic-схемы
     services/       # бизнес-логика
     main.py         # создание FastAPI app
+  requirements.txt
+
+backend-ai/
+  app/              # AI API и планировщик поиска
+  scripts/          # аудит PDF, нарезка PDF-текста, импорт индекса в MySQL
   requirements.txt
 
 frontend/

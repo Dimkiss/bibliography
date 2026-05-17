@@ -57,6 +57,14 @@ STOP_WORDS = {
     "где",
     "которые",
     "которых",
+    "есть",
+    "содержит",
+    "содержат",
+    "содержится",
+    "упоминается",
+    "упоминаются",
+    "встречается",
+    "встречаются",
 }
 
 
@@ -151,7 +159,14 @@ def _classify_request(message: str) -> str:
     if QUESTION_START_PATTERN.search(text) or text.endswith("?"):
         return "non_search"
 
-    return "search" if len(_parse_search_terms(text)) >= 2 else "non_search"
+    terms = _parse_search_terms(text)
+    if len(terms) >= 2:
+        return "search"
+
+    if len(terms) == 1 and len(terms[0]) >= 4:
+        return "search"
+
+    return "non_search"
 
 
 def _build_unsupported_refine_plan() -> SearchPlanResponse:
@@ -183,6 +198,7 @@ def _has_filter_criteria(filters: SearchPlanFilters | None) -> bool:
     return bool(
         (filters.text_query and filters.text_query.strip())
         or (filters.refine_text_query and filters.refine_text_query.strip())
+        or (filters.pdf_text_query and filters.pdf_text_query.strip())
         or (filters.title and filters.title.strip())
         or (filters.author and filters.author.strip())
         or (filters.journal and filters.journal.strip())
@@ -308,6 +324,66 @@ def _build_text_query(message: str) -> str | None:
     return " ".join(_dedupe(words))
 
 
+PDF_SEARCH_PATTERNS: tuple[str, ...] = (
+    r"\bpdf\b",
+    r"\bпдф\b",
+    r"\bполнотекстов",
+    r"\bполном\s+тексте\b",
+    r"\bв\s+тексте\s+(?:статьи|публикации|pdf|пдф)\b",
+    r"\bвнутри\s+(?:статьи|публикации|pdf|пдф)\b",
+)
+
+
+MIXED_PDF_SEARCH_PATTERN = re.compile(
+    r"(?P<metadata>.*?)"
+    r"(?:,|\s+)?"
+    r"(?:(?:\bгде\b|\bи\b)\s+)?"
+    r"(?:"
+    r"в\s+(?:pdf|пдф|полном\s+тексте|тексте(?:\s+(?:статьи|публикации))?)"
+    r"|внутри\s+(?:pdf|пдф|статьи|публикации)"
+    r"|pdf"
+    r"|пдф"
+    r")"
+    r"\s*(?:есть|содержит|содержат|содержится|упоминается|упоминаются|"
+    r"встречается|встречаются|найди|искать|по)?\s+"
+    r"(?P<pdf>.+)",
+    flags=re.IGNORECASE,
+)
+
+
+def _is_pdf_search_request(message: str) -> bool:
+    return any(
+        re.search(pattern, message, flags=re.IGNORECASE)
+        for pattern in PDF_SEARCH_PATTERNS
+    )
+
+
+def _clean_pdf_search_message(message: str) -> str:
+    text = message
+
+    for pattern in PDF_SEARCH_PATTERNS:
+        text = re.sub(pattern, " ", text, flags=re.IGNORECASE)
+
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _extract_pdf_text_query(message: str) -> tuple[str, str | None]:
+    match = MIXED_PDF_SEARCH_PATTERN.search(message)
+
+    if not match:
+        if not _is_pdf_search_request(message):
+            return message, None
+
+        return "", _build_text_query(_clean_pdf_search_message(message))
+
+    metadata_part = match.group("metadata").strip(" ,.;:-")
+    if not _build_text_query(metadata_part):
+        metadata_part = ""
+    pdf_part = match.group("pdf").strip(" ,.;:-")
+
+    return metadata_part, _build_text_query(pdf_part)
+
+
 def _clean_refine_message(message: str) -> str:
     text = message
 
@@ -343,6 +419,7 @@ def _merge_refine_plan(
     merged_filters = SearchPlanFilters(
         text_query=base_filters.text_query,
         refine_text_query=refine_text_query,
+        pdf_text_query=base_filters.pdf_text_query,
         title=next_filters.title or base_filters.title,
         author=next_filters.author or base_filters.author,
         journal=next_filters.journal or base_filters.journal,
@@ -396,6 +473,7 @@ def _build_refine_plan_from_message(
     merged_filters = SearchPlanFilters(
         text_query=base_filters.text_query,
         refine_text_query=refine_text_query,
+        pdf_text_query=base_filters.pdf_text_query,
         title=base_filters.title,
         author=base_filters.author,
         journal=base_filters.journal,
@@ -421,10 +499,13 @@ def _build_explanation(
     parts: list[str] = []
 
     if filters.text_query:
-        parts.append(f"текстовый запрос: {filters.text_query}")
+        parts.append(f"метаданные: {filters.text_query}")
 
     if filters.refine_text_query:
         parts.append(f"уточнение: {filters.refine_text_query}")
+
+    if filters.pdf_text_query:
+        parts.append(f"PDF-текст: {filters.pdf_text_query}")
 
     if filters.year_from is not None and filters.year_to is not None:
         if filters.year_from == filters.year_to:
@@ -463,10 +544,19 @@ def build_rule_based_search_plan(message: str) -> SearchPlanResponse:
     original_translation_mode, cleaned_message = _extract_original_translation_mode(
         cleaned_message,
     )
-    text_query = _build_text_query(cleaned_message) or _build_text_query(message)
+    if _is_pdf_search_request(cleaned_message):
+        metadata_message, pdf_text_query = _extract_pdf_text_query(cleaned_message)
+        text_query = _build_text_query(metadata_message)
+        pdf_text_query = pdf_text_query or _build_text_query(
+            _clean_pdf_search_message(cleaned_message)
+        )
+    else:
+        pdf_text_query = None
+        text_query = _build_text_query(cleaned_message) or _build_text_query(message)
 
     filters = SearchPlanFilters(
         text_query=text_query,
+        pdf_text_query=pdf_text_query,
         year_from=year_from,
         year_to=year_to,
         databases=databases,
@@ -480,6 +570,9 @@ def build_rule_based_search_plan(message: str) -> SearchPlanResponse:
 
 
 def _build_delta_search_plan(message: str) -> SearchPlanResponse:
+    if len(_parse_search_terms(message)) == 1:
+        return build_rule_based_search_plan(message)
+
     if is_llm_planner_enabled():
         try:
             return build_llm_search_plan(message)
@@ -505,5 +598,8 @@ def build_search_plan(
             return _build_non_search_plan()
 
         return _build_refine_plan_from_message(current_filters, refine_message)
+
+    if _is_pdf_search_request(message):
+        return build_rule_based_search_plan(message)
 
     return _build_delta_search_plan(message)

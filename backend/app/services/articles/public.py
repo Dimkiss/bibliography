@@ -274,6 +274,38 @@ def _build_text_query_score_sql(pattern_param_names: list[str]) -> str:
     return "(" + " + ".join(part.strip() for part in score_parts) + ")"
 
 
+def _build_pdf_text_query_match_sql(param_name: str) -> str:
+    return f"""
+    EXISTS (
+        SELECT 1
+        FROM pdf_text_chunks ptc
+        WHERE ptc.article_id = a.Record_ID
+          AND ptc.text LIKE :{param_name}
+    )
+    """
+
+
+def _build_pdf_text_query_score_sql(pattern_param_names: list[str]) -> str:
+    if not pattern_param_names:
+        return "0"
+
+    return (
+        "("
+        + " + ".join(
+            f"""
+            CASE WHEN EXISTS (
+                SELECT 1
+                FROM pdf_text_chunks ptc
+                WHERE ptc.article_id = a.Record_ID
+                  AND ptc.text LIKE :{param_name}
+            ) THEN 6 ELSE 0 END
+            """.strip()
+            for param_name in pattern_param_names
+        )
+        + ")"
+    )
+
+
 def _build_publication_type_condition(
     publication_types: list[str],
     params: dict[str, Any],
@@ -366,6 +398,7 @@ def _build_common_filters(
     params: dict[str, Any],
     text_query_pattern_param_names: list[str],
     refine_text_query_pattern_param_names: list[str],
+    pdf_text_query_pattern_param_names: list[str],
     title: str | None,
     author: str | None,
     journal: str | None,
@@ -394,6 +427,16 @@ def _build_common_filters(
             + " OR ".join(
                 f"({_build_text_query_match_sql(param_name).strip()})"
                 for param_name in refine_text_query_pattern_param_names
+            )
+            + ")"
+        )
+
+    if pdf_text_query_pattern_param_names:
+        conditions.append(
+            "("
+            + " OR ".join(
+                f"({_build_pdf_text_query_match_sql(param_name).strip()})"
+                for param_name in pdf_text_query_pattern_param_names
             )
             + ")"
         )
@@ -571,6 +614,24 @@ def _build_text_query_coverage_sql(
     return "(" + " + ".join(term_match_parts) + ")"
 
 
+def _build_pdf_text_query_coverage_sql(
+    term_pattern_param_names: list[list[str]],
+) -> str | None:
+    if len(term_pattern_param_names) <= 1:
+        return None
+
+    term_match_parts: list[str] = []
+
+    for pattern_param_names in term_pattern_param_names:
+        term_match_sql = " OR ".join(
+            f"({_build_pdf_text_query_match_sql(param_name).strip()})"
+            for param_name in pattern_param_names
+        )
+        term_match_parts.append(f"CASE WHEN ({term_match_sql}) THEN 1 ELSE 0 END")
+
+    return "(" + " + ".join(term_match_parts) + ")"
+
+
 def _build_metrics(row: dict[str, Any]) -> list[ArticleMetricItem]:
     white_list_enabled = bool(row.get("white_list_flag"))
     white_list_extra = None
@@ -712,6 +773,7 @@ def list_articles(
     page_size: int = DEFAULT_PAGE_SIZE,
     text_query: str | None = None,
     refine_text_query: str | None = None,
+    pdf_text_query: str | None = None,
     title: str | None = None,
     author: str | None = None,
     journal: str | None = None,
@@ -748,20 +810,32 @@ def list_articles(
         params,
         param_prefix="refine_text_query",
     )
+    pdf_text_query_pattern_param_names, pdf_text_query_term_pattern_param_names = _prepare_text_query_patterns(
+        pdf_text_query,
+        params,
+        param_prefix="pdf_text_query",
+    )
     all_text_query_pattern_param_names = [
         *text_query_pattern_param_names,
         *refine_text_query_pattern_param_names,
     ]
-    relevance_score_sql = _build_text_query_score_sql(all_text_query_pattern_param_names)
+    relevance_score_sql = (
+        _build_text_query_score_sql(all_text_query_pattern_param_names)
+        + " + "
+        + _build_pdf_text_query_score_sql(pdf_text_query_pattern_param_names)
+    )
     text_query_coverage_sql = _build_text_query_coverage_sql(
         text_query_term_pattern_param_names
     )
     refine_text_query_coverage_sql = _build_text_query_coverage_sql(
         refine_text_query_term_pattern_param_names
     )
+    pdf_text_query_coverage_sql = _build_pdf_text_query_coverage_sql(
+        pdf_text_query_term_pattern_param_names
+    )
     is_relevance_sort = (
         sort_by == TEXT_QUERY_RELEVANCE_SORT_FIELD
-        and bool(all_text_query_pattern_param_names)
+        and bool(all_text_query_pattern_param_names or pdf_text_query_pattern_param_names)
     )
     sort_expr = SORT_FIELD_MAP.get(sort_by, SORT_FIELD_MAP["year"])
     sort_dir = "ASC" if sort_order == "asc" else "DESC"
@@ -778,6 +852,7 @@ def list_articles(
         params=params,
         text_query_pattern_param_names=text_query_pattern_param_names,
         refine_text_query_pattern_param_names=refine_text_query_pattern_param_names,
+        pdf_text_query_pattern_param_names=pdf_text_query_pattern_param_names,
         title=title,
         author=author,
         journal=journal,
@@ -802,6 +877,9 @@ def list_articles(
 
     if refine_text_query_coverage_sql:
         filters_sql += f"\nAND {refine_text_query_coverage_sql} >= 2"
+
+    if pdf_text_query_coverage_sql:
+        filters_sql += f"\nAND {pdf_text_query_coverage_sql} >= 2"
 
     if include_total or known_total is None:
         count_query = text(
