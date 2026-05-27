@@ -833,20 +833,8 @@ def list_articles(
     pdf_text_query_coverage_sql = _build_pdf_text_query_coverage_sql(
         pdf_text_query_term_pattern_param_names
     )
-    is_relevance_sort = (
-        sort_by == TEXT_QUERY_RELEVANCE_SORT_FIELD
-        and bool(all_text_query_pattern_param_names or pdf_text_query_pattern_param_names)
-    )
     sort_expr = SORT_FIELD_MAP.get(sort_by, SORT_FIELD_MAP["year"])
     sort_dir = "ASC" if sort_order == "asc" else "DESC"
-    if is_relevance_sort:
-        order_by_sql = f"relevance_score DESC, a.Date_of_Publication_F20 DESC, a.Record_ID DESC"
-    else:
-        order_by_sql = (
-            f"{QUARTILE_SORT_RANK} {sort_dir}, a.Record_ID DESC"
-            if sort_by == "quartile"
-            else f"{sort_expr} {sort_dir}, a.Record_ID DESC"
-        )
 
     filters_sql = _build_common_filters(
         params=params,
@@ -864,6 +852,7 @@ def list_articles(
         original_translation_mode=original_translation_mode,
     )
 
+    article_ids_order_sql: str | None = None
     if article_ids:
         article_id_placeholders = _build_in_clause(
             "filter_article_id",
@@ -871,6 +860,8 @@ def list_articles(
             params,
         )
         filters_sql += f"\nAND a.Record_ID IN ({article_id_placeholders})"
+        if sort_by == TEXT_QUERY_RELEVANCE_SORT_FIELD:
+            article_ids_order_sql = f"FIELD(a.Record_ID, {article_id_placeholders})"
 
     if text_query_coverage_sql:
         filters_sql += f"\nAND {text_query_coverage_sql} >= 2"
@@ -880,6 +871,21 @@ def list_articles(
 
     if pdf_text_query_coverage_sql:
         filters_sql += f"\nAND {pdf_text_query_coverage_sql} >= 2"
+
+    is_relevance_sort = (
+        sort_by == TEXT_QUERY_RELEVANCE_SORT_FIELD
+        and bool(all_text_query_pattern_param_names or pdf_text_query_pattern_param_names)
+    )
+    if article_ids_order_sql:
+        order_by_sql = f"{article_ids_order_sql} ASC, a.Record_ID DESC"
+    elif is_relevance_sort:
+        order_by_sql = f"relevance_score DESC, a.Date_of_Publication_F20 DESC, a.Record_ID DESC"
+    else:
+        order_by_sql = (
+            f"{QUARTILE_SORT_RANK} {sort_dir}, a.Record_ID DESC"
+            if sort_by == "quartile"
+            else f"{sort_expr} {sort_dir}, a.Record_ID DESC"
+        )
 
     if include_total or known_total is None:
         count_query = text(

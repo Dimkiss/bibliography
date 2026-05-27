@@ -803,13 +803,12 @@ export function usePublicationsSearchPageState() {
         return ragSearch;
       }
 
+      const hasRagArticleIds = plan.filters.article_ids.length > 0;
       const nextForm: PublicationSearchFormState = {
         ...cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM),
-        textQuery: plan.filters.text_query ?? '',
-        refineTextQuery: plan.filters.refine_text_query ?? '',
-        pdfTextQuery: plan.filters.article_ids.length
-          ? ''
-          : plan.filters.pdf_text_query ?? '',
+        textQuery: hasRagArticleIds ? '' : plan.filters.text_query ?? '',
+        refineTextQuery: hasRagArticleIds ? '' : plan.filters.refine_text_query ?? '',
+        pdfTextQuery: hasRagArticleIds ? '' : plan.filters.pdf_text_query ?? '',
         title: plan.filters.title ?? '',
         author: plan.filters.author ?? '',
         journal: plan.filters.journal ?? '',

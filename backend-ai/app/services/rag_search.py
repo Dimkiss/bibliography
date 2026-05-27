@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections import defaultdict
 from functools import lru_cache
 from typing import Any
@@ -48,6 +49,15 @@ def _get_embedding_cache_dir() -> str | None:
 def _get_database_url() -> str | None:
     value = os.getenv("DATABASE_URL", "").strip()
     return value or None
+
+
+def _get_matches_per_article() -> int:
+    value = os.getenv("AI_RAG_MATCHES_PER_ARTICLE", "3").strip()
+
+    try:
+        return max(1, min(int(value), 5))
+    except ValueError:
+        return 3
 
 
 @lru_cache(maxsize=1)
@@ -108,11 +118,90 @@ def _payload_int(payload: dict[str, Any], name: str) -> int:
     return int(value) if value is not None else 0
 
 
-def _payload_text(payload: dict[str, Any]) -> str:
-    text = str(payload.get("text") or "")
-    max_chars = int(os.getenv("AI_RAG_SNIPPET_CHARS", "900"))
+def _clean_snippet_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def _query_terms(query: str) -> list[str]:
+    terms: list[str] = []
+    seen: set[str] = set()
+
+    for raw_term in re.findall(r"[\w-]{4,}", query.lower(), flags=re.UNICODE):
+        variants = [raw_term]
+        if len(raw_term) >= 7:
+            variants.append(raw_term[:6])
+
+        for term in variants:
+            if term in seen:
+                continue
+
+            seen.add(term)
+            terms.append(term)
+
+    return terms
+
+
+def _find_relevant_position(text: str, query: str) -> int | None:
+    lowered_text = text.lower()
+    positions = [
+        position
+        for term in _query_terms(query)
+        if (position := lowered_text.find(term)) >= 0
+    ]
+
+    return min(positions) if positions else None
+
+
+def _slice_around_position(text: str, position: int, max_chars: int) -> str:
+    start = max(0, position - max_chars // 3)
+    end = min(len(text), start + max_chars)
+    start = max(0, end - max_chars)
+
+    if start > 0:
+        boundary = max(
+            text.rfind(". ", 0, start + 1),
+            text.rfind("; ", 0, start + 1),
+            text.rfind("! ", 0, start + 1),
+            text.rfind("? ", 0, start + 1),
+        )
+        if boundary >= max(0, start - 80):
+            start = boundary + 2
+
+    if end < len(text):
+        boundary = min(
+            [
+                candidate
+                for candidate in (
+                    text.find(". ", end),
+                    text.find("; ", end),
+                    text.find("! ", end),
+                    text.find("? ", end),
+                )
+                if candidate >= 0
+            ],
+            default=-1,
+        )
+        if end <= boundary <= min(len(text), end + 80):
+            end = boundary + 1
+
+    snippet = text[start:end].strip()
+    if start > 0:
+        snippet = "..." + snippet
+    if end < len(text):
+        snippet = snippet.rstrip() + "..."
+
+    return snippet
+
+
+def _payload_text(payload: dict[str, Any], query: str) -> str:
+    text = _clean_snippet_text(str(payload.get("text") or ""))
+    max_chars = int(os.getenv("AI_RAG_SNIPPET_CHARS", "360"))
     if len(text) <= max_chars:
         return text
+
+    relevant_position = _find_relevant_position(text, query)
+    if relevant_position is not None:
+        return _slice_around_position(text, relevant_position, max_chars)
 
     return text[:max_chars].rstrip() + "..."
 
@@ -174,7 +263,7 @@ def _search_chunks(query: str, limit: int) -> RagSearchRetrieval:
                 page_number=_payload_int(payload, "page_number"),
                 chunk_index=_payload_int(payload, "chunk_index"),
                 score=float(point.score or 0),
-                text=_payload_text(payload),
+                text=_payload_text(payload, query),
             )
         )
 
@@ -185,8 +274,13 @@ def _search_chunks(query: str, limit: int) -> RagSearchRetrieval:
     )
     article_ids = _filter_existing_article_ids(candidate_article_ids)[:limit]
     matches = [
-        sorted(matches_by_article[article_id], key=lambda match: match.score, reverse=True)[0]
+        match
         for article_id in article_ids
+        for match in sorted(
+            matches_by_article[article_id],
+            key=lambda item: item.score,
+            reverse=True,
+        )[:_get_matches_per_article()]
     ]
 
     return RagSearchRetrieval(
