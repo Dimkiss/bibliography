@@ -114,6 +114,24 @@
   margin-top: var(--space-1);
 }
 
+.matchList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  white-space: normal;
+}
+
+.matchList li {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-outline);
+  color: var(--color-text-secondary);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+}
+
 .assistantMessage {
   align-self: flex-start;
   background: var(--header-item);

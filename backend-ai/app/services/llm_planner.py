@@ -86,7 +86,7 @@ def _build_prompt(message: str) -> str:
 - intent: "search" или "clarify"
 - filters.databases: только "wos", "scopus", "white_list", "rinc", "vak"
 - filters.original_translation_mode: "all", "original_only", "translation_only"
-- semantic.scope: "metadata"
+- semantic.scope: "metadata", "pdf" или "metadata_and_pdf"
 - sort.by: "authors", "title", "journal", "year", "doi", "quartile", "relevance"
 - sort.order: "asc", "desc"
 
@@ -100,6 +100,12 @@ def _build_prompt(message: str) -> str:
 - text_query должен содержать только полезные термины поиска, без слов "найди", "статьи", "публикации".
 - filters.refine_text_query всегда оставляй null, уточнение текущей выдачи обрабатывает сервис.
 - filters.pdf_text_query заполняй только если пользователь явно просит искать в PDF, полном тексте, тексте статьи или внутри публикации.
+- semantic.query используй только для семантического RAG-поиска по PDF.
+- Если filters.pdf_text_query заполнен, semantic.query тоже должен быть заполнен.
+- semantic.query должен быть краткой поисковой фразой для векторного поиска по PDF: сохрани исходные важные термины пользователя и добавь общеупотребимые русские/английские эквиваленты, аббревиатуры и научные варианты, если они очевидны из самого запроса.
+- Не добавляй в semantic.query факты, имена, годы, места, вещества или термины, которых нет в запросе и которые не являются прямым переводом/общепринятым синонимом.
+- Для PDF-поиска ставь semantic.scope = "pdf", если нет отдельного поиска по метаданным, или "metadata_and_pdf", если одновременно заполнены filters.text_query/title/author/journal/keyword и filters.pdf_text_query.
+- Если filters.pdf_text_query пуст, semantic.query оставляй null, semantic.scope = "metadata".
 - Если пользователь указал период, заполни year_from/year_to.
 - "за последние N лет" означает от current_year - N до current_year.
 - Заполняй filters.databases только если пользователь явно назвал конкретную базу: Scopus, Web of Science, WoS, РИНЦ, ВАК или белый список.
@@ -108,7 +114,6 @@ def _build_prompt(message: str) -> str:
 - Для обычной темы используй filters.text_query, а filters.keyword оставляй [].
 - filters.keyword заполняй только если пользователь явно просит искать именно по ключевым словам или перечисляет ключевые слова.
 - Не заполняй article_ids, они всегда [].
-- semantic.query пока null, semantic.scope всегда "metadata".
 - Для тематических запросов ставь sort.by = "relevance", sort.order = "desc".
 - Если пользователь явно просит свежие, новые или последние публикации, ставь sort.by = "year", sort.order = "desc".
 - Если пользователь просит искать "среди результатов", "среди найденных", "среди них", верни intent = "clarify", filters оставь пустыми и объясни, что уточнение среди найденных пока не подключено.
@@ -157,6 +162,23 @@ def _message_mentions_database(message: str) -> bool:
 def _normalize_plan(plan: SearchPlanResponse, message: str) -> SearchPlanResponse:
     if not _message_mentions_database(message):
         plan.filters.databases = []
+
+    has_pdf_query = bool(plan.filters.pdf_text_query and plan.filters.pdf_text_query.strip())
+    has_metadata_query = bool(
+        (plan.filters.text_query and plan.filters.text_query.strip())
+        or (plan.filters.title and plan.filters.title.strip())
+        or (plan.filters.author and plan.filters.author.strip())
+        or (plan.filters.journal and plan.filters.journal.strip())
+        or any(value.strip() for value in plan.filters.keyword)
+    )
+
+    if has_pdf_query:
+        if not plan.semantic.query or not plan.semantic.query.strip():
+            plan.semantic.query = plan.filters.pdf_text_query
+        plan.semantic.scope = "metadata_and_pdf" if has_metadata_query else "pdf"
+    else:
+        plan.semantic.query = None
+        plan.semantic.scope = "metadata"
 
     return plan
 

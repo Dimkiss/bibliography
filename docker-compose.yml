@@ -44,8 +44,13 @@ services:
       DATABASE_URL: mysql+pymysql://root:root@db:3306/bibl_new
       CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
       AI_LLM_ENABLED: "true"
+      AI_RAG_ENABLED: "true"
+      AI_EMBEDDING_MODEL: intfloat/multilingual-e5-large
+      AI_EMBEDDING_CACHE_DIR: /app/model-cache
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: qwen2.5:3b-instruct
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: publication_pdf_chunks
     ports:
       - "8001:8001"
     volumes:
@@ -53,9 +58,47 @@ services:
       - ./backend-ai/scripts:/app/scripts
       - ./backend:/backend:ro
       - ./db:/app/db
+      - ai-model-cache:/app/model-cache
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload", "--reload-dir", "/app/app"]
     depends_on:
       - ollama
+      - qdrant
+
+  ai-indexer-gpu:
+    build:
+      context: ./backend-ai
+      dockerfile: Dockerfile.gpu-indexer
+    container_name: bibliography-ai-indexer-gpu
+    profiles:
+      - tools
+    environment:
+      AI_EMBEDDING_MODEL: intfloat/multilingual-e5-large
+      AI_EMBEDDING_DEVICE: cuda
+      AI_EMBEDDING_CACHE_DIR: /app/model-cache
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: publication_pdf_chunks
+    volumes:
+      - ./backend-ai/scripts:/app/scripts
+      - ./db:/app/db
+      - ai-model-cache:/app/model-cache
+    depends_on:
+      - qdrant
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.5
+    container_name: bibliography-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
 
   ollama:
     image: ollama/ollama:latest
@@ -88,3 +131,5 @@ volumes:
   db-data:
   frontend-node-modules:
   ollama-data:
+  qdrant-data:
+  ai-model-cache:

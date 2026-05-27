@@ -3,7 +3,10 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { Button } from '@/shared/ui/Button';
 import { Icon } from '@/shared/ui/Icon';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
-import type { AiPublicationSearchPlanDto } from '@/entities/publication';
+import type {
+  AiPublicationRagSearchDto,
+  AiPublicationSearchPlanDto,
+} from '@/entities/publication';
 import styles from './PublicationAiSearchChat.module.css';
 
 type ChatMessage = {
@@ -11,12 +14,13 @@ type ChatMessage = {
   role: 'user' | 'assistant' | 'error';
   text: string;
   plan?: AiPublicationSearchPlanDto;
+  retrieval?: AiPublicationRagSearchDto['retrieval'];
 };
 
 type PublicationAiSearchChatProps = {
   isPlanning: boolean;
   resetRevision: number;
-  onSubmit: (message: string) => Promise<AiPublicationSearchPlanDto | null>;
+  onSubmit: (message: string) => Promise<AiPublicationRagSearchDto | null>;
   onReset: () => void;
 };
 
@@ -99,7 +103,25 @@ function formatPlanItems(plan: AiPublicationSearchPlanDto): string[] {
     items.push(`Версии: ${originalTranslationLabel}`);
   }
 
+  if (filters.article_ids.length) {
+    items.push(`RAG: ${filters.article_ids.length} публикаций по PDF-фрагментам`);
+  }
+
   return items;
+}
+
+function formatRetrievalItems(
+  retrieval?: AiPublicationRagSearchDto['retrieval'],
+): string[] {
+  if (!retrieval || retrieval.status !== 'ok') {
+    return [];
+  }
+
+  return retrieval.matches.slice(0, 3).map((match) => {
+    const page =
+      match.page_number > 0 ? `стр. ${match.page_number}` : 'страница не указана';
+    return `#${match.article_id}, ${page}: ${match.text}`;
+  });
 }
 
 export function PublicationAiSearchChat({
@@ -142,11 +164,12 @@ export function PublicationAiSearchChat({
     addMessage({ role: 'user', text: message });
 
     try {
-      const plan = await onSubmit(message);
+      const ragSearch = await onSubmit(message);
       addMessage({
         role: 'assistant',
-        text: plan?.explanation ?? 'Параметры применены к выдаче.',
-        plan: plan ?? undefined,
+        text: ragSearch?.plan.explanation ?? 'Параметры применены к выдаче.',
+        plan: ragSearch?.plan,
+        retrieval: ragSearch?.retrieval,
       });
     } catch (caughtError) {
       addMessage({
@@ -214,6 +237,13 @@ export function PublicationAiSearchChat({
                 {message.plan ? (
                   <ul className={styles.planList}>
                     {formatPlanItems(message.plan).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                {formatRetrievalItems(message.retrieval).length ? (
+                  <ul className={styles.matchList}>
+                    {formatRetrievalItems(message.retrieval).map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>

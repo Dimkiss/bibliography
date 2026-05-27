@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   buildPublicationsQueryFromForm,
-  createAiPublicationSearchPlan,
+  createAiPublicationRagSearch,
   getPublicationFilters,
   getPublications,
   hasPublicationSearchCriteria,
   INITIAL_PUBLICATION_SEARCH_FORM,
   SEARCH_FIELD_OPTIONS,
   type FilterOptionDto,
+  type AiPublicationRagSearchDto,
   type AiPublicationSearchPlanDto,
   type AiPublicationSearchPlanFiltersDto,
   type PublicationFiltersDto,
@@ -64,6 +65,7 @@ function cloneSearchForm(
     ...form,
     publicationTypes: [...form.publicationTypes],
     databases: [...form.databases],
+    articleIds: [...form.articleIds],
   };
 }
 
@@ -123,6 +125,9 @@ function normalizeSearchForm(value: unknown): PublicationSearchFormState {
       typeof form.originalTranslationMode === 'string'
         ? form.originalTranslationMode
         : 'all',
+    articleIds: Array.isArray(form.articleIds)
+      ? form.articleIds.filter((item): item is number => Number.isInteger(item) && item > 0)
+      : [],
   };
 }
 
@@ -222,7 +227,7 @@ function buildAiFiltersFromForm(
       form.originalTranslationMode === 'translation_only'
         ? form.originalTranslationMode
         : 'all',
-    article_ids: [],
+    article_ids: [...form.articleIds],
   };
 }
 
@@ -284,6 +289,10 @@ function getInitialSearchStateFromUrl(): {
     originalTranslationMode:
       searchParams.get('original_translation_mode') ??
       INITIAL_PUBLICATION_SEARCH_FORM.originalTranslationMode,
+    articleIds: searchParams
+      .getAll('article_ids')
+      .map((value) => Number(value))
+      .filter((value) => Number.isInteger(value) && value > 0),
   };
 
   if (query.trim()) {
@@ -386,6 +395,10 @@ function buildPublicationsUrl(
 
   appendSearchParamList(searchParams, 'publication_types', form.publicationTypes);
   appendSearchParamList(searchParams, 'databases', form.databases);
+
+  form.articleIds.forEach((articleId) => {
+    searchParams.append('article_ids', String(articleId));
+  });
 
   if (form.originalTranslationMode.trim() && form.originalTranslationMode !== 'all') {
     searchParams.set('original_translation_mode', form.originalTranslationMode.trim());
@@ -767,7 +780,7 @@ export function usePublicationsSearchPageState() {
 
   const handleAiSearch = async (
     messageOverride?: string,
-  ): Promise<AiPublicationSearchPlanDto | null> => {
+  ): Promise<AiPublicationRagSearchDto | null> => {
     const message = (messageOverride ?? aiSearchQuery).trim();
 
     if (!message) {
@@ -782,18 +795,21 @@ export function usePublicationsSearchPageState() {
       const currentFilters = hasSearched
         ? buildAiFiltersFromForm(appliedForm, appliedFields)
         : undefined;
-      const plan = await createAiPublicationSearchPlan(message, currentFilters);
+      const ragSearch = await createAiPublicationRagSearch(message, currentFilters);
+      const plan = ragSearch.plan;
       setAiSearchExplanation(plan.explanation);
 
       if (plan.intent === 'clarify' || !hasAiSearchPlanCriteria(plan)) {
-        return plan;
+        return ragSearch;
       }
 
       const nextForm: PublicationSearchFormState = {
         ...cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM),
         textQuery: plan.filters.text_query ?? '',
         refineTextQuery: plan.filters.refine_text_query ?? '',
-        pdfTextQuery: plan.filters.pdf_text_query ?? '',
+        pdfTextQuery: plan.filters.article_ids.length
+          ? ''
+          : plan.filters.pdf_text_query ?? '',
         title: plan.filters.title ?? '',
         author: plan.filters.author ?? '',
         journal: plan.filters.journal ?? '',
@@ -809,6 +825,7 @@ export function usePublicationsSearchPageState() {
         publicationTypes: plan.filters.publication_types,
         databases: plan.filters.databases,
         originalTranslationMode: plan.filters.original_translation_mode,
+        articleIds: plan.filters.article_ids,
       };
       const nextActiveFields = SEARCH_FIELD_OPTIONS.map((option) => option.key).filter(
         (field) => nextForm[field].trim(),
@@ -830,7 +847,7 @@ export function usePublicationsSearchPageState() {
       }));
       setSortField(plan.sort.by);
       setSortOrder(plan.sort.order);
-      return plan;
+      return ragSearch;
     } catch (caughtError) {
       const messageText =
         caughtError instanceof Error

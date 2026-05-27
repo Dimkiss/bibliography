@@ -1,0 +1,2 @@
+fastembed-gpu==0.7.3
+qdrant-client==1.16.1

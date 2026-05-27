@@ -149,6 +149,25 @@ export type AiPublicationSearchPlanDto = {
   };
 };
 
+export type AiPublicationRagChunkMatchDto = {
+  article_id: number;
+  page_number: number;
+  chunk_index: number;
+  score: number;
+  text: string;
+};
+
+export type AiPublicationRagSearchDto = {
+  plan: AiPublicationSearchPlanDto;
+  retrieval: {
+    status: 'ok' | 'skipped' | 'disabled' | 'error' | string;
+    query: string | null;
+    article_ids: number[];
+    matches: AiPublicationRagChunkMatchDto[];
+    error: string | null;
+  };
+};
+
 function splitSearchValues(value: string): string[] {
   return value
     .split(/[;,\n]/)
@@ -359,6 +378,30 @@ export async function createAiPublicationSearchPlan(
       'content-type': 'application/json',
     },
     body: JSON.stringify({ message, current_filters: currentFilters ?? null }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+
+  return response.json();
+}
+
+export async function createAiPublicationRagSearch(
+  message: string,
+  currentFilters?: AiPublicationSearchPlanFiltersDto,
+): Promise<AiPublicationRagSearchDto> {
+  const response = await fetch(`${AI_API_BASE_URL}/ai/publications/rag-search`, {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      message,
+      current_filters: currentFilters ?? null,
+      limit: 30,
+    }),
   });
 
   if (!response.ok) {
