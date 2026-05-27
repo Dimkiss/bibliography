@@ -85,10 +85,12 @@ export function AnalyticsPanel({
           Аналитическая панель
         </h2>
 
-        {isLoading && <div className={styles.state}>Загрузка аналитики...</div>}
-        {!isLoading && error && <div className={styles.state}>{error}</div>}
+        {isLoading && !data && (
+          <div className={styles.state}>Загрузка аналитики...</div>
+        )}
+        {error && !data && <div className={styles.state}>{error}</div>}
 
-        {!isLoading && !error && data && (
+        {data && (
           <div className={styles.grid}>
             <AnalyticsYearsCard
               data={data.years.series}
