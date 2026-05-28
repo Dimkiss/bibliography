@@ -283,9 +283,11 @@
   min-width: 32px;
   min-height: 28px;
   padding: 4px 12px;
+  border: none;
   border-radius: var(--radius-pill);
   background: var(--button-tonal);
   color: var(--color-icon-muted);
+  cursor: pointer;
   font-family: var(--font-family-ui);
   font-size: var(--type-body-md-size);
   font-weight: var(--font-weight-medium);
@@ -293,6 +295,16 @@
   letter-spacing: var(--type-label-md-letter);
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.keyword:hover {
+  background: var(--state-primary-hover);
+  color: var(--blue);
+}
+
+.keyword:focus-visible {
+  outline: 2px solid rgba(90, 132, 239, 0.38);
+  outline-offset: 2px;
 }
 
 .emptyText {

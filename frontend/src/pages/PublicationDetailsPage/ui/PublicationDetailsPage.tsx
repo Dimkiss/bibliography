@@ -43,6 +43,18 @@ function downloadPublicationPdf(articleId: number) {
   link.remove();
 }
 
+function buildKeywordSearchPath(keyword: string): string {
+  const searchParams = new URLSearchParams();
+  searchParams.set('keyword', keyword);
+  searchParams.set('page', '1');
+  searchParams.set('page_size', '10');
+  searchParams.set('sort_by', 'year');
+  searchParams.set('sort_order', 'desc');
+  searchParams.set('view', 'list');
+
+  return `/articles?${searchParams.toString()}`;
+}
+
 function formatMetricValue(metric: PublicationMetricDto): string {
   return metric.value || '—';
 }
@@ -502,9 +514,15 @@ export function PublicationDetailsPage() {
                     <div className={styles.sectionBody}>
                       <div className={styles.keywords}>
                         {item.keywords.map((keyword) => (
-                          <span key={keyword} className={styles.keyword}>
+                          <button
+                            key={keyword}
+                            type="button"
+                            className={styles.keyword}
+                            onClick={() => navigateTo(buildKeywordSearchPath(keyword))}
+                            aria-label={`Найти публикации по ключевому слову ${keyword}`}
+                          >
                             {keyword}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>
