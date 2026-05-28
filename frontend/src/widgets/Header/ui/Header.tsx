@@ -26,12 +26,20 @@ const baseNavItems = [
   { id: 'about', label: 'О проекте', iconName: 'info-outline', path: '/about' },
 ] as const;
 
-const adminNavItem = {
-  id: 'user-management',
-  label: 'Управление пользователями',
-  iconName: 'gmail_groups',
-  path: '/user-management',
-} as const;
+const adminNavItems = [
+  {
+    id: 'user-management',
+    label: 'Управление пользователями',
+    iconName: 'gmail_groups',
+    path: '/user-management',
+  },
+  {
+    id: 'author-management',
+    label: 'Управление авторами',
+    iconName: 'person',
+    path: '/author-management',
+  },
+] as const;
 
 type HeaderActionVariant = 'default' | 'hidden' | 'logout';
 
@@ -84,7 +92,7 @@ export function Header({
   const isAdmin = isAuthenticated && user?.role_id === ADMIN_ROLE_ID;
 
   const navItems = useMemo(() => {
-    return isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
+    return isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
   }, [isAdmin]);
 
   const activeItem = useMemo(

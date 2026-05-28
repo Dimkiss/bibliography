@@ -10,6 +10,7 @@ import { EditionDetailsPage } from '@/pages/EditionDetailsPage';
 import { PublicationDetailsPage } from '@/pages/PublicationDetailsPage';
 import { PublicationsCreatePage } from '@/pages/PublicationsCreatePage';
 import { UserManagementPage } from '@/pages/UserManagementPage';
+import { AuthorManagementPage } from '@/pages/AuthorManagementPage';
 import { AuthProvider } from '@/features/auth';
 import {
   getCurrentNavigationPath,
@@ -51,6 +52,10 @@ function AppRoutes() {
 
   if (pathname === '/user-management') {
     return <UserManagementPage />;
+  }
+
+  if (pathname === '/author-management') {
+    return <AuthorManagementPage />;
   }
 
   if (pathname === '/articles/create') {

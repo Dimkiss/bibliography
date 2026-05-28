@@ -8,6 +8,13 @@ export type AuthUser = {
   department_name: string | null;
   author_id: number | null;
   author_name: string | null;
+  position: string | null;
+  degree: string | null;
+  rank: string | null;
+  email: string | null;
+  orcid: string | null;
+  scopus_id: string | null;
+  wos_id: string | null;
 };
 
 export type LoginPayload = {

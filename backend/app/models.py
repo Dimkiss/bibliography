@@ -33,9 +33,17 @@ class Author(Base):
 
     authorID = Column(Integer, primary_key=True, index=True)
     authorName = Column(String(100), nullable=False)
+    position = Column(String(100), nullable=True)
+    degree = Column(String(50), nullable=True)
+    rank = Column(String(50), nullable=True)
+    email = Column(String(50), nullable=True)
+    WOS_ID = Column(String(100), nullable=True)
+    Scopus_ID = Column(String(20), nullable=True)
+    ORCID = Column(String(100), nullable=True)
     DepartmentCode = Column(Integer, ForeignKey("departments.DepartmentCode"), nullable=True)
 
     users = relationship("User", back_populates="author")
+    department = relationship("Department", foreign_keys=[DepartmentCode], primaryjoin="Author.DepartmentCode == Department.DepartmentCode")
 
 
 class User(Base):

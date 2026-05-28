@@ -30,4 +30,11 @@ def read_me(current_user: User = Depends(get_current_user)):
         "department_name": current_user.department.DepartmentName if current_user.department else None,
         "author_id": current_user.author_id,
         "author_name": current_user.author.authorName if current_user.author else None,
+        "position": current_user.author.position if current_user.author else None,
+        "degree": current_user.author.degree if current_user.author else None,
+        "rank": current_user.author.rank if current_user.author else None,
+        "email": current_user.author.email if current_user.author else None,
+        "orcid": current_user.author.ORCID if current_user.author else None,
+        "scopus_id": current_user.author.Scopus_ID if current_user.author else None,
+        "wos_id": current_user.author.WOS_ID if current_user.author else None,
     }
