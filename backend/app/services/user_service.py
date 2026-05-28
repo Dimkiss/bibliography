@@ -47,6 +47,7 @@ def serialize_author(author: Author) -> dict:
     return {
         "id": author.authorID,
         "name": author.authorName,
+        "department_id": author.DepartmentCode,
         "linked_user_id": linked_user.id if linked_user else None,
         "linked_user_login": linked_user.login if linked_user else None,
         "is_available": linked_user is None,

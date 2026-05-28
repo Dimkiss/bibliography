@@ -27,6 +27,7 @@ export type DepartmentDto = {
 export type AuthorDto = {
   id: number;
   name: string;
+  department_id: number | null;
   linked_user_id: number | null;
   linked_user_login: string | null;
   is_available: boolean;

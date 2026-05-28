@@ -33,6 +33,7 @@ class Author(Base):
 
     authorID = Column(Integer, primary_key=True, index=True)
     authorName = Column(String(100), nullable=False)
+    DepartmentCode = Column(Integer, ForeignKey("departments.DepartmentCode"), nullable=True)
 
     users = relationship("User", back_populates="author")
 

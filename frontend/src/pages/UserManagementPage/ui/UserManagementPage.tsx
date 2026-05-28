@@ -176,11 +176,41 @@ export function UserManagementPage() {
   }, [isAuthenticated, isInitializing, isAdmin]);
 
   const handleFormChange = (field: keyof FormState, value: string) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+
+      // Выбрали автора → автоматически выставляем его подразделение
+      if (field === 'author_id' && value) {
+        const author = authors.find((a) => String(a.id) === value);
+        if (author?.department_id != null) {
+          next.department_id = String(author.department_id);
+        }
+      }
+
+      // Сменили подразделение → сбрасываем автора, если он из другого подразделения
+      if (field === 'department_id' && prev.author_id) {
+        const currentAuthor = authors.find((a) => String(a.id) === prev.author_id);
+        if (
+          currentAuthor &&
+          currentAuthor.department_id != null &&
+          String(currentAuthor.department_id) !== value
+        ) {
+          next.author_id = '';
+        }
+      }
+
+      return next;
+    });
   };
+
+  // Авторы, доступные для выбора с учётом текущего подразделения в форме
+  const filteredAuthors = form.department_id
+    ? authors.filter(
+        (a) =>
+          a.department_id == null ||
+          String(a.department_id) === form.department_id,
+      )
+    : authors;
 
   const handleStartCreate = async () => {
     setEditingUserId(null);
@@ -573,7 +603,7 @@ export function UserManagementPage() {
                     }
                   >
                     <option value="">Без автора</option>
-                    {authors.map((author) => (
+                    {filteredAuthors.map((author) => (
                       <option key={author.id} value={String(author.id)}>
                         {author.name}
                         {!author.is_available && author.linked_user_login
