@@ -1,0 +1,189 @@
+.authorBlock,
+.publicationsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: 20px 24px;
+}
+
+.state {
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.errorBanner {
+  padding: 14px var(--space-6);
+  border: 1px solid rgba(186, 26, 26, 0.18);
+  border-radius: 16px;
+  background: rgba(186, 26, 26, 0.08);
+  color: var(--color-danger);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.authorHeader,
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.name {
+  margin: 0 0 var(--space-4);
+  color: var(--blue);
+  font-family: var(--font-family-ui);
+  font-size: 22px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.metaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 14px;
+  border: 1px solid var(--color-outline-soft);
+  border-radius: var(--radius);
+  background: var(--color-surface-metric);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+  white-space: nowrap;
+}
+
+.metaChipLabel,
+.infoLabel,
+.filterLabel {
+  color: var(--color-text-subtle);
+  font-weight: var(--font-weight-medium);
+}
+
+.metaChipSep {
+  color: var(--color-outline-strong);
+}
+
+.metaChipValue,
+.infoValue {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--color-outline-soft);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-metric);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.infoValue {
+  overflow-wrap: anywhere;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--color-text-title);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-title-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-title-md-line);
+}
+
+.statsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1 1 100px;
+  min-width: 80px;
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--color-outline-soft);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-metric);
+  text-align: center;
+}
+
+.statValue {
+  color: var(--color-primary);
+  font-family: var(--font-family-ui);
+  font-size: 22px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 28px;
+}
+
+.statLabel {
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-sm-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-sm-line);
+  letter-spacing: var(--type-label-sm-letter);
+}
+
+.filtersRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.filterLabel {
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .infoGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .authorBlock,
+  .publicationsBlock {
+    padding: var(--space-6);
+  }
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .name {
+    font-size: 18px;
+  }
+}

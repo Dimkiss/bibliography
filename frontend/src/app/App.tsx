@@ -11,6 +11,7 @@ import { PublicationDetailsPage } from '@/pages/PublicationDetailsPage';
 import { PublicationsCreatePage } from '@/pages/PublicationsCreatePage';
 import { UserManagementPage } from '@/pages/UserManagementPage';
 import { AuthorManagementPage } from '@/pages/AuthorManagementPage';
+import { AuthorDetailsPage } from '@/pages/AuthorDetailsPage';
 import { AuthProvider } from '@/features/auth';
 import {
   getCurrentNavigationPath,
@@ -38,6 +39,10 @@ function AppRoutes() {
     return /^\/journals\/(?:periodical|nonperiodical)\/\d+$/.test(pathname);
   }, [pathname]);
 
+  const isAuthorDetailsPage = useMemo(() => {
+    return /^\/authors\/\d+$/.test(pathname);
+  }, [pathname]);
+
   if (pathname === '/login') {
     return <LoginPage />;
   }
@@ -56,6 +61,10 @@ function AppRoutes() {
 
   if (pathname === '/author-management') {
     return <AuthorManagementPage />;
+  }
+
+  if (isAuthorDetailsPage) {
+    return <AuthorDetailsPage key={locationPath} />;
   }
 
   if (pathname === '/articles/create') {

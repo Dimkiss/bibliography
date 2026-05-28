@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.dependencies.auth import require_admin
 from app.models import User
 from app.schemas.author import AuthorCreate, AuthorUpdate
+from app.services import profile_service
 from app.services.author_service import (
     list_authors_full,
     get_author_by_id,
@@ -32,6 +33,52 @@ def admin_get_author(
     db: Session = Depends(get_db),
 ):
     return serialize_author_full(get_author_by_id(db, author_id))
+
+
+@router.get("/{author_id}/publications")
+def admin_get_author_publications(
+    author_id: int,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(
+        profile_service.DEFAULT_PAGE_SIZE,
+        ge=1,
+        le=profile_service.MAX_PAGE_SIZE,
+    ),
+    year_from: int | None = Query(None, ge=1900, le=2100),
+    year_to: int | None = Query(None, ge=1900, le=2100),
+    sort_by: str = Query("year"),
+    sort_order: str = Query("desc"),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    get_author_by_id(db, author_id)
+    return profile_service.get_profile_publications(
+        db=db,
+        author_id=author_id,
+        page=page,
+        page_size=page_size,
+        year_from=year_from,
+        year_to=year_to,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+
+
+@router.get("/{author_id}/stats")
+def admin_get_author_stats(
+    author_id: int,
+    year_from: int | None = Query(None, ge=1900, le=2100),
+    year_to: int | None = Query(None, ge=1900, le=2100),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    get_author_by_id(db, author_id)
+    return profile_service.get_profile_stats(
+        db=db,
+        author_id=author_id,
+        year_from=year_from,
+        year_to=year_to,
+    )
 
 
 @router.post("", status_code=201)
