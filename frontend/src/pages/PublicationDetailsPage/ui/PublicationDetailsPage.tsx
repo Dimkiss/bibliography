@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 
 import { Footer } from '@/widgets/Footer';
 import { Header } from '@/widgets/Header';
@@ -141,6 +141,20 @@ function RelatedPublicationCard({
   item: RelatedPublicationDto;
 }) {
   const doiUrl = buildDoiUrl(item.doi);
+  const handleTitleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    navigateTo(`/articles/${item.id}`);
+  };
 
   return (
     <div className={styles.relatedSection}>
@@ -148,13 +162,13 @@ function RelatedPublicationCard({
 
       <div className={styles.relatedCard}>
         <div className={styles.relatedMain}>
-          <button
-            type="button"
+          <a
             className={styles.relatedTitleButton}
-            onClick={() => navigateTo(`/articles/${item.id}`)}
+            href={`/articles/${item.id}`}
+            onClick={handleTitleClick}
           >
             {item.title || 'Без названия'}
-          </button>
+          </a>
 
           <div className={styles.relatedAuthors}>
             {item.authors || 'Авторы не указаны'}

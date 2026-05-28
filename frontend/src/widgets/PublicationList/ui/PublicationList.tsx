@@ -83,6 +83,7 @@ export function PublicationList() {
               journal={item.journal}
               year={item.year}
               doi={item.doi}
+              href={`/articles/${item.id}`}
               onClick={() => navigateTo(`/articles/${item.id}`)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
