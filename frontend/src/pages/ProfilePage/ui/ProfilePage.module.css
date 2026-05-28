@@ -1,79 +1,83 @@
-.card {
-  width: min(100%, 720px);
-  margin: 0 auto;
-  padding: var(--space-8);
-  border: 1px solid var(--Text-field);
-  border-radius: 24px;
-  background: var(--color-surface);
-  box-shadow: 0 12px 40px rgba(14, 26, 53, 0.08);
+/* ─── Блок профиля сотрудника ──────────────────────────────────────────────── */
+
+.profileBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: 20px 24px;
 }
 
-.cardHeader {
-  display: grid;
-  gap: var(--space-3);
-  margin-bottom: var(--space-7);
-}
-
-.title {
+.name {
   margin: 0;
   color: var(--blue);
   font-family: var(--font-family-ui);
-  font-size: 32px;
+  font-size: 22px;
   font-weight: var(--font-weight-medium);
-  line-height: 40px;
+  line-height: 1.3;
 }
 
-.subtitle {
-  margin: 0;
-  color: var(--Scrollbar);
-  font-family: var(--font-family-ui);
-  font-size: var(--type-body-lg-size);
-  line-height: var(--type-body-lg-line);
-}
-
-.infoGrid {
-  display: grid;
-  gap: var(--space-6);
-}
-
-.item {
-  display: grid;
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  padding: 16px 20px;
-  border: 1px solid var(--Text-field);
-  border-radius: 16px;
-  background: var(--color-surface);
 }
 
-.itemLabel {
-  color: var(--Scrollbar);
+.metaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-outline-soft);
+  border-radius: var(--radius);
+  background: var(--color-surface-metric);
   font-family: var(--font-family-ui);
-  font-size: var(--type-label-md-size);
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.metaChipLabel {
+  color: var(--color-text-subtle);
   font-weight: var(--font-weight-medium);
-  line-height: var(--type-label-md-line);
 }
 
-.itemValue {
-  color: var(--blue);
-  font-family: var(--font-family-ui);
-  font-size: 18px;
-  line-height: 28px;
-  word-break: break-word;
+.metaChipSep {
+  color: var(--color-outline-strong);
 }
+
+.metaChipValue {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ─── Блок публикаций ──────────────────────────────────────────────────────── */
+
+.publicationsBlock {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+}
+
+/* ─── Заглушка без автора ─────────────────────────────────────────────────── */
+
+.noAuthorText {
+  margin: var(--space-4) 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* ─── Мобилка ─────────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
-  .card {
-    padding: 20px;
-    border-radius: 20px;
+  .profileBlock,
+  .publicationsBlock {
+    padding: 16px;
   }
 
-  .title {
-    font-size: var(--type-title-lg-size);
-    line-height: var(--type-title-lg-line);
-  }
-
-  .itemValue {
-    font-size: var(--type-body-lg-size);
-    line-height: var(--type-body-lg-line);
+  .name {
+    font-size: 18px;
   }
 }

@@ -13,6 +13,7 @@ from app.routers.admin_articles import router as admin_articles_router
 from app.routers import articles
 from app.routers import editions
 from app.routers.analytics import router as analytics_router
+from app.routers.profile import router as profile_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -44,3 +45,4 @@ app.include_router(admin_articles_router)
 app.include_router(articles.router)
 app.include_router(editions.router)
 app.include_router(analytics_router)
+app.include_router(profile_router)

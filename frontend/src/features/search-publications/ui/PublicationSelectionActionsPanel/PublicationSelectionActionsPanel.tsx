@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import type { PublicationListItemDto } from '@/entities/publication';
 import {
   getBibliographicReference,
@@ -10,6 +12,7 @@ type PublicationSelectionActionsPanelProps = {
   selectedItems: PublicationListItemDto[];
   onActionStart?: () => void;
   onActionMessage: (message: string) => void;
+  onDownloadReport?: () => Promise<void>;
 };
 
 function formatRecordsCountLabel(count: number): string {
@@ -35,7 +38,9 @@ export function PublicationSelectionActionsPanel({
   selectedItems,
   onActionStart,
   onActionMessage,
+  onDownloadReport,
 }: PublicationSelectionActionsPanelProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
   const selectedCount = selectedItems.length;
   const selectedPdfCount = selectedItems.filter((item) => item.has_pdf).length;
   const selectedReferenceCount = selectedItems.filter((item) =>
@@ -60,6 +65,19 @@ export function PublicationSelectionActionsPanel({
         ? `Открыто PDF: ${itemsWithPdf.length}.`
         : `Открыто PDF: ${itemsWithPdf.length} из ${selectedItems.length} выбранных.`,
     );
+  };
+
+  const handleDownloadReport = async () => {
+    if (!onDownloadReport) return;
+    setIsDownloading(true);
+    onActionStart?.();
+    try {
+      await onDownloadReport();
+    } catch {
+      onActionMessage('Не удалось сформировать отчёт.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleCopyReferences = async () => {
@@ -123,6 +141,20 @@ export function PublicationSelectionActionsPanel({
           <Icon name="copy" size={20} />
           <span>Копировать библ. ссылку</span>
         </button>
+
+        {onDownloadReport ? (
+          <button
+            type="button"
+            className={styles.actionButton}
+            onClick={() => {
+              void handleDownloadReport();
+            }}
+            disabled={isDownloading}
+          >
+            <Icon name="download" size={20} />
+            <span>{isDownloading ? 'Формирование...' : 'Отчёт (.xlsx)'}</span>
+          </button>
+        ) : null}
       </div>
     </div>
   );

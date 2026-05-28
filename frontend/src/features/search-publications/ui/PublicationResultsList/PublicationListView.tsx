@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, MouseEvent } from 'react';
 
 import {
   normalizeJournalName,
@@ -47,6 +47,26 @@ export function PublicationListView({
   onEdit,
   onRequestDelete,
 }: PublicationListViewProps) {
+  const handlePublicationLinkClick = (
+    event: MouseEvent<HTMLAnchorElement>,
+    articleId: number,
+  ) => {
+    event.stopPropagation();
+
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    onOpenPublication(articleId);
+  };
+
   return (
     <div className={styles.list}>
       {items.map((item, index) => {
@@ -87,7 +107,15 @@ export function PublicationListView({
             </div>
 
             <div className={styles.cardMain}>
-              <h3 className={styles.cardTitle}>{item.title || 'Без названия'}</h3>
+              <h3 className={styles.cardTitle}>
+                <a
+                  className={styles.publicationLink}
+                  href={`/articles/${item.id}`}
+                  onClick={(event) => handlePublicationLinkClick(event, item.id)}
+                >
+                  {item.title || 'Без названия'}
+                </a>
+              </h3>
               <p className={styles.authors}>{item.authors || 'Авторы не указаны'}</p>
               <div className={styles.cardDoi}>
                 <span>DOI:</span>

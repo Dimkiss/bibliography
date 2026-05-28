@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, MouseEvent } from 'react';
 
 import {
   normalizeJournalName,
@@ -66,6 +66,26 @@ export function PublicationTableView({
   onEdit,
   onRequestDelete,
 }: PublicationTableViewProps) {
+  const handlePublicationLinkClick = (
+    event: MouseEvent<HTMLAnchorElement>,
+    articleId: number,
+  ) => {
+    event.stopPropagation();
+
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    onOpenPublication(articleId);
+  };
+
   const handleTableSort = (field: PublicationsSortFieldValue) => {
     if (field === sortField) {
       onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -170,7 +190,13 @@ export function PublicationTableView({
                 </td>
                 <td>{item.authors || 'Авторы не указаны'}</td>
                 <td className={styles.tableTitleCell}>
-                  {item.title || 'Без названия'}
+                  <a
+                    className={styles.publicationLink}
+                    href={`/articles/${item.id}`}
+                    onClick={(event) => handlePublicationLinkClick(event, item.id)}
+                  >
+                    {item.title || 'Без названия'}
+                  </a>
                 </td>
                 <td>{normalizeJournalName(item.journal) || 'Издание не указано'}</td>
                 <td className={styles.yearCell}>{item.year ?? '—'}</td>

@@ -39,6 +39,7 @@ type PublicationResultsListProps = {
   onSortFieldChange: (value: PublicationsSortFieldValue) => void;
   onSortOrderChange: (value: PublicationSortOrder) => void;
   onPublicationDeleted?: (id: number) => void;
+  onDownloadReport?: (ids: number[]) => Promise<void>;
 };
 
 export function PublicationResultsList({
@@ -58,6 +59,7 @@ export function PublicationResultsList({
   onSortFieldChange,
   onSortOrderChange,
   onPublicationDeleted,
+  onDownloadReport,
 }: PublicationResultsListProps) {
   const { user, isAuthenticated } = useAuth();
   const isAdmin = Boolean(isAuthenticated && user?.role_id === ADMIN_ROLE_ID);
@@ -271,6 +273,11 @@ export function PublicationResultsList({
         selectedItems={selectedItems}
         onActionStart={() => setOpenActionMenuId(null)}
         onActionMessage={setActionMessage}
+        onDownloadReport={
+          onDownloadReport
+            ? () => onDownloadReport(selectedIds)
+            : undefined
+        }
       />
 
       {publicationToDelete ? (
