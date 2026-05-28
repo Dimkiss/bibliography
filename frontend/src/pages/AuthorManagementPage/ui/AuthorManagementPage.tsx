@@ -8,12 +8,18 @@ import { navigateTo } from '@/shared/lib/navigation';
 import { ADMIN_ROLE_ID } from '@/entities/role';
 import { Button } from '@/shared/ui/Button';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
+import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
 import { TextField } from '@/shared/ui/TextField';
+import { Icon } from '@/shared/ui/Icon';
+import { Checkbox } from '@/shared/ui/Checkbox';
 import {
   getAdminAuthorsFull,
   createAdminAuthor,
   updateAdminAuthor,
   deleteAdminAuthor,
+  downloadAdminAuthorsPublicationsReport,
+  downloadAdminAuthorsSummaryReport,
+  downloadAdminAuthorsExportReport,
   type AuthorFullDto,
 } from '@/features/manage-authors';
 import { getAdminDepartments, type DepartmentDto } from '@/features/manage-users';
@@ -42,8 +48,29 @@ const initialFormState: FormState = {
   department_id: '',
 };
 
+type AuthorSortField = 'id' | 'name' | 'department' | 'position';
+type SortOrder = 'asc' | 'desc';
+type AuthorReportKind = 'publications' | 'summary' | 'authors';
+const MIN_REPORT_YEAR = 1950;
+const CURRENT_YEAR = new Date().getFullYear();
+
 function getAuthorLabel(author: AuthorFullDto): string {
   return author.name;
+}
+
+function formatAuthorsCountLabel(count: number): string {
+  const mod10 = Math.abs(count) % 10;
+  const mod100 = Math.abs(count) % 100;
+
+  if (mod10 === 1 && mod100 !== 11) {
+    return 'автор';
+  }
+
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return 'автора';
+  }
+
+  return 'авторов';
 }
 
 export function AuthorManagementPage() {
@@ -58,40 +85,106 @@ export function AuthorManagementPage() {
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  const [selectedAuthorId, setSelectedAuthorId] = useState<number | null>(null);
   const [editingAuthorId, setEditingAuthorId] = useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
+  const [selectedAuthorIds, setSelectedAuthorIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [sortField, setSortField] = useState<AuthorSortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [form, setForm] = useState<FormState>(initialFormState);
+  const [reportYearRange, setReportYearRange] = useState({
+    from: String(MIN_REPORT_YEAR),
+    to: String(CURRENT_YEAR),
+  });
+  const [downloadingReport, setDownloadingReport] =
+    useState<AuthorReportKind | null>(null);
 
   const isAdmin = isAuthenticated && user?.role_id === ADMIN_ROLE_ID;
+  const isEditMode = editingAuthorId !== null;
+  const reportYearFromNumber = Number(reportYearRange.from);
+  const reportYearToNumber = Number(reportYearRange.to);
+  const isReportYearRangeValid =
+    Number.isInteger(reportYearFromNumber) &&
+    Number.isInteger(reportYearToNumber) &&
+    reportYearFromNumber >= MIN_REPORT_YEAR &&
+    reportYearToNumber <= CURRENT_YEAR &&
+    reportYearFromNumber <= reportYearToNumber;
+  const isAllReportYears =
+    isReportYearRangeValid &&
+    reportYearFromNumber === MIN_REPORT_YEAR &&
+    reportYearToNumber === CURRENT_YEAR;
+  const activeReportYearFrom = isAllReportYears ? null : reportYearFromNumber;
+  const activeReportYearTo = isAllReportYears ? null : reportYearToNumber;
 
   useEffect(() => {
     if (!isInitializing && !isAuthenticated) {
       navigateTo('/login');
       return;
     }
+
     if (!isInitializing && isAuthenticated && !isAdmin) {
       navigateTo('/');
     }
   }, [isAuthenticated, isInitializing, isAdmin]);
 
-  const selectedAuthor = useMemo(
-    () => authors.find((a) => a.id === selectedAuthorId) ?? null,
-    [authors, selectedAuthorId],
-  );
-
-  const isEditMode = editingAuthorId !== null;
-
   const sortedAuthors = useMemo(
-    () => [...authors].sort((a, b) => a.name.localeCompare(b.name, 'ru')),
-    [authors],
+    () =>
+      [...authors].sort((a, b) => {
+        const direction = sortOrder === 'asc' ? 1 : -1;
+
+        if (sortField === 'id') {
+          return (a.id - b.id) * direction;
+        }
+
+        if (sortField === 'department') {
+          return (
+            (a.department_name ?? '').localeCompare(b.department_name ?? '', 'ru') *
+            direction
+          );
+        }
+
+        if (sortField === 'position') {
+          return (
+            (a.position ?? '').localeCompare(b.position ?? '', 'ru') * direction
+          );
+        }
+
+        return a.name.localeCompare(b.name, 'ru') * direction;
+      }),
+    [authors, sortField, sortOrder],
   );
+
+  const selectedAuthorIdSet = useMemo(
+    () => new Set(selectedAuthorIds),
+    [selectedAuthorIds],
+  );
+
+  const selectedAuthorIdsArray = useMemo(
+    () => Array.from(selectedAuthorIds),
+    [selectedAuthorIds],
+  );
+
+  const authorIds = useMemo(
+    () => sortedAuthors.map((item) => item.id),
+    [sortedAuthors],
+  );
+
+  const isAllAuthorsSelected =
+    authorIds.length > 0 && authorIds.every((id) => selectedAuthorIdSet.has(id));
+
+  const isAuthorSelectionIndeterminate =
+    !isAllAuthorsSelected && authorIds.some((id) => selectedAuthorIdSet.has(id));
 
   const loadData = async () => {
     setPageError('');
+
     const [authorsData, departmentsData] = await Promise.all([
       getAdminAuthorsFull(),
       getAdminDepartments(),
     ]);
+
     setAuthors(authorsData);
     setDepartments(departmentsData);
   };
@@ -100,7 +193,9 @@ export function AuthorManagementPage() {
     let isMounted = true;
 
     const init = async () => {
-      if (isInitializing || !isAuthenticated || !isAdmin) return;
+      if (isInitializing || !isAuthenticated || !isAdmin) {
+        return;
+      }
 
       setIsPageLoading(true);
       setPageError('');
@@ -110,36 +205,105 @@ export function AuthorManagementPage() {
           getAdminAuthorsFull(),
           getAdminDepartments(),
         ]);
-        if (!isMounted) return;
+
+        if (!isMounted) {
+          return;
+        }
+
         setAuthors(authorsData);
         setDepartments(departmentsData);
       } catch (error) {
-        if (!isMounted) return;
-        setPageError(error instanceof Error ? error.message : 'Не удалось загрузить данные.');
+        if (!isMounted) {
+          return;
+        }
+
+        setPageError(
+          error instanceof Error ? error.message : 'Не удалось загрузить данные.',
+        );
       } finally {
-        if (isMounted) setIsPageLoading(false);
+        if (isMounted) {
+          setIsPageLoading(false);
+        }
       }
     };
 
     void init();
-    return () => { isMounted = false; };
+
+    return () => {
+      isMounted = false;
+    };
   }, [isAuthenticated, isInitializing, isAdmin]);
+
+  useEffect(() => {
+    const availableIds = new Set(authors.map((item) => item.id));
+
+    setSelectedAuthorIds((prev) => {
+      const next = new Set<number>();
+      prev.forEach((id) => {
+        if (availableIds.has(id)) {
+          next.add(id);
+        }
+      });
+      return next;
+    });
+  }, [authors]);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isFormSubmitting) {
+        setIsModalOpen(false);
+        setEditingAuthorId(null);
+        setForm(initialFormState);
+        setFormError('');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFormSubmitting, isModalOpen]);
+
+  useEffect(() => {
+    if (openActionMenuId === null) {
+      return;
+    }
+
+    const handleOutsideClick = () => {
+      setOpenActionMenuId(null);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [openActionMenuId]);
 
   const handleFormChange = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const closeModal = (force = false) => {
+    if (isFormSubmitting && !force) {
+      return;
+    }
+
+    setIsModalOpen(false);
+    setEditingAuthorId(null);
+    setForm(initialFormState);
+    setFormError('');
+  };
+
   const handleStartCreate = () => {
     setEditingAuthorId(null);
-    setSelectedAuthorId(null);
     setForm(initialFormState);
     setFormError('');
     setSuccessMessage('');
+    setIsModalOpen(true);
   };
 
   const handleStartEdit = (target: AuthorFullDto) => {
     setEditingAuthorId(target.id);
-    setSelectedAuthorId(target.id);
     setFormError('');
     setSuccessMessage('');
     setForm({
@@ -153,22 +317,20 @@ export function AuthorManagementPage() {
       wos_id: target.wos_id ?? '',
       department_id: target.department_id !== null ? String(target.department_id) : '',
     });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingAuthorId(null);
-    setForm(initialFormState);
-    setFormError('');
-    setSuccessMessage('');
+    setIsModalOpen(true);
   };
 
   const validateForm = (): string | null => {
-    if (!form.name.trim()) return 'Заполните имя автора.';
+    if (!form.name.trim()) {
+      return 'Заполните имя автора.';
+    }
+
     return null;
   };
 
   const handleSubmit = async () => {
     const validationError = validateForm();
+
     if (validationError) {
       setFormError(validationError);
       setSuccessMessage('');
@@ -181,40 +343,32 @@ export function AuthorManagementPage() {
 
     try {
       const departmentCode = form.department_id ? Number(form.department_id) : null;
+      const payload = {
+        authorName: form.name.trim(),
+        position: form.position.trim() || null,
+        degree: form.degree.trim() || null,
+        rank: form.rank.trim() || null,
+        email: form.email.trim() || null,
+        ORCID: form.orcid.trim() || null,
+        Scopus_ID: form.scopus_id.trim() || null,
+        WOS_ID: form.wos_id.trim() || null,
+        DepartmentCode: departmentCode,
+      };
 
       if (isEditMode && editingAuthorId !== null) {
-        await updateAdminAuthor(editingAuthorId, {
-          authorName: form.name.trim(),
-          position: form.position.trim() || null,
-          degree: form.degree.trim() || null,
-          rank: form.rank.trim() || null,
-          email: form.email.trim() || null,
-          ORCID: form.orcid.trim() || null,
-          Scopus_ID: form.scopus_id.trim() || null,
-          WOS_ID: form.wos_id.trim() || null,
-          DepartmentCode: departmentCode,
-        });
-        await loadData();
+        await updateAdminAuthor(editingAuthorId, payload);
         setSuccessMessage('Автор обновлён.');
       } else {
-        const created = await createAdminAuthor({
-          authorName: form.name.trim(),
-          position: form.position.trim() || null,
-          degree: form.degree.trim() || null,
-          rank: form.rank.trim() || null,
-          email: form.email.trim() || null,
-          ORCID: form.orcid.trim() || null,
-          Scopus_ID: form.scopus_id.trim() || null,
-          WOS_ID: form.wos_id.trim() || null,
-          DepartmentCode: departmentCode,
-        });
-        await loadData();
-        setSelectedAuthorId(created.id);
-        setForm(initialFormState);
+        await createAdminAuthor(payload);
         setSuccessMessage('Автор создан.');
       }
+
+      await loadData();
+      closeModal(true);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Не удалось сохранить автора.');
+      setFormError(
+        error instanceof Error ? error.message : 'Не удалось сохранить автора.',
+      );
     } finally {
       setIsFormSubmitting(false);
     }
@@ -224,26 +378,134 @@ export function AuthorManagementPage() {
     const confirmed = window.confirm(
       `Удалить автора "${getAuthorLabel(target)}"?`,
     );
-    if (!confirmed) return;
+
+    if (!confirmed) {
+      return;
+    }
 
     setFormError('');
     setSuccessMessage('');
 
     try {
       await deleteAdminAuthor(target.id);
-      if (editingAuthorId === target.id) {
-        setEditingAuthorId(null);
-        setForm(initialFormState);
-      }
-      setSelectedAuthorId(null);
       await loadData();
       setSuccessMessage('Автор удалён.');
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Не удалось удалить автора.');
+      setPageError(
+        error instanceof Error ? error.message : 'Не удалось удалить автора.',
+      );
     }
   };
 
-  if (isInitializing || !isAuthenticated || !isAdmin) return null;
+  const handleTableSort = (field: AuthorSortField) => {
+    if (field === sortField) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    setSortField(field);
+    setSortOrder('asc');
+  };
+
+  const handleToggleAuthorSelection = (authorId: number) => {
+    setSelectedAuthorIds((prev) => {
+      const next = new Set(prev);
+
+      if (next.has(authorId)) {
+        next.delete(authorId);
+      } else {
+        next.add(authorId);
+      }
+
+      return next;
+    });
+  };
+
+  const handleToggleAllAuthorsSelection = () => {
+    setSelectedAuthorIds((prev) => {
+      const next = new Set(prev);
+
+      if (isAllAuthorsSelected) {
+        authorIds.forEach((id) => next.delete(id));
+      } else {
+        authorIds.forEach((id) => next.add(id));
+      }
+
+      return next;
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedAuthorIds(new Set());
+  };
+
+  const handleDownloadAuthorsReport = async (kind: AuthorReportKind) => {
+    if (!selectedAuthorIdsArray.length) {
+      return;
+    }
+
+    setPageError('');
+    setSuccessMessage('');
+
+    if (kind !== 'authors' && !isReportYearRangeValid) {
+      setPageError('Укажите корректный диапазон годов для отчёта.');
+      return;
+    }
+
+    setDownloadingReport(kind);
+
+    try {
+      if (kind === 'publications') {
+        await downloadAdminAuthorsPublicationsReport(
+          selectedAuthorIdsArray,
+          activeReportYearFrom,
+          activeReportYearTo,
+        );
+      } else if (kind === 'summary') {
+        await downloadAdminAuthorsSummaryReport(
+          selectedAuthorIdsArray,
+          activeReportYearFrom,
+          activeReportYearTo,
+        );
+      } else {
+        await downloadAdminAuthorsExportReport(selectedAuthorIdsArray);
+      }
+
+      setSuccessMessage('Отчёт сформирован.');
+    } catch (error) {
+      setPageError(
+        error instanceof Error ? error.message : 'Не удалось сформировать отчёт.',
+      );
+    } finally {
+      setDownloadingReport(null);
+    }
+  };
+
+  const renderTableHeaderButton = (field: AuthorSortField, label: string) => {
+    const isActive = field === sortField;
+
+    return (
+      <button
+        type="button"
+        className={styles.tableHeaderButton}
+        onClick={() => handleTableSort(field)}
+        aria-label={`Сортировать по полю ${label}`}
+      >
+        <span>{label}</span>
+        {isActive ? (
+          <Icon
+            name={sortOrder === 'asc' ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+            size={20}
+            className={styles.tableSortIcon}
+          />
+        ) : null}
+      </button>
+    );
+  };
+
+  if (isInitializing || !isAuthenticated || !isAdmin) {
+    return null;
+  }
 
   return (
     <div className="app-page">
@@ -251,209 +513,418 @@ export function AuthorManagementPage() {
 
       <main className="app-main">
         <div className="container app-block-group">
-          <section className={styles.layout}>
-            <div className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div>
-                  <h1 className={styles.title}>Авторы</h1>
-                  <p className={styles.subtitle}>
-                    Редактирование данных сотрудников и их научных идентификаторов
-                  </p>
-                </div>
-                <Button
-                  label="Новый автор"
-                  iconName="add"
-                  size="normal"
-                  onClick={handleStartCreate}
-                />
-              </div>
-
-              {pageError ? <div className={styles.errorBanner}>{pageError}</div> : null}
-              {successMessage ? <div className={styles.successBanner}>{successMessage}</div> : null}
-
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Имя</th>
-                      <th>Должность</th>
-                      <th>Степень</th>
-                      <th>Подразделение</th>
-                      <th>Пользователь</th>
-                      <th>Действия</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {isPageLoading ? (
-                      <tr><td colSpan={7} className={styles.emptyCell}>Загрузка...</td></tr>
-                    ) : sortedAuthors.length === 0 ? (
-                      <tr><td colSpan={7} className={styles.emptyCell}>Авторы не найдены.</td></tr>
-                    ) : (
-                      sortedAuthors.map((item) => (
-                        <tr
-                          key={item.id}
-                          className={selectedAuthorId === item.id ? styles.rowSelected : ''}
-                          onClick={() => setSelectedAuthorId(item.id)}
-                        >
-                          <td>{item.id}</td>
-                          <td>{item.name}</td>
-                          <td>{item.position ?? '—'}</td>
-                          <td>{item.degree ?? '—'}</td>
-                          <td>{item.department_name ?? '—'}</td>
-                          <td>{item.linked_user_login ?? '—'}</td>
-                          <td>
-                            <div className={styles.rowActions}>
-                              <OutlineButton
-                                label="Изменить"
-                                size="small"
-                                iconName="edit"
-                                onClick={(event) => { event.stopPropagation(); handleStartEdit(item); }}
-                              />
-                              <OutlineButton
-                                label="Удалить"
-                                size="small"
-                                iconName="delete"
-                                disabled={!item.is_available}
-                                onClick={(event) => { event.stopPropagation(); void handleDeleteAuthor(item); }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+          <section className="app-surface">
+            <div className={styles.panelHeader}>
+              <Button
+                label="Новый автор"
+                iconName="add"
+                size="normal"
+                onClick={handleStartCreate}
+              />
             </div>
 
-            <aside className={styles.formPanel}>
-              <div className={styles.formHeader}>
-                <h2 className={styles.formTitle}>
-                  {isEditMode ? 'Редактирование автора' : 'Новый автор'}
-                </h2>
-                <p className={styles.formSubtitle}>
-                  {isEditMode
-                    ? 'Измените поля и сохраните изменения.'
-                    : 'Заполните форму для добавления нового автора.'}
-                </p>
-              </div>
+            {pageError ? <div className={styles.errorBanner}>{pageError}</div> : null}
+            {successMessage ? (
+              <div className={styles.successBanner}>{successMessage}</div>
+            ) : null}
 
-              <div className={styles.form}>
-                <TextField
-                  label="Имя автора"
-                  value={form.name}
-                  onChange={(e) => handleFormChange('name', e.target.value)}
-                />
-                <div className={styles.fieldBlock}>
-                  <label className={styles.selectLabel} htmlFor="department_id">
-                    Подразделение
-                  </label>
-                  <select
-                    id="department_id"
-                    className={styles.select}
-                    value={form.department_id}
-                    onChange={(e) => handleFormChange('department_id', e.target.value)}
-                  >
-                    <option value="">Без подразделения</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={String(d.id)}>{d.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <TextField
-                  label="Должность"
-                  value={form.position}
-                  onChange={(e) => handleFormChange('position', e.target.value)}
-                />
-                <TextField
-                  label="Учёная степень"
-                  value={form.degree}
-                  onChange={(e) => handleFormChange('degree', e.target.value)}
-                />
-                <TextField
-                  label="Звание"
-                  value={form.rank}
-                  onChange={(e) => handleFormChange('rank', e.target.value)}
-                />
-                <TextField
-                  label="Email"
-                  value={form.email}
-                  onChange={(e) => handleFormChange('email', e.target.value)}
-                />
-                <TextField
-                  label="ORCID"
-                  value={form.orcid}
-                  onChange={(e) => handleFormChange('orcid', e.target.value)}
-                />
-                <TextField
-                  label="Scopus ID"
-                  value={form.scopus_id}
-                  onChange={(e) => handleFormChange('scopus_id', e.target.value)}
-                />
-                <TextField
-                  label="WOS ID"
-                  value={form.wos_id}
-                  onChange={(e) => handleFormChange('wos_id', e.target.value)}
-                />
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th className={styles.selectColumn}>
+                      <button
+                        type="button"
+                        className={styles.tableSelectAllButton}
+                        onClick={handleToggleAllAuthorsSelection}
+                        disabled={!authorIds.length}
+                        aria-label="Выбрать всех авторов"
+                        aria-pressed={isAllAuthorsSelected}
+                      >
+                        <Checkbox
+                          checked={isAllAuthorsSelected}
+                          indeterminate={isAuthorSelectionIndeterminate}
+                          disabled={!authorIds.length}
+                        />
+                      </button>
+                    </th>
+                    <th>{renderTableHeaderButton('name', 'ФИО')}</th>
+                    <th>{renderTableHeaderButton('department', 'Подразделение')}</th>
+                    <th>Идентификаторы</th>
+                    <th className={styles.actionsColumn} aria-label="Действия" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {isPageLoading ? (
+                    <tr>
+                      <td colSpan={5} className={styles.emptyCell}>
+                        Загрузка...
+                      </td>
+                    </tr>
+                  ) : sortedAuthors.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className={styles.emptyCell}>
+                        Авторы не найдены.
+                      </td>
+                    </tr>
+                  ) : (
+                    sortedAuthors.map((item, index) => (
+                      <tr
+                        key={item.id}
+                        className={styles.authorRow}
+                        onClick={() => navigateTo(`/authors/${item.id}`)}
+                      >
+                        <td className={styles.selectCell}>
+                          <div className={styles.tableNumberContent}>
+                            <span className={styles.tableNumber}>{index + 1}</span>
+                            <button
+                              type="button"
+                              className={styles.checkboxButton}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleToggleAuthorSelection(item.id);
+                              }}
+                              aria-label={
+                                selectedAuthorIdSet.has(item.id)
+                                  ? 'Снять выбор с автора'
+                                  : 'Выбрать автора'
+                              }
+                              aria-pressed={selectedAuthorIdSet.has(item.id)}
+                            >
+                              <Checkbox checked={selectedAuthorIdSet.has(item.id)} />
+                            </button>
+                          </div>
+                        </td>
+                        <td>
+                          <div className={styles.nameCell}>
+                            <a
+                              className={styles.authorLink}
+                              href={`/authors/${item.id}`}
+                              onClick={(event) => {
+                                if (
+                                  event.button !== 0 ||
+                                  event.metaKey ||
+                                  event.ctrlKey ||
+                                  event.shiftKey ||
+                                  event.altKey
+                                ) {
+                                  return;
+                                }
 
-                {formError ? <div className={styles.errorBanner}>{formError}</div> : null}
+                                event.preventDefault();
+                                navigateTo(`/authors/${item.id}`);
+                              }}
+                            >
+                              {item.name}
+                            </a>
+                            <span className={styles.authorMeta}>
+                              {[item.position, item.degree, item.rank]
+                                .filter(Boolean)
+                                .join(' · ') || '—'}
+                            </span>
+                          </div>
+                        </td>
+                        <td>{item.department_name ?? '—'}</td>
+                        <td>
+                          <div className={styles.identifiers}>
+                            <span>{item.email ? `Email: ${item.email}` : 'Email: —'}</span>
+                            <span>{item.orcid ? `ORCID: ${item.orcid}` : 'ORCID: —'}</span>
+                            <span>{item.scopus_id ? `Scopus: ${item.scopus_id}` : 'Scopus: —'}</span>
+                            <span>{item.wos_id ? `WOS: ${item.wos_id}` : 'WOS: —'}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div
+                            className={styles.rowActions}
+                            onClick={(event) => event.stopPropagation()}
+                            onMouseDown={(event) => event.stopPropagation()}
+                          >
+                            <OutlineIconButton
+                              iconName="more_horiz"
+                              iconSize={20}
+                              size="small-x"
+                              aria-label="Действия с автором"
+                              aria-expanded={openActionMenuId === item.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenActionMenuId((prev) =>
+                                  prev === item.id ? null : item.id,
+                                );
+                              }}
+                            />
 
-                <div className={styles.formActions}>
-                  <Button
-                    label={isEditMode ? 'Сохранить' : 'Создать'}
-                    iconName={isEditMode ? 'edit' : 'add'}
-                    onClick={() => void handleSubmit()}
-                    disabled={isFormSubmitting}
-                  />
-                  <OutlineButton
-                    label="Сбросить"
-                    iconName="cancel"
-                    onClick={() => {
-                      if (isEditMode && selectedAuthor) { handleStartEdit(selectedAuthor); return; }
-                      handleStartCreate();
-                    }}
-                    disabled={isFormSubmitting}
-                  />
-                  {isEditMode ? (
-                    <OutlineButton
-                      label="Отмена"
-                      onClick={handleCancelEdit}
-                      disabled={isFormSubmitting}
-                    />
-                  ) : null}
-                </div>
-              </div>
+                            {openActionMenuId === item.id ? (
+                              <div className={`app-search-menu ${styles.authorMenu}`} role="menu">
+                                <div className="app-search-options-list">
+                                <button
+                                  type="button"
+                                  className={`app-search-option-button ${styles.authorMenuItem}`}
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    handleStartEdit(item);
+                                  }}
+                                  role="menuitem"
+                                >
+                                  <Icon name="edit" size={24} />
+                                  <span>Редактировать</span>
+                                </button>
 
-              {selectedAuthor ? (
-                <div className={styles.detailsCard}>
-                  <h3 className={styles.detailsTitle}>Выбранный автор</h3>
-                  <div className={styles.detailsGrid}>
-                    {[
-                      ['ID', String(selectedAuthor.id)],
-                      ['Имя', selectedAuthor.name],
-                      ['Должность', selectedAuthor.position ?? '—'],
-                      ['Степень', selectedAuthor.degree ?? '—'],
-                      ['Звание', selectedAuthor.rank ?? '—'],
-                      ['Email', selectedAuthor.email ?? '—'],
-                      ['ORCID', selectedAuthor.orcid ?? '—'],
-                      ['Scopus ID', selectedAuthor.scopus_id ?? '—'],
-                      ['WOS ID', selectedAuthor.wos_id ?? '—'],
-                      ['Подразделение', selectedAuthor.department_name ?? '—'],
-                      ['Пользователь', selectedAuthor.linked_user_login ?? '—'],
-                    ].map(([label, value]) => (
-                      <div key={label} className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{label}</span>
-                        <span className={styles.detailValue}>{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </aside>
+                                <button
+                                  type="button"
+                                  className={`app-search-option-button ${styles.authorMenuItem}`}
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    void handleDeleteAuthor(item);
+                                  }}
+                                  disabled={!item.is_available}
+                                  role="menuitem"
+                                >
+                                  <Icon name="delete" size={24} />
+                                  <span>Удалить</span>
+                                </button>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </section>
         </div>
       </main>
+
+      {selectedAuthorIdsArray.length > 0 ? (
+        <div
+          className={styles.selectionPanel}
+          role="region"
+          aria-label="Действия с выбранными авторами"
+        >
+          <div className={styles.selectionInfo}>
+            <span className={styles.selectionTitle}>
+              Выбрано: {selectedAuthorIdsArray.length}{' '}
+              {formatAuthorsCountLabel(selectedAuthorIdsArray.length)}
+            </span>
+          </div>
+
+          <div className={styles.selectionFilters}>
+            <span className={styles.selectionFilterLabel}>Годы:</span>
+            <div className="app-year-inputs">
+              <input
+                className="app-year-input"
+                type="number"
+                min={MIN_REPORT_YEAR}
+                max={CURRENT_YEAR}
+                value={reportYearRange.from}
+                aria-label="Начальный год отчёта по авторам"
+                onChange={(event) =>
+                  setReportYearRange((prev) => ({
+                    ...prev,
+                    from: event.target.value,
+                  }))
+                }
+              />
+              <span className="app-year-separator">–</span>
+              <input
+                className="app-year-input"
+                type="number"
+                min={MIN_REPORT_YEAR}
+                max={CURRENT_YEAR}
+                value={reportYearRange.to}
+                aria-label="Конечный год отчёта по авторам"
+                onChange={(event) =>
+                  setReportYearRange((prev) => ({
+                    ...prev,
+                    to: event.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className={styles.selectionButtons}>
+            <button
+              type="button"
+              className={styles.selectionButton}
+              onClick={() => {
+                void handleDownloadAuthorsReport('publications');
+              }}
+              disabled={downloadingReport !== null}
+            >
+              <Icon name="arrow-downward" size={20} />
+              <span>
+                {downloadingReport === 'publications'
+                  ? 'Формирование...'
+                  : 'Публикации'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={styles.selectionButton}
+              onClick={() => {
+                void handleDownloadAuthorsReport('summary');
+              }}
+              disabled={downloadingReport !== null}
+            >
+              <Icon name="arrow-downward" size={20} />
+              <span>
+                {downloadingReport === 'summary' ? 'Формирование...' : 'Сводка'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={styles.selectionButton}
+              onClick={() => {
+                void handleDownloadAuthorsReport('authors');
+              }}
+              disabled={downloadingReport !== null}
+            >
+              <Icon name="arrow-downward" size={20} />
+              <span>
+                {downloadingReport === 'authors'
+                  ? 'Формирование...'
+                  : 'Список авторов'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={styles.selectionButton}
+              onClick={handleClearSelection}
+              disabled={downloadingReport !== null}
+            >
+              <Icon name="close" size={20} />
+              <span>Сбросить</span>
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {isModalOpen ? (
+        <div
+          className={styles.modalOverlay}
+          role="presentation"
+          onMouseDown={() => closeModal()}
+        >
+          <div
+            className={styles.modalDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="author-form-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div>
+                <h2 id="author-form-title" className={styles.modalTitle}>
+                  {isEditMode ? 'Редактирование автора' : 'Новый автор'}
+                </h2>
+                <p className={styles.modalSubtitle}>
+                  {isEditMode
+                    ? 'Измените данные автора и сохраните изменения.'
+                    : 'Заполните карточку нового автора.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className={styles.modalCloseButton}
+                onClick={() => closeModal()}
+                aria-label="Закрыть окно"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className={styles.formGrid}>
+              <div className={styles.formFieldWide}>
+                <TextField
+                  label="ФИО автора"
+                  value={form.name}
+                  onChange={(event) => handleFormChange('name', event.target.value)}
+                />
+              </div>
+
+              <div className={styles.fieldBlock}>
+                <label className={styles.selectLabel} htmlFor="department_id">
+                  Подразделение
+                </label>
+                <select
+                  id="department_id"
+                  className={styles.select}
+                  value={form.department_id}
+                  onChange={(event) =>
+                    handleFormChange('department_id', event.target.value)
+                  }
+                >
+                  <option value="">Без подразделения</option>
+                  {departments.map((department) => (
+                    <option key={department.id} value={String(department.id)}>
+                      {department.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <TextField
+                label="Должность"
+                value={form.position}
+                onChange={(event) => handleFormChange('position', event.target.value)}
+              />
+              <TextField
+                label="Учёная степень"
+                value={form.degree}
+                onChange={(event) => handleFormChange('degree', event.target.value)}
+              />
+              <TextField
+                label="Звание"
+                value={form.rank}
+                onChange={(event) => handleFormChange('rank', event.target.value)}
+              />
+              <TextField
+                label="Email"
+                value={form.email}
+                onChange={(event) => handleFormChange('email', event.target.value)}
+              />
+              <TextField
+                label="ORCID"
+                value={form.orcid}
+                onChange={(event) => handleFormChange('orcid', event.target.value)}
+              />
+              <TextField
+                label="Scopus ID"
+                value={form.scopus_id}
+                onChange={(event) => handleFormChange('scopus_id', event.target.value)}
+              />
+              <TextField
+                label="WOS ID"
+                value={form.wos_id}
+                onChange={(event) => handleFormChange('wos_id', event.target.value)}
+              />
+            </div>
+
+            {formError ? <div className={styles.errorBanner}>{formError}</div> : null}
+
+            <div className={styles.modalActions}>
+              <OutlineButton
+                label="Отмена"
+                iconName="cancel"
+                onClick={() => closeModal()}
+                disabled={isFormSubmitting}
+              />
+              <Button
+                label={isEditMode ? 'Сохранить' : 'Создать'}
+                iconName={isEditMode ? 'edit' : 'add'}
+                onClick={() => void handleSubmit()}
+                disabled={isFormSubmitting}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <Footer />
     </div>

@@ -32,7 +32,7 @@ export function ProfilePage() {
   }
 
   const hasAuthor = Boolean(user.author_id);
-  const displayName = user.author_name ?? user.full_name;
+  const displayName = user.full_name;
 
   return (
     <div className="app-page">

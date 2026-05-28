@@ -46,6 +46,32 @@ function getUserLabel(user: UserDto): string {
   return parts.join(' · ');
 }
 
+function applyAuthorToForm(
+  prev: FormState,
+  authorId: string,
+  authors: AuthorDto[],
+): FormState {
+  const next = { ...prev, author_id: authorId };
+
+  if (!authorId) {
+    return next;
+  }
+
+  const author = authors.find((item) => String(item.id) === authorId);
+
+  if (!author) {
+    return next;
+  }
+
+  next.full_name = author.name;
+
+  if (author.department_id != null) {
+    next.department_id = String(author.department_id);
+  }
+
+  return next;
+}
+
 export function UserManagementPage() {
   const { user, isAuthenticated, isInitializing } = useAuth();
 
@@ -179,12 +205,8 @@ export function UserManagementPage() {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
 
-      // Выбрали автора → автоматически выставляем его подразделение
       if (field === 'author_id' && value) {
-        const author = authors.find((a) => String(a.id) === value);
-        if (author?.department_id != null) {
-          next.department_id = String(author.department_id);
-        }
+        return applyAuthorToForm(prev, value, authors);
       }
 
       // Сменили подразделение → сбрасываем автора, если он из другого подразделения
