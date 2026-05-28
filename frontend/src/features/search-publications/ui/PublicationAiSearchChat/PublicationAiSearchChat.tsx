@@ -47,7 +47,7 @@ const ORIGINAL_TRANSLATION_LABELS: Record<string, string> = {
 
 const CHAT_STORAGE_KEY = 'publications:ai-search-chat';
 const MAX_STORED_MESSAGES = 16;
-const MAX_STORED_MATCHES = 18;
+const MAX_STORED_MATCHES = 100;
 const MAX_STORED_MATCH_TEXT_LENGTH = 520;
 const MAX_STORED_TEXT_LENGTH = 1200;
 
@@ -172,6 +172,15 @@ function compactMessages(messages: ChatMessage[]): ChatMessage[] {
     .filter((message) => message.id !== initialMessage.id)
     .slice(-MAX_STORED_MESSAGES)
     .map(compactMessage);
+
+  return [initialMessage, ...regularMessages];
+}
+
+function limitMessages(messages: ChatMessage[]): ChatMessage[] {
+  const [initialMessage] = INITIAL_MESSAGES;
+  const regularMessages = messages
+    .filter((message) => message.id !== initialMessage.id)
+    .slice(-MAX_STORED_MESSAGES);
 
   return [initialMessage, ...regularMessages];
 }
@@ -526,12 +535,12 @@ export function PublicationAiSearchChat({
     nextMessageId.current = messageId + 1;
 
     setMessages((prev) =>
-      compactMessages([
+      limitMessages([
         ...prev,
-        compactMessage({
+        {
           ...message,
           id: messageId,
-        }),
+        },
       ]),
     );
   };

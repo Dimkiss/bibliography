@@ -20,6 +20,7 @@ MIN_TEXT_CHARS_PER_PAGE = 40
 DEFAULT_CHUNK_SIZE = 1600
 DEFAULT_OVERLAP_CHARS = 220
 MIN_CHUNK_CHARS = 120
+MIN_INDEXABLE_CHUNK_QUALITY = 0.22
 
 SECTION_MARKERS = (
     "abstract",
@@ -85,6 +86,10 @@ INLINE_BOILERPLATE_RE = re.compile(
 
 MOJIBAKE_CHARS_RE = re.compile(r"[À-ÿ]")
 CYRILLIC_CHARS_RE = re.compile(r"[А-Яа-яЁё]")
+CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]+")
+PDF_SOFT_BREAK_RE = re.compile(
+    r"(?<=[A-Za-zА-Яа-яЁё])[\u0010\u0019]\s*(?=[A-Za-zА-Яа-яЁё])"
+)
 LETTER_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя")
 AFFILIATION_RE = re.compile(
     r"\b(?:institute|university|academy|институт\w*|университет\w*|академи\w*|"
@@ -116,6 +121,8 @@ class PdfIndexStatus:
 
 def normalize_text(value: str) -> str:
     text = value.replace("\u00ad", "")
+    text = PDF_SOFT_BREAK_RE.sub("", text)
+    text = CONTROL_CHARS_RE.sub(" ", text)
     text = re.sub(r"(?<=\w)-\s*\n\s*(?=\w)", "", text)
     paragraphs = [
         re.sub(r"\s+", " ", paragraph).strip()
@@ -124,6 +131,126 @@ def normalize_text(value: str) -> str:
     ]
     text = "\n\n".join(paragraphs)
     return text.strip()
+
+
+def get_text_quality_score(text: str) -> float:
+    if len(text) < MIN_CHUNK_CHARS:
+        return 0
+
+    non_space_chars = [char for char in text if not char.isspace()]
+    if not non_space_chars:
+        return 0
+
+    letter_count = sum(1 for char in non_space_chars if char.isalpha())
+    digit_count = sum(1 for char in non_space_chars if char.isdigit())
+    punctuation_count = sum(
+        1
+        for char in non_space_chars
+        if not char.isalnum()
+    )
+
+    letter_ratio = letter_count / len(non_space_chars)
+    digit_ratio = digit_count / len(non_space_chars)
+    punctuation_ratio = punctuation_count / len(non_space_chars)
+
+    if letter_count < 35 or letter_ratio < 0.18:
+        return 0
+
+    score = letter_ratio - max(digit_ratio - 0.35, 0) * 0.55
+    score -= max(punctuation_ratio - 0.42, 0) * 0.35
+    return max(0, min(score, 1))
+
+
+def looks_like_low_quality_chunk(text: str) -> bool:
+    if get_text_quality_score(text) < MIN_INDEXABLE_CHUNK_QUALITY:
+        return True
+
+    words = re.findall(r"[A-Za-zА-Яа-яЁё]{3,}", text)
+    if len(words) < 8:
+        return True
+
+    numeric_tokens = len(re.findall(r"(?:^|\s)[+-]?\d+(?:[.,]\d+)?(?:\s|$)", text))
+    return (
+        (numeric_tokens >= 30 and numeric_tokens > len(words) * 1.6)
+        or looks_like_table_or_figure_residue(text)
+    )
+
+
+def looks_like_table_fragment(text: str) -> bool:
+    normalized = text.strip()
+    if not normalized:
+        return True
+
+    words = re.findall(r"[A-Za-zА-Яа-яЁё]{3,}", normalized)
+    numeric_tokens = re.findall(r"[+-]?\d+(?:[.,]\d+)?", normalized)
+    non_space_chars = [char for char in normalized if not char.isspace()]
+
+    if not non_space_chars:
+        return True
+
+    letter_count = sum(1 for char in non_space_chars if char.isalpha())
+    letter_ratio = letter_count / len(non_space_chars)
+
+    if len(numeric_tokens) >= 4 and len(numeric_tokens) > len(words) * 1.4:
+        return True
+
+    if len(normalized) < MIN_CHUNK_CHARS and len(words) < 6 and letter_ratio < 0.35:
+        return True
+
+    return False
+
+
+def looks_like_table_or_figure_residue(text: str) -> bool:
+    normalized = re.sub(r"\s+", " ", text).strip()
+    if len(normalized) >= 900:
+        return False
+
+    lower_text = normalized.lower()
+    has_table_or_figure_marker = any(
+        marker in lower_text
+        for marker in (
+            "таблица",
+            "рис.",
+            "рисунок",
+            "figure",
+            "fig.",
+            "в числителе",
+            "в знаменателе",
+            "численность/биомасса",
+        )
+    )
+    if not has_table_or_figure_marker:
+        return False
+
+    strong_table_marker = any(
+        marker in lower_text
+        for marker in (
+            "в числителе",
+            "в знаменателе",
+            "численность/биомасса",
+        )
+    )
+    if strong_table_marker and len(normalized) < 700:
+        return True
+
+    sentence_endings = len(re.findall(r"[.!?](?:\s|$)", normalized))
+    words = re.findall(r"[A-Za-zА-Яа-яЁё]{3,}", normalized)
+    numeric_tokens = re.findall(r"[+-]?\d+(?:[.,]\d+)?", normalized)
+
+    if sentence_endings <= 1 and len(words) < 70:
+        return True
+
+    return len(numeric_tokens) >= 8 and len(numeric_tokens) > len(words) * 0.35
+
+
+def remove_low_quality_paragraphs(text: str) -> str:
+    paragraphs = [
+        paragraph
+        for paragraph in split_paragraphs(text)
+        if not looks_like_table_fragment(paragraph)
+    ]
+
+    return "\n\n".join(paragraphs).strip()
 
 
 def looks_like_decorative_text(text: str) -> bool:
@@ -533,6 +660,7 @@ def chunk_page_text(
     max_chars: int,
     overlap_chars: int,
 ) -> list[str]:
+    text = remove_low_quality_paragraphs(text)
     paragraphs = split_paragraphs(text)
     chunks: list[str] = []
     current_parts: list[str] = []
@@ -577,6 +705,7 @@ def chunk_page_text(
         chunk
         for chunk in chunks
         if len(chunk) >= MIN_CHUNK_CHARS
+        and not looks_like_low_quality_chunk(chunk)
         and not looks_like_decorative_text(chunk)
         and not looks_like_bibliography_text(chunk)
     ]
@@ -873,6 +1002,20 @@ def inspect_pdf(path: Path, max_pages: int) -> None:
                 f"markers={markers or '-'}"
             )
             print(text[:1200])
+
+            page_chunks = chunk_page_text(
+                text,
+                max_chars=DEFAULT_CHUNK_SIZE,
+                overlap_chars=DEFAULT_OVERLAP_CHARS,
+            )
+            print(f"indexable_chunks={len(page_chunks)}")
+            for chunk_index, chunk_text in enumerate(page_chunks[:3]):
+                preview = re.sub(r"\s+", " ", chunk_text).strip()
+                quality = get_text_quality_score(chunk_text)
+                print(
+                    f"  chunk {chunk_index}: chars={len(chunk_text)}, "
+                    f"quality={quality:.2f}, preview={preview[:260]}"
+                )
 
 
 def main() -> None:
