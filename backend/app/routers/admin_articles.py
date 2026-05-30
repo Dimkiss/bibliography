@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -22,6 +22,7 @@ from app.schemas.article import (
     WorkFormFieldItem,
     WorkFormTypeOption,
 )
+from app.routers.ai import trigger_article_pdf_indexing
 from app.services.articles import admin as article_admin
 from app.services.articles import pdf_files
 from app.services.articles.exceptions import (
@@ -252,6 +253,7 @@ def admin_create_article(
 def admin_upload_article_pdf(
     article_id: int,
     file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = ...,
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -270,6 +272,7 @@ def admin_upload_article_pdf(
         ) from exc
 
     pdf_files.save_article_pdf(article_id, file)
+    background_tasks.add_task(trigger_article_pdf_indexing, article_id)
     return {"article_id": article_id, "has_pdf": True}
 
 

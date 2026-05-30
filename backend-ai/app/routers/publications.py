@@ -28,3 +28,11 @@ def create_publication_rag_search(
         current_filters=payload.current_filters,
         limit=payload.limit,
     )
+
+
+@router.post("/index/article/{article_id}")
+def index_article_pdf(article_id: int) -> dict:
+    """Индексирует PDF одной статьи в Qdrant. Запускается после загрузки/обновления PDF."""
+    from app.services.pdf_indexer import index_article_pdf as _index  # noqa: PLC0415
+
+    return _index(article_id)

@@ -134,9 +134,6 @@ function compactPlan(
       refine_text_query: plan.filters.refine_text_query
         ? trimStoredText(plan.filters.refine_text_query, MAX_STORED_TEXT_LENGTH)
         : plan.filters.refine_text_query,
-      pdf_text_query: plan.filters.pdf_text_query
-        ? trimStoredText(plan.filters.pdf_text_query, MAX_STORED_TEXT_LENGTH)
-        : plan.filters.pdf_text_query,
       title: plan.filters.title
         ? trimStoredText(plan.filters.title, MAX_STORED_TEXT_LENGTH)
         : plan.filters.title,
@@ -270,9 +267,6 @@ function formatPlanItems(plan: AiPublicationSearchPlanDto): string[] {
     items.push(`Уточнение: ${filters.refine_text_query.trim()}`);
   }
 
-  if (filters.pdf_text_query?.trim()) {
-    items.push(`PDF: ${filters.pdf_text_query.trim()}`);
-  }
 
   if (filters.title?.trim()) {
     items.push(`Название: ${filters.title.trim()}`);

@@ -73,8 +73,7 @@ export function PublicationsPage() {
                   items={search.items}
                   total={search.pagination.total}
                   hasTextQuery={Boolean(
-                    search.appliedForm.textQuery.trim() ||
-                      search.appliedForm.pdfTextQuery.trim(),
+                    search.appliedForm.textQuery.trim(),
                   )}
                   startIndex={
                     (search.pagination.page - 1) * search.pagination.page_size

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, Text, BigInteger, Index
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -73,36 +73,3 @@ class User(Base):
     role = relationship("Role", back_populates="users")
     department = relationship("Department", back_populates="users")
     author = relationship("Author", back_populates="users")
-
-
-class PdfIndexStatus(Base):
-    __tablename__ = "pdf_index_status"
-    __table_args__ = (
-        Index("ix_pdf_index_status_status", "status"),
-        {"mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_unicode_ci"},
-    )
-
-    article_id = Column(Integer, primary_key=True, index=True)
-    pdf_sha1 = Column(String(40), nullable=True, index=True)
-    status = Column(String(32), nullable=False)
-    pages_count = Column(Integer, nullable=False, default=0)
-    chunks_count = Column(Integer, nullable=False, default=0)
-    error_message = Column(Text, nullable=True)
-    indexed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-
-
-class PdfTextChunk(Base):
-    __tablename__ = "pdf_text_chunks"
-    __table_args__ = (
-        Index("ix_pdf_text_chunks_article_page", "article_id", "page_number"),
-        Index("ix_pdf_text_chunks_sha1", "pdf_sha1"),
-        {"mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_unicode_ci"},
-    )
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    article_id = Column(Integer, nullable=False, index=True)
-    pdf_sha1 = Column(String(40), nullable=False)
-    page_number = Column(Integer, nullable=False)
-    chunk_index = Column(Integer, nullable=False)
-    text = Column(Text, nullable=False)
-    text_length = Column(Integer, nullable=False, default=0)

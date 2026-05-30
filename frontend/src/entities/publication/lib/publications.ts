@@ -8,7 +8,6 @@ import type {
 
 export type SearchFieldKey =
   | 'textQuery'
-  | 'pdfTextQuery'
   | 'author'
   | 'title'
   | 'journal'
@@ -19,7 +18,6 @@ export type PublicationSearchFormState = {
   yearTo: string;
   textQuery: string;
   refineTextQuery: string;
-  pdfTextQuery: string;
   author: string;
   title: string;
   journal: string;
@@ -40,7 +38,6 @@ export const SEARCH_FIELD_OPTIONS: Array<{ key: SearchFieldKey; label: string }>
 
 const HIDDEN_SEARCH_FIELD_LABELS: Partial<Record<SearchFieldKey, string>> = {
   textQuery: 'Текстовый запрос',
-  pdfTextQuery: 'Текст PDF',
 };
 
 export const INITIAL_PUBLICATION_SEARCH_FORM: PublicationSearchFormState = {
@@ -48,7 +45,6 @@ export const INITIAL_PUBLICATION_SEARCH_FORM: PublicationSearchFormState = {
   yearTo: '',
   textQuery: '',
   refineTextQuery: '',
-  pdfTextQuery: '',
   author: '',
   title: '',
   journal: '',
@@ -105,8 +101,6 @@ export function getSearchFieldPlaceholder(field: SearchFieldKey): string {
   switch (field) {
     case 'textQuery':
       return 'Поиск по названию, аннотации, DOI и ключевым словам';
-    case 'pdfTextQuery':
-      return 'Поиск по распознанному тексту PDF';
     case 'author':
       return 'Введите фамилию или имя автора';
     case 'title':
@@ -130,8 +124,7 @@ export function hasPublicationSearchCriteria(
 
   if (
     form.textQuery.trim() ||
-    form.refineTextQuery.trim() ||
-    form.pdfTextQuery.trim()
+    form.refineTextQuery.trim()
   ) {
     return true;
   }
@@ -169,7 +162,6 @@ export function buildPublicationsQueryFromForm(
     pageSize,
     textQuery: form.textQuery,
     refineTextQuery: form.refineTextQuery,
-    pdfTextQuery: form.pdfTextQuery,
     publicationTypes: form.publicationTypes,
     databases: form.databases,
     originalTranslationMode: form.originalTranslationMode,
@@ -188,7 +180,7 @@ export function buildPublicationsQueryFromForm(
   }
 
   activeFields
-    .filter((field) => field !== 'textQuery' && field !== 'pdfTextQuery')
+    .filter((field) => field !== 'textQuery')
     .forEach((field) => {
       const value = form[field].trim();
 

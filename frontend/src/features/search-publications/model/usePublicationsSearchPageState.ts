@@ -111,7 +111,6 @@ function normalizeSearchForm(value: unknown): PublicationSearchFormState {
     textQuery: typeof form.textQuery === 'string' ? form.textQuery : '',
     refineTextQuery:
       typeof form.refineTextQuery === 'string' ? form.refineTextQuery : '',
-    pdfTextQuery: typeof form.pdfTextQuery === 'string' ? form.pdfTextQuery : '',
     author: typeof form.author === 'string' ? form.author : '',
     title: typeof form.title === 'string' ? form.title : '',
     journal: typeof form.journal === 'string' ? form.journal : '',
@@ -190,7 +189,6 @@ function hasAiSearchPlanCriteria(plan: AiPublicationSearchPlanDto): boolean {
   return Boolean(
     filters.text_query?.trim() ||
       filters.refine_text_query?.trim() ||
-      filters.pdf_text_query?.trim() ||
       filters.title?.trim() ||
       filters.author?.trim() ||
       filters.journal?.trim() ||
@@ -212,7 +210,6 @@ function buildAiFiltersFromForm(
   return {
     text_query: form.textQuery.trim() || null,
     refine_text_query: form.refineTextQuery.trim() || null,
-    pdf_text_query: form.pdfTextQuery.trim() || null,
     title: activeFields.includes('title') ? form.title.trim() || null : null,
     author: activeFields.includes('author') ? form.author.trim() || null : null,
     journal: activeFields.includes('journal') ? form.journal.trim() || null : null,
@@ -282,10 +279,6 @@ function getInitialSearchStateFromUrl(): {
       searchParams.get('refine_text_query') ??
       searchParams.get('refineTextQuery') ??
       '',
-    pdfTextQuery:
-      searchParams.get('pdf_text_query') ??
-      searchParams.get('pdfTextQuery') ??
-      '',
     journal: searchParams.get('journal') ?? '',
     keyword: searchParams.get('keyword') ?? '',
     publicationTypes: getTrimmedListParams(searchParams, 'publication_types'),
@@ -352,9 +345,6 @@ function getSearchParamName(field: SearchFieldKey): string {
     return 'text_query';
   }
 
-  if (field === 'pdfTextQuery') {
-    return 'pdf_text_query';
-  }
 
   return field;
 }
@@ -381,9 +371,6 @@ function buildPublicationsUrl(
     searchParams.set('text_query', form.textQuery.trim());
   }
 
-  if (form.pdfTextQuery.trim()) {
-    searchParams.set('pdf_text_query', form.pdfTextQuery.trim());
-  }
 
   if (form.yearFrom.trim()) {
     searchParams.set('year_from', form.yearFrom.trim());
@@ -815,7 +802,6 @@ export function usePublicationsSearchPageState() {
         ...cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM),
         textQuery: plan.filters.text_query ?? '',
         refineTextQuery: plan.filters.refine_text_query ?? '',
-        pdfTextQuery: plan.filters.pdf_text_query ?? '',
         title: plan.filters.title ?? '',
         author: plan.filters.author ?? '',
         journal: plan.filters.journal ?? '',

@@ -1,4 +1,4 @@
-import { AI_API_BASE_URL, API_BASE_URL } from '@/shared/config/api';
+import { API_BASE_URL } from '@/shared/config/api';
 import { getAuthHeaders } from '@/shared/lib/auth';
 
 export type PublicationPreviewDto = {
@@ -104,7 +104,6 @@ export type GetPublicationsParams = {
   pageSize?: number;
   textQuery?: string;
   refineTextQuery?: string;
-  pdfTextQuery?: string;
   title?: string;
   author?: string;
   journal?: string;
@@ -125,7 +124,6 @@ export type GetPublicationsParams = {
 export type AiPublicationSearchPlanFiltersDto = {
   text_query: string | null;
   refine_text_query: string | null;
-  pdf_text_query: string | null;
   title: string | null;
   author: string | null;
   journal: string | null;
@@ -278,10 +276,6 @@ export async function getPublications(
     searchParams.set('refine_text_query', params.refineTextQuery.trim());
   }
 
-  if (params.pdfTextQuery?.trim()) {
-    searchParams.set('pdf_text_query', params.pdfTextQuery.trim());
-  }
-
   if (params.title?.trim()) {
     searchParams.set('title', params.title.trim());
   }
@@ -380,11 +374,12 @@ export async function createAiPublicationSearchPlan(
   message: string,
   currentFilters?: AiPublicationSearchPlanFiltersDto,
 ): Promise<AiPublicationSearchPlanDto> {
-  const response = await fetch(`${AI_API_BASE_URL}/ai/publications/search-plan`, {
+  const response = await fetch(`${API_BASE_URL}/ai/publications/search-plan`, {
     method: 'POST',
     headers: {
       accept: 'application/json',
       'content-type': 'application/json',
+      ...getAuthHeaders(),
     },
     body: JSON.stringify({ message, current_filters: currentFilters ?? null }),
   });
@@ -400,11 +395,12 @@ export async function createAiPublicationRagSearch(
   message: string,
   currentFilters?: AiPublicationSearchPlanFiltersDto,
 ): Promise<AiPublicationRagSearchDto> {
-  const response = await fetch(`${AI_API_BASE_URL}/ai/publications/rag-search`, {
+  const response = await fetch(`${API_BASE_URL}/ai/publications/rag-search`, {
     method: 'POST',
     headers: {
       accept: 'application/json',
       'content-type': 'application/json',
+      ...getAuthHeaders(),
     },
     body: JSON.stringify({
       message,

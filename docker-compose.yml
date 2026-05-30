@@ -27,6 +27,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required. Copy .env.example to .env and set SECRET_KEY.}
       CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
       PDF_STORAGE_DIR: /app/db/pdf
+      AI_SERVICE_URL: http://ai-agent:8001
     ports:
       - "8000:8000"
     volumes:
@@ -53,8 +54,6 @@ services:
       QDRANT_URL: http://qdrant:6333
       QDRANT_COLLECTION: publication_pdf_chunks
       PDF_STORAGE_DIR: /app/db/pdf
-    ports:
-      - "8001:8001"
     volumes:
       - ./backend-ai/app:/app/app
       - ./backend-ai/scripts:/app/scripts
@@ -109,7 +108,6 @@ services:
     restart: unless-stopped
     environment:
       VITE_API_BASE_URL: http://127.0.0.1:8000
-      VITE_AI_API_BASE_URL: http://127.0.0.1:8001
       CHOKIDAR_USEPOLLING: "true"
     ports:
       - "5173:5173"
