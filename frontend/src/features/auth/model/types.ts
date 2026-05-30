@@ -12,6 +12,14 @@ export type AuthUser = {
   degree: string | null;
   rank: string | null;
   email: string | null;
+  type: string | null;
+  birthdate: string | null;
+  birth_year: number | null;
+  nickname: string | null;
+  status: number | null;
+  search_pattern: string | null;
+  external_id: number | null;
+  snils_last4: string | null;
   orcid: string | null;
   scopus_id: string | null;
   wos_id: string | null;

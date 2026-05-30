@@ -9,6 +9,36 @@ import { navigateTo } from '@/shared/lib/navigation';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+function formatValue(value: string | number | null | undefined): string {
+  if (value === null || typeof value === 'undefined' || value === '') {
+    return '—';
+  }
+
+  return String(value);
+}
+
+function formatAuthorType(value: string | null | undefined): string {
+  if (!value) {
+    return '—';
+  }
+
+  return value === 'О' ? 'Штатный сотрудник' : value === 'В' ? 'Внештатный' : value;
+}
+
+function formatAuthorStatus(value: number | null | undefined): string {
+  if (value === null || typeof value === 'undefined') {
+    return '—';
+  }
+
+  return (
+    {
+      0: 'Уволен',
+      1: 'Работает',
+      2: 'Временно не работает',
+    }[value] ?? String(value)
+  );
+}
+
 export function ProfilePage() {
   const { user, isAuthenticated, isInitializing } = useAuth();
   const [maxYear, setMaxYear] = useState(CURRENT_YEAR);
@@ -32,7 +62,7 @@ export function ProfilePage() {
   }
 
   const hasAuthor = Boolean(user.author_id);
-  const displayName = user.full_name;
+  const displayName = user.author_name ?? user.full_name;
 
   return (
     <div className="app-page">
@@ -60,76 +90,114 @@ export function ProfilePage() {
                 <span className={styles.metaChipSep}>·</span>
                 <span className={styles.metaChipValue}>{user.department_name ?? '—'}</span>
               </div>
-              {user.position && (
-                <div className={styles.metaChip}>
-                  <span className={styles.metaChipLabel}>Должность</span>
-                  <span className={styles.metaChipSep}>·</span>
-                  <span className={styles.metaChipValue}>{user.position}</span>
-                </div>
-              )}
-              {user.degree && (
-                <div className={styles.metaChip}>
-                  <span className={styles.metaChipLabel}>Учёная степень</span>
-                  <span className={styles.metaChipSep}>·</span>
-                  <span className={styles.metaChipValue}>{user.degree}</span>
-                </div>
-              )}
-              {user.rank && (
-                <div className={styles.metaChip}>
-                  <span className={styles.metaChipLabel}>Звание</span>
-                  <span className={styles.metaChipSep}>·</span>
-                  <span className={styles.metaChipValue}>{user.rank}</span>
-                </div>
-              )}
-              {user.email && (
-                <div className={styles.metaChip}>
-                  <span className={styles.metaChipLabel}>Email</span>
-                  <span className={styles.metaChipSep}>·</span>
-                  <span className={styles.metaChipValue}>{user.email}</span>
-                </div>
-              )}
-              {user.orcid && (
-                <div className={styles.metaChip}>
-                  <span className={styles.metaChipLabel}>ORCID</span>
-                  <span className={styles.metaChipSep}>·</span>
+            </div>
+
+            <div className={styles.infoGrid}>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Должность</span>
+                <span className={styles.infoValue}>{formatValue(user.position)}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Учёная степень</span>
+                <span className={styles.infoValue}>{formatValue(user.degree)}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Звание</span>
+                <span className={styles.infoValue}>{formatValue(user.rank)}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Email</span>
+                <span className={styles.infoValue}>{formatValue(user.email)}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>ORCID</span>
+                {user.orcid ? (
                   <a
-                    className={styles.metaChipValue}
+                    className={styles.infoValue}
                     href={`https://orcid.org/${user.orcid}`}
                     target="_blank"
                     rel="noreferrer"
                   >
                     {user.orcid}
                   </a>
-                </div>
-              )}
-              {user.scopus_id && (
-                <div className={styles.metaChip}>
-                  <span className={styles.metaChipLabel}>Scopus ID</span>
-                  <span className={styles.metaChipSep}>·</span>
+                ) : (
+                  <span className={styles.infoValue}>—</span>
+                )}
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Scopus ID</span>
+                {user.scopus_id ? (
                   <a
-                    className={styles.metaChipValue}
+                    className={styles.infoValue}
                     href={`https://www.scopus.com/authid/detail.uri?authorId=${user.scopus_id}`}
                     target="_blank"
                     rel="noreferrer"
                   >
                     {user.scopus_id}
                   </a>
-                </div>
-              )}
-              {user.wos_id && (
-                <div className={styles.metaChip}>
-                  <span className={styles.metaChipLabel}>WOS ID</span>
-                  <span className={styles.metaChipSep}>·</span>
+                ) : (
+                  <span className={styles.infoValue}>—</span>
+                )}
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>WOS ID</span>
+                {user.wos_id ? (
                   <a
-                    className={styles.metaChipValue}
+                    className={styles.infoValue}
                     href={`https://www.webofscience.com/wos/author/record/${user.wos_id}`}
                     target="_blank"
                     rel="noreferrer"
                   >
                     {user.wos_id}
                   </a>
-                </div>
-              )}
+                ) : (
+                  <span className={styles.infoValue}>—</span>
+                )}
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Подразделение</span>
+                <span className={styles.infoValue}>
+                  {formatValue(user.department_name)}
+                </span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Тип</span>
+                <span className={styles.infoValue}>{formatAuthorType(user.type)}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Статус</span>
+                <span className={styles.infoValue}>
+                  {formatAuthorStatus(user.status)}
+                </span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Дата рождения</span>
+                <span className={styles.infoValue}>{formatValue(user.birthdate)}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Год рождения</span>
+                <span className={styles.infoValue}>{formatValue(user.birth_year)}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Псевдоним</span>
+                <span className={styles.infoValue}>{formatValue(user.nickname)}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Шаблон поиска</span>
+                <span className={styles.infoValue}>
+                  {formatValue(user.search_pattern)}
+                </span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Внешний ID</span>
+                <span className={styles.infoValue}>{formatValue(user.external_id)}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>ID ПУ</span>
+                <span className={styles.infoValue}>
+                  {user.snils_last4 ? `•••• ${user.snils_last4}` : '—'}
+                </span>
+              </div>
             </div>
           </div>
 

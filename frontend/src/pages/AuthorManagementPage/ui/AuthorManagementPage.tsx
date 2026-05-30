@@ -5,8 +5,13 @@ import { Header } from '@/widgets/Header';
 import { Footer } from '@/widgets/Footer';
 import { useAuth } from '@/features/auth';
 import { navigateTo } from '@/shared/lib/navigation';
-import { ADMIN_ROLE_ID } from '@/entities/role';
+import {
+  ADMIN_ROLE_ID,
+  ADMINISTRATION_ROLE_ID,
+  DEPARTMENT_HEAD_ROLE_ID,
+} from '@/entities/role';
 import { Button } from '@/shared/ui/Button';
+import { FilterDropdown } from '@/shared/ui/FilterDropdown';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
 import { TextField } from '@/shared/ui/TextField';
@@ -101,7 +106,23 @@ export function AuthorManagementPage() {
   const [downloadingReport, setDownloadingReport] =
     useState<AuthorReportKind | null>(null);
 
+  // Фильтр по подразделениям (мульти-выбор, клиентская фильтрация)
+  const [filterDepartmentIds, setFilterDepartmentIds] = useState<string[]>([]);
+
   const isAdmin = isAuthenticated && user?.role_id === ADMIN_ROLE_ID;
+  const isAdministration = isAuthenticated && user?.role_id === ADMINISTRATION_ROLE_ID;
+  const isDepartmentHead = isAuthenticated && user?.role_id === DEPARTMENT_HEAD_ROLE_ID;
+
+  const hasPageAccess = isAdmin || isAdministration || isDepartmentHead;
+
+  // Только администратор может создавать, редактировать и удалять авторов
+  const canEdit = isAdmin;
+
+  const departmentFilterOptions = useMemo(
+    () => departments.map((d) => ({ value: String(d.id), label: d.name })),
+    [departments],
+  );
+
   const isEditMode = editingAuthorId !== null;
   const reportYearFromNumber = Number(reportYearRange.from);
   const reportYearToNumber = Number(reportYearRange.to);
@@ -124,10 +145,10 @@ export function AuthorManagementPage() {
       return;
     }
 
-    if (!isInitializing && isAuthenticated && !isAdmin) {
+    if (!isInitializing && isAuthenticated && !hasPageAccess) {
       navigateTo('/');
     }
-  }, [isAuthenticated, isInitializing, isAdmin]);
+  }, [isAuthenticated, isInitializing, hasPageAccess]);
 
   const sortedAuthors = useMemo(
     () =>
@@ -156,6 +177,17 @@ export function AuthorManagementPage() {
     [authors, sortField, sortOrder],
   );
 
+  // Клиентская фильтрация по выбранным подразделениям
+  const visibleAuthors = useMemo(() => {
+    if (filterDepartmentIds.length === 0) {
+      return sortedAuthors;
+    }
+    const selected = new Set(filterDepartmentIds);
+    return sortedAuthors.filter(
+      (a) => a.department_id !== null && selected.has(String(a.department_id)),
+    );
+  }, [sortedAuthors, filterDepartmentIds]);
+
   const selectedAuthorIdSet = useMemo(
     () => new Set(selectedAuthorIds),
     [selectedAuthorIds],
@@ -167,8 +199,8 @@ export function AuthorManagementPage() {
   );
 
   const authorIds = useMemo(
-    () => sortedAuthors.map((item) => item.id),
-    [sortedAuthors],
+    () => visibleAuthors.map((item) => item.id),
+    [visibleAuthors],
   );
 
   const isAllAuthorsSelected =
@@ -179,21 +211,20 @@ export function AuthorManagementPage() {
 
   const loadData = async () => {
     setPageError('');
-
     const [authorsData, departmentsData] = await Promise.all([
       getAdminAuthorsFull(),
       getAdminDepartments(),
     ]);
-
     setAuthors(authorsData);
     setDepartments(departmentsData);
   };
 
+  // Первичная загрузка данных
   useEffect(() => {
     let isMounted = true;
 
     const init = async () => {
-      if (isInitializing || !isAuthenticated || !isAdmin) {
+      if (isInitializing || !isAuthenticated || !hasPageAccess) {
         return;
       }
 
@@ -232,7 +263,8 @@ export function AuthorManagementPage() {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, isInitializing, isAdmin]);
+  }, [isAuthenticated, isInitializing, hasPageAccess]);
+
 
   useEffect(() => {
     const availableIds = new Set(authors.map((item) => item.id));
@@ -503,9 +535,12 @@ export function AuthorManagementPage() {
     );
   };
 
-  if (isInitializing || !isAuthenticated || !isAdmin) {
+  if (isInitializing || !isAuthenticated || !hasPageAccess) {
     return null;
   }
+
+  // colSpan зависит от наличия колонки действий
+  const tableColSpan = canEdit ? 5 : 4;
 
   return (
     <div className="app-page">
@@ -515,12 +550,29 @@ export function AuthorManagementPage() {
         <div className="container app-block-group">
           <section className="app-surface">
             <div className={styles.panelHeader}>
-              <Button
-                label="Новый автор"
-                iconName="add"
-                size="normal"
-                onClick={handleStartCreate}
-              />
+              {/* Фильтр по подразделениям — для администратора и администрации */}
+              {isAdmin || isAdministration ? (
+                <FilterDropdown
+                  label="Подразделение"
+                  mode="multi"
+                  options={departmentFilterOptions}
+                  value={filterDepartmentIds}
+                  onChange={setFilterDepartmentIds}
+                  menuWidth={280}
+                />
+              ) : null}
+
+              <div className={styles.panelHeaderSpacer} />
+
+              {/* Кнопка «Новый автор» — только для администратора */}
+              {canEdit ? (
+                <Button
+                  label="Новый автор"
+                  iconName="add"
+                  size="normal"
+                  onClick={handleStartCreate}
+                />
+              ) : null}
             </div>
 
             {pageError ? <div className={styles.errorBanner}>{pageError}</div> : null}
@@ -551,24 +603,26 @@ export function AuthorManagementPage() {
                     <th>{renderTableHeaderButton('name', 'ФИО')}</th>
                     <th>{renderTableHeaderButton('department', 'Подразделение')}</th>
                     <th>Идентификаторы</th>
-                    <th className={styles.actionsColumn} aria-label="Действия" />
+                    {canEdit ? (
+                      <th className={styles.actionsColumn} aria-label="Действия" />
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
                   {isPageLoading ? (
                     <tr>
-                      <td colSpan={5} className={styles.emptyCell}>
+                      <td colSpan={tableColSpan} className={styles.emptyCell}>
                         Загрузка...
                       </td>
                     </tr>
                   ) : sortedAuthors.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className={styles.emptyCell}>
+                      <td colSpan={tableColSpan} className={styles.emptyCell}>
                         Авторы не найдены.
                       </td>
                     </tr>
                   ) : (
-                    sortedAuthors.map((item, index) => (
+                    visibleAuthors.map((item, index) => (
                       <tr
                         key={item.id}
                         className={styles.authorRow}
@@ -633,60 +687,62 @@ export function AuthorManagementPage() {
                             <span>{item.wos_id ? `WOS: ${item.wos_id}` : 'WOS: —'}</span>
                           </div>
                         </td>
-                        <td>
-                          <div
-                            className={styles.rowActions}
-                            onClick={(event) => event.stopPropagation()}
-                            onMouseDown={(event) => event.stopPropagation()}
-                          >
-                            <OutlineIconButton
-                              iconName="more_horiz"
-                              iconSize={20}
-                              size="small-x"
-                              aria-label="Действия с автором"
-                              aria-expanded={openActionMenuId === item.id}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setOpenActionMenuId((prev) =>
-                                  prev === item.id ? null : item.id,
-                                );
-                              }}
-                            />
+                        {canEdit ? (
+                          <td>
+                            <div
+                              className={styles.rowActions}
+                              onClick={(event) => event.stopPropagation()}
+                              onMouseDown={(event) => event.stopPropagation()}
+                            >
+                              <OutlineIconButton
+                                iconName="more_horiz"
+                                iconSize={20}
+                                size="small-x"
+                                aria-label="Действия с автором"
+                                aria-expanded={openActionMenuId === item.id}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setOpenActionMenuId((prev) =>
+                                    prev === item.id ? null : item.id,
+                                  );
+                                }}
+                              />
 
-                            {openActionMenuId === item.id ? (
-                              <div className={`app-search-menu ${styles.authorMenu}`} role="menu">
-                                <div className="app-search-options-list">
-                                <button
-                                  type="button"
-                                  className={`app-search-option-button ${styles.authorMenuItem}`}
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    handleStartEdit(item);
-                                  }}
-                                  role="menuitem"
-                                >
-                                  <Icon name="edit" size={24} />
-                                  <span>Редактировать</span>
-                                </button>
+                              {openActionMenuId === item.id ? (
+                                <div className={`app-search-menu ${styles.authorMenu}`} role="menu">
+                                  <div className="app-search-options-list">
+                                    <button
+                                      type="button"
+                                      className={`app-search-option-button ${styles.authorMenuItem}`}
+                                      onClick={() => {
+                                        setOpenActionMenuId(null);
+                                        handleStartEdit(item);
+                                      }}
+                                      role="menuitem"
+                                    >
+                                      <Icon name="edit" size={24} />
+                                      <span>Редактировать</span>
+                                    </button>
 
-                                <button
-                                  type="button"
-                                  className={`app-search-option-button ${styles.authorMenuItem}`}
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    void handleDeleteAuthor(item);
-                                  }}
-                                  disabled={!item.is_available}
-                                  role="menuitem"
-                                >
-                                  <Icon name="delete" size={24} />
-                                  <span>Удалить</span>
-                                </button>
+                                    <button
+                                      type="button"
+                                      className={`app-search-option-button ${styles.authorMenuItem}`}
+                                      onClick={() => {
+                                        setOpenActionMenuId(null);
+                                        void handleDeleteAuthor(item);
+                                      }}
+                                      disabled={!item.is_available}
+                                      role="menuitem"
+                                    >
+                                      <Icon name="delete" size={24} />
+                                      <span>Удалить</span>
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            ) : null}
-                          </div>
-                        </td>
+                              ) : null}
+                            </div>
+                          </td>
+                        ) : null}
                       </tr>
                     ))
                   )}
@@ -805,7 +861,7 @@ export function AuthorManagementPage() {
         </div>
       ) : null}
 
-      {isModalOpen ? (
+      {isModalOpen && canEdit ? (
         <div
           className={styles.modalOverlay}
           role="presentation"

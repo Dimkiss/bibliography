@@ -12,6 +12,14 @@ export type AuthorFullDto = {
   degree: string | null;
   rank: string | null;
   email: string | null;
+  type: string | null;
+  birthdate: string | null;
+  birth_year: number | null;
+  nickname: string | null;
+  status: number | null;
+  search_pattern: string | null;
+  external_id: number | null;
+  snils_last4: string | null;
   wos_id: string | null;
   scopus_id: string | null;
   orcid: string | null;
@@ -53,6 +61,10 @@ export type GetAuthorPublicationsParams = {
   pageSize?: number;
   yearFrom?: number | null;
   yearTo?: number | null;
+  textQuery?: string;
+  publicationTypes?: string[];
+  databases?: string[];
+  originalTranslationMode?: string;
   sortBy?: AuthorPublicationsSortField;
   sortOrder?: PublicationSortOrder;
 };
@@ -167,8 +179,18 @@ async function downloadAuthorsReport(
   await downloadResponseBlob(response, fallbackFilename);
 }
 
-export async function getAdminAuthorsFull(): Promise<AuthorFullDto[]> {
-  const response = await fetch(`${API_BASE_URL}/admin/authors-manage`, {
+export async function getAdminAuthorsFull(params?: {
+  departmentId?: number | null;
+}): Promise<AuthorFullDto[]> {
+  const sp = new URLSearchParams();
+  if (typeof params?.departmentId === 'number') {
+    sp.set('department_id', String(params.departmentId));
+  }
+  const query = sp.toString();
+  const url = query
+    ? `${API_BASE_URL}/admin/authors-manage?${query}`
+    : `${API_BASE_URL}/admin/authors-manage`;
+  const response = await fetch(url, {
     method: 'GET',
     headers: buildHeaders(),
   });
@@ -195,6 +217,16 @@ export async function getAdminAuthorPublications(
   if (typeof params.pageSize === 'number') sp.set('page_size', String(params.pageSize));
   if (typeof params.yearFrom === 'number') sp.set('year_from', String(params.yearFrom));
   if (typeof params.yearTo === 'number') sp.set('year_to', String(params.yearTo));
+  if (params.textQuery?.trim()) sp.set('text_query', params.textQuery.trim());
+  params.publicationTypes?.forEach((value) => {
+    if (value.trim()) sp.append('publication_types', value.trim());
+  });
+  params.databases?.forEach((value) => {
+    if (value.trim()) sp.append('databases', value.trim());
+  });
+  if (params.originalTranslationMode?.trim()) {
+    sp.set('original_translation_mode', params.originalTranslationMode.trim());
+  }
   if (params.sortBy) sp.set('sort_by', params.sortBy);
   if (params.sortOrder) sp.set('sort_order', params.sortOrder);
 
@@ -211,14 +243,42 @@ export async function getAdminAuthorPublications(
   return response.json();
 }
 
+export async function linkAdminAuthorPublication(
+  authorId: number,
+  articleId: number,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/authors-manage/${authorId}/publications/${articleId}`,
+    {
+      method: 'POST',
+      headers: buildHeaders(),
+    },
+  );
+  if (!response.ok) throw new Error(await parseErrorMessage(response));
+}
+
 export async function getAdminAuthorStats(
   authorId: number,
   yearFrom?: number | null,
   yearTo?: number | null,
+  textQuery?: string,
+  publicationTypes?: string[],
+  databases?: string[],
+  originalTranslationMode?: string,
 ): Promise<AuthorStatsDto> {
   const sp = new URLSearchParams();
   if (typeof yearFrom === 'number') sp.set('year_from', String(yearFrom));
   if (typeof yearTo === 'number') sp.set('year_to', String(yearTo));
+  if (textQuery?.trim()) sp.set('text_query', textQuery.trim());
+  publicationTypes?.forEach((value) => {
+    if (value.trim()) sp.append('publication_types', value.trim());
+  });
+  databases?.forEach((value) => {
+    if (value.trim()) sp.append('databases', value.trim());
+  });
+  if (originalTranslationMode?.trim()) {
+    sp.set('original_translation_mode', originalTranslationMode.trim());
+  }
 
   const query = sp.toString();
   const url = `${API_BASE_URL}/admin/authors-manage/${authorId}/stats${

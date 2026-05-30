@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, BigInteger, Index
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, Text, BigInteger, Index
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -37,9 +37,18 @@ class Author(Base):
     degree = Column(String(50), nullable=True)
     rank = Column(String(50), nullable=True)
     email = Column(String(50), nullable=True)
+    type = Column(String(4), nullable=False, default="О")
+    birthdate = Column(Date, nullable=True)
+    year = Column(Integer, nullable=True)
+    inn = Column(String(12), nullable=True)
+    snils = Column(String(11), nullable=True)
     WOS_ID = Column(String(100), nullable=True)
     Scopus_ID = Column(String(20), nullable=True)
     ORCID = Column(String(100), nullable=True)
+    nickname = Column(String(200), nullable=True)
+    status = Column(Integer, nullable=False, default=1)
+    Pattern = Column(String(50), nullable=True)
+    ID = Column(Integer, nullable=True)
     DepartmentCode = Column(Integer, ForeignKey("departments.DepartmentCode"), nullable=True)
 
     users = relationship("User", back_populates="author")

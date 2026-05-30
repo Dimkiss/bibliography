@@ -25,12 +25,30 @@
   letter-spacing: var(--type-body-md-letter);
 }
 
+.successBanner {
+  padding: 14px var(--space-6);
+  border: 1px solid rgba(45, 120, 82, 0.2);
+  border-radius: 16px;
+  background: rgba(45, 120, 82, 0.08);
+  color: var(--color-success, #2d7852);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
 .authorHeader,
 .sectionHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
@@ -159,12 +177,141 @@
   flex-wrap: wrap;
 }
 
-.filterLabel {
+.filterLabel,
+.searchLabel {
   font-family: var(--font-family-ui);
   font-size: var(--type-body-md-size);
   line-height: var(--type-body-md-line);
   letter-spacing: var(--type-body-md-letter);
   white-space: nowrap;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.searchLabel {
+  color: var(--color-text-subtle);
+  font-weight: var(--font-weight-medium);
+}
+
+.searchInput {
+  min-width: min(420px, 100%);
+  flex: 1 1 320px;
+  height: var(--control-height-md);
+  padding: 0 var(--space-5);
+  border: 1px solid var(--color-outline-input);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.searchInput:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-7);
+  background: rgba(26, 27, 33, 0.36);
+}
+
+.dialog {
+  width: min(760px, 100%);
+  max-height: min(720px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  overflow: auto;
+  padding: var(--space-7);
+  border: 1px solid var(--color-outline-soft);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: 0 16px 38px rgba(14, 26, 53, 0.24);
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.dialogTitle {
+  margin: 0;
+  color: var(--color-text-title);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-title-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-title-md-line);
+}
+
+.dialogHint {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.linkResults {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.linkResultItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-outline-soft);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.linkResultContent {
+  min-width: 0;
+}
+
+.linkResultTitle,
+.linkResultMeta {
+  font-family: var(--font-family-ui);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.linkResultTitle {
+  color: var(--color-text-primary);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-body-md-line);
+}
+
+.linkResultMeta {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--type-label-md-size);
+  line-height: var(--type-label-md-line);
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 900px) {
@@ -185,5 +332,16 @@
 
   .name {
     font-size: 18px;
+  }
+
+  .searchRow,
+  .linkResultItem {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .searchInput {
+    min-width: 0;
+    width: 100%;
   }
 }

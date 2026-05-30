@@ -4,9 +4,10 @@
 }
 
 .trigger {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 116px;
   height: var(--control-height-sm);
   padding: 0 12px;
@@ -29,16 +30,23 @@
 }
 
 .triggerLabel {
+  position: absolute;
+  right: 4px;
+  left: 12px;
+  z-index: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
 }
 
 .chevron {
+  position: absolute;
+  right: 12px;
+  z-index: 0;
   width: 0;
   height: 0;
-  margin-left: var(--space-3);
   border-right: 5px solid transparent;
   border-left: 5px solid transparent;
   border-top: 6px solid currentColor;

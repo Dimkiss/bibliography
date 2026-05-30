@@ -1,9 +1,13 @@
 .panelHeader {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
   gap: var(--space-5);
   margin-bottom: var(--space-3);
+}
+
+.panelHeaderSpacer {
+  flex: 1;
 }
 
 .modalSubtitle {

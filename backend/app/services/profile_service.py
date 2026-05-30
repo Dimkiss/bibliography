@@ -59,6 +59,182 @@ def _parse_csv_list(value: str | None) -> list[str]:
     return [item.strip() for item in value.split("|||") if item.strip()]
 
 
+PUBLICATION_TYPE_CATEGORY_FLAGS: dict[str, tuple[str, ...]] = {
+    "article": ("ST",),
+    "conference": ("MA", "DO", "PD", "SD", "TE", "TR"),
+    "monograph": ("MO",),
+    "chapter": ("GL",),
+    "patent_method": ("PA", "MP", "AS", "LI"),
+}
+
+PUBLICATION_TYPE_PRIMARY_FLAGS: tuple[str, ...] = tuple(
+    flag
+    for flags in PUBLICATION_TYPE_CATEGORY_FLAGS.values()
+    for flag in flags
+)
+
+
+def _normalize_str_list(values: list[str] | None) -> list[str]:
+    if not values:
+        return []
+
+    return [value.strip() for value in values if value.strip()]
+
+
+def _build_in_clause(prefix: str, values: list[str], params: dict[str, Any]) -> str:
+    placeholders: list[str] = []
+
+    for index, value in enumerate(values):
+        key = f"{prefix}_{index}"
+        placeholders.append(f":{key}")
+        params[key] = value
+
+    return ", ".join(placeholders)
+
+
+def _build_publication_search_filter(
+    text_query: str | None,
+    params: dict[str, Any],
+) -> str:
+    if not text_query or not text_query.strip():
+        return ""
+
+    params["text_query"] = f"%{text_query.strip()}%"
+    return f"""
+        AND (
+            a.Title_Analitic_F4 LIKE :text_query
+            OR a.Author_Analitic_F1 LIKE :text_query
+            OR a.DOI LIKE :text_query
+            OR {SOURCE_TITLE_EXPR} LIKE :text_query
+            OR EXISTS (
+                SELECT 1
+                FROM articlehasauthor aha_search
+                JOIN authors au_search
+                    ON au_search.authorID = aha_search.authorID_f
+                WHERE aha_search.Record_ID_f = a.Record_ID
+                  AND au_search.authorName LIKE :text_query
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM articlehaskeywords ahk_search
+                JOIN keywords k_search
+                    ON k_search.K_ID = ahk_search.Keyword_ID_f
+                WHERE ahk_search.Record_ID_f = a.Record_ID
+                  AND k_search.Keyword LIKE :text_query
+            )
+        )
+    """
+
+
+def _build_publication_type_filter(
+    publication_types: list[str],
+    params: dict[str, Any],
+) -> str:
+    if not publication_types:
+        return ""
+
+    category_conditions: list[str] = []
+    direct_values: list[str] = []
+
+    for publication_type in publication_types:
+        flags = PUBLICATION_TYPE_CATEGORY_FLAGS.get(publication_type)
+        if flags:
+            in_clause = _build_in_clause(
+                f"pub_type_{publication_type}",
+                list(flags),
+                params,
+            )
+            category_conditions.append(f"aht.TypeOfPublication_f IN ({in_clause})")
+        elif publication_type == "other":
+            in_clause = _build_in_clause(
+                "pub_type_primary",
+                list(PUBLICATION_TYPE_PRIMARY_FLAGS),
+                params,
+            )
+            category_conditions.append(f"aht.TypeOfPublication_f NOT IN ({in_clause})")
+        else:
+            direct_values.append(publication_type)
+
+    if direct_values:
+        in_clause = _build_in_clause("pub_type_direct", direct_values, params)
+        category_conditions.append(
+            f"(top.TOP_Flag IN ({in_clause}) OR top.TOP_Name IN ({in_clause}))"
+        )
+
+    if not category_conditions:
+        return ""
+
+    return (
+        """
+        AND EXISTS (
+            SELECT 1
+            FROM articlehastop aht
+            JOIN typesofpublications top
+                ON top.TOP_Flag = aht.TypeOfPublication_f
+            WHERE aht.Record_ID_f = a.Record_ID
+              AND (
+        """
+        + " OR ".join(f"({condition})" for condition in category_conditions)
+        + """
+              )
+        )
+        """
+    )
+
+
+def _build_database_filter(databases: list[str]) -> str:
+    if not databases:
+        return ""
+
+    conditions: list[str] = []
+    for database in databases:
+        value = database.lower()
+        if value == "wos":
+            conditions.append("COALESCE(j.WOS, 0) = 1")
+        elif value == "scopus":
+            conditions.append("COALESCE(j.Scopus, 0) = 1")
+        elif value == "white_list":
+            conditions.append("COALESCE(j.LWL, 0) > 0")
+        elif value == "rinc":
+            conditions.append("COALESCE(j.Rints, 0) = 1")
+        elif value == "rinc_core":
+            conditions.append("COALESCE(j.RintsCore, 0) = 1")
+        elif value == "rsci":
+            conditions.append("COALESCE(j.RSCI, 0) = 1")
+        elif value == "vak":
+            conditions.append("COALESCE(j.BAK, 0) = 1")
+
+    return f"AND ({' OR '.join(conditions)})" if conditions else ""
+
+
+def _build_original_translation_filter(original_translation_mode: str) -> str:
+    if original_translation_mode == "original_only":
+        return """
+        AND NOT (
+            jaa.OriginalVer_ID_f IS NOT NULL
+            OR EXISTS (
+                SELECT 1
+                FROM journalarticlesattributes relation
+                WHERE relation.PerVer_ID_f = a.Record_ID
+            )
+        )
+        """
+
+    if original_translation_mode == "translation_only":
+        return """
+        AND NOT (
+            jaa.PerVer_ID_f IS NOT NULL
+            OR EXISTS (
+                SELECT 1
+                FROM journalarticlesattributes relation
+                WHERE relation.OriginalVer_ID_f = a.Record_ID
+            )
+        )
+        """
+
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # Список публикаций автора
 # ---------------------------------------------------------------------------
@@ -70,11 +246,17 @@ def get_profile_publications(
     page_size: int = DEFAULT_PAGE_SIZE,
     year_from: int | None = None,
     year_to: int | None = None,
+    text_query: str | None = None,
+    publication_types: list[str] | None = None,
+    databases: list[str] | None = None,
+    original_translation_mode: str = "all",
     sort_by: str = "year",
     sort_order: str = "desc",
 ) -> ArticleListResponse:
     """Возвращает пагинированный список публикаций для автора."""
 
+    publication_types = _normalize_str_list(publication_types)
+    databases = _normalize_str_list(databases)
     sort_dir = "ASC" if sort_order == "asc" else "DESC"
     sort_expr_map = {
         "year": "a.Date_of_Publication_F20",
@@ -94,14 +276,28 @@ def get_profile_publications(
         year_filter += " AND a.Date_of_Publication_F20 <= :year_to"
         params["year_to"] = year_to
 
+    search_filter = _build_publication_search_filter(text_query, params)
+    publication_type_filter = _build_publication_type_filter(publication_types, params)
+    database_filter = _build_database_filter(databases)
+    original_translation_filter = _build_original_translation_filter(
+        original_translation_mode,
+    )
+
     # Считаем total
     count_sql = text(f"""
-        SELECT COUNT(a.Record_ID) AS total
+        SELECT COUNT(DISTINCT a.Record_ID) AS total
         FROM articles a
         JOIN articlehasauthor aha ON aha.Record_ID_f = a.Record_ID
             AND aha.authorID_f = :author_id
+        LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
+        LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
+        LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
         WHERE 1 = 1
         {year_filter}
+        {search_filter}
+        {publication_type_filter}
+        {database_filter}
+        {original_translation_filter}
     """)
     total = int(db.execute(count_sql, params).scalar() or 0)
 
@@ -118,8 +314,13 @@ def get_profile_publications(
             AND aha.authorID_f = :author_id
         LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
         LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
+        LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
         WHERE 1 = 1
         {year_filter}
+        {search_filter}
+        {publication_type_filter}
+        {database_filter}
+        {original_translation_filter}
         ORDER BY {sort_expr} {sort_dir}, a.Record_ID DESC
         LIMIT :limit OFFSET :offset
     """)
@@ -261,9 +462,15 @@ def get_profile_stats(
     author_id: int,
     year_from: int | None = None,
     year_to: int | None = None,
+    text_query: str | None = None,
+    publication_types: list[str] | None = None,
+    databases: list[str] | None = None,
+    original_translation_mode: str = "all",
 ) -> dict[str, Any]:
     """Считает ключевые показатели автора для отображения в шапке профиля."""
 
+    publication_types = _normalize_str_list(publication_types)
+    databases = _normalize_str_list(databases)
     year_filter = ""
     params: dict[str, Any] = {"author_id": author_id}
     if year_from is not None:
@@ -272,6 +479,13 @@ def get_profile_stats(
     if year_to is not None:
         year_filter += " AND a.Date_of_Publication_F20 <= :year_to"
         params["year_to"] = year_to
+
+    search_filter = _build_publication_search_filter(text_query, params)
+    publication_type_filter = _build_publication_type_filter(publication_types, params)
+    database_filter = _build_database_filter(databases)
+    original_translation_filter = _build_original_translation_filter(
+        original_translation_mode,
+    )
 
     sql = text(f"""
         SELECT
@@ -285,8 +499,14 @@ def get_profile_stats(
         JOIN articlehasauthor aha ON aha.Record_ID_f = a.Record_ID
             AND aha.authorID_f = :author_id
         LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
+        LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
+        LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
         WHERE 1 = 1
         {year_filter}
+        {search_filter}
+        {publication_type_filter}
+        {database_filter}
+        {original_translation_filter}
     """)
 
     row = db.execute(sql, params).mappings().first()

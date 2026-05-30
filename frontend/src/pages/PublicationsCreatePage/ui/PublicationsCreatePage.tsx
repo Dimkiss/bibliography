@@ -653,7 +653,11 @@ export function PublicationsCreatePage() {
             pageSize: 100,
           });
           if (isMounted) {
-            setAuthorResults(response.items);
+            setAuthorResults(
+              response.items.filter(
+                (item) => item.source === 'employee' && item.id !== null,
+              ),
+            );
           }
           return;
         }
@@ -774,22 +778,24 @@ export function PublicationsCreatePage() {
     setSelectorMode(mode);
   };
 
-  const appendAuthorToText = (authorName: string) => {
-    setForm((prev) => {
-      const currentAuthors = prev.authorsText
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
-      const hasAuthor = currentAuthors.some(
-        (item) => item.toLowerCase() === authorName.toLowerCase(),
-      );
+  const addSelectedAuthor = (author: AuthorOptionDto) => {
+    if (author.id === null || author.source !== 'employee') {
+      return;
+    }
 
-      return {
+    setSelectedAuthors((prev) => {
+      if (prev.some((item) => item.author.id === author.id)) {
+        return prev;
+      }
+
+      return [
         ...prev,
-        authorsText: hasAuthor
-          ? prev.authorsText
-          : [...currentAuthors, authorName].join(', '),
-      };
+        {
+          author,
+          affiliation: '1',
+          correspondingAuthor: false,
+        },
+      ];
     });
   };
 
@@ -1043,10 +1049,14 @@ export function PublicationsCreatePage() {
     }
 
     if (selectorMode === 'author') {
+      const availableAuthorResults = authorResults.filter(
+        (item) => !selectedAuthors.some((selected) => selected.author.id === item.id),
+      );
+
       return (
         <div className={styles.selectorPanel}>
           <div className={styles.selectorHeader}>
-            <div className={styles.selectorTitle}>Выбор автора</div>
+            <div className={styles.selectorTitle}>Выбор сотрудника</div>
             <button type="button" className={styles.selectorClose} onClick={closeSelector}>
               ×
             </button>
@@ -1060,36 +1070,34 @@ export function PublicationsCreatePage() {
             inputClassName={styles.formTextFieldInput}
             value={selectorQuery}
             onChange={(event) => setSelectorQuery(event.target.value)}
-            placeholder="Поиск по ФИО"
+            placeholder="Поиск сотрудника по ФИО"
           />
           <div className={styles.selectorResults}>
             {selectorLoading ? <div className={styles.selectorHint}>Загрузка…</div> : null}
             {!selectorLoading && !selectorQuery.trim() ? (
-              <div className={styles.selectorHint}>Введите ФИО автора.</div>
+              <div className={styles.selectorHint}>Введите ФИО сотрудника.</div>
             ) : null}
-            {!selectorLoading && selectorQuery.trim() && authorResults.length === 0 ? (
+            {!selectorLoading && selectorQuery.trim() && availableAuthorResults.length === 0 ? (
               <div className={styles.selectorHint}>Совпадения не найдены.</div>
             ) : null}
-            {authorResults.map((item) => (
+            {availableAuthorResults.map((item) => (
               <button
                 key={`${item.source}-${item.id ?? item.label}`}
                 type="button"
                 className={styles.selectorItem}
                 onClick={() => {
-                  appendAuthorToText(item.label);
+                  addSelectedAuthor(item);
                   closeSelector();
                 }}
               >
                 <div className={styles.selectorItemTitle}>{item.label}</div>
-                {item.source === 'publication_author' ? (
-                  <div className={styles.selectorItemMeta}>Автор из публикаций</div>
-                ) : item.department_name || item.position ? (
+                {item.department_name || item.position ? (
                   <div className={styles.selectorItemMeta}>
                     {['Сотрудник', item.department_name, item.position].filter(Boolean).join(' · ')}
                   </div>
-                ) : item.source === 'employee' ? (
+                ) : (
                   <div className={styles.selectorItemMeta}>Сотрудник</div>
-                ) : null}
+                )}
               </button>
             ))}
           </div>
@@ -1311,8 +1319,8 @@ export function PublicationsCreatePage() {
                 }
               />
 
-              {selectedAuthors.length > 0 ? (
-                <div className={styles.authorsPanel}>
+              <div className={styles.authorsPanel}>
+                {selectedAuthors.length > 0 ? (
                   <div className={styles.selectedAuthorsList}>
                     {selectedAuthors.map((item) => (
                       <div key={item.author.id} className={styles.selectedAuthorRow}>
@@ -1348,35 +1356,21 @@ export function PublicationsCreatePage() {
                           type="button"
                           className={styles.authorDeleteButton}
                           onClick={() => removeSelectedAuthor(item.author.id as number)}
-                          aria-label={`Удалить автора ${item.author.label}`}
+                          aria-label={`Удалить сотрудника ${item.author.label}`}
                         >
                           <Icon name="delete" size={20} />
                         </button>
                       </div>
                     ))}
                   </div>
+                ) : null}
 
-                  <div className={styles.authorsActions}>
-                    <TextButton
-                      label="Обновить"
-                      iconName="sync"
-                      className={styles.authorsTextButton}
-                      onClick={syncAuthorsFromText}
-                    />
-                    <OutlineButton
-                      label="Добавить"
-                      iconName="add"
-                      className={styles.addAuthorButton}
-                      onClick={() => openSelector('author')}
-                    />
-                  </div>
-                </div>
-              ) : form.authorsText.trim() ? (
-                <div className={styles.authorsEmptyActions}>
+                <div className={styles.authorsActions}>
                   <TextButton
                     label="Обновить"
                     iconName="sync"
                     className={styles.authorsTextButton}
+                    disabled={!form.authorsText.trim()}
                     onClick={syncAuthorsFromText}
                   />
                   <OutlineButton
@@ -1386,7 +1380,7 @@ export function PublicationsCreatePage() {
                     onClick={() => openSelector('author')}
                   />
                 </div>
-              ) : null}
+              </div>
 
               {selectorMode === 'author' ? renderSelectorPanel() : null}
 

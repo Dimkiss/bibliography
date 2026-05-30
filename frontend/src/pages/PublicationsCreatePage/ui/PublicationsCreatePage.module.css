@@ -287,16 +287,6 @@
 }
 
 .authorsActions,
-.authorsEmptyActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-7);
-}
-
-.authorsEmptyActions {
-  margin-top: -8px;
-}
-
 .authorsTextButton {
   color: var(--color-primary);
 }

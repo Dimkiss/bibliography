@@ -50,6 +50,38 @@
   font-weight: var(--font-weight-medium);
 }
 
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--color-outline-soft);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-metric);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.infoLabel {
+  color: var(--color-text-subtle);
+  font-weight: var(--font-weight-medium);
+}
+
+.infoValue {
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
 /* ─── Блок публикаций ──────────────────────────────────────────────────────── */
 
 .publicationsBlock {
@@ -79,5 +111,15 @@
 
   .name {
     font-size: 18px;
+  }
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .infoGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

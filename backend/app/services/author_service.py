@@ -6,6 +6,10 @@ from app.models import Author, Department
 from app.schemas.author import AuthorCreate, AuthorUpdate
 
 
+def _format_date(value) -> str | None:
+    return value.isoformat() if value else None
+
+
 def serialize_author_full(author: Author) -> dict:
     linked_user = author.users[0] if author.users else None
     return {
@@ -15,6 +19,14 @@ def serialize_author_full(author: Author) -> dict:
         "degree": author.degree,
         "rank": author.rank,
         "email": author.email,
+        "type": author.type,
+        "birthdate": _format_date(author.birthdate),
+        "birth_year": author.year,
+        "nickname": author.nickname,
+        "status": author.status,
+        "search_pattern": author.Pattern,
+        "external_id": author.ID,
+        "snils_last4": author.snils[-4:] if author.snils else None,
         "wos_id": author.WOS_ID,
         "scopus_id": author.Scopus_ID,
         "orcid": author.ORCID,
@@ -26,8 +38,11 @@ def serialize_author_full(author: Author) -> dict:
     }
 
 
-def list_authors_full(db: Session) -> list[dict]:
-    authors = db.query(Author).order_by(Author.authorName.asc()).all()
+def list_authors_full(db: Session, department_id: int | None = None) -> list[dict]:
+    query = db.query(Author)
+    if department_id is not None:
+        query = query.filter(Author.DepartmentCode == department_id)
+    authors = query.order_by(Author.authorName.asc()).all()
     return [serialize_author_full(a) for a in authors]
 
 
@@ -120,3 +135,54 @@ def delete_author(db: Session, author_id: int) -> dict:
     db.delete(author)
     db.commit()
     return {"status": "deleted"}
+
+
+def link_author_publication(db: Session, author_id: int, article_id: int) -> dict:
+    get_author_by_id(db, author_id)
+
+    article_exists = db.execute(
+        text("SELECT COUNT(*) FROM articles WHERE Record_ID = :article_id"),
+        {"article_id": article_id},
+    ).scalar()
+    if int(article_exists or 0) == 0:
+        raise HTTPException(status_code=404, detail="Publication not found")
+
+    link_exists = db.execute(
+        text(
+            """
+            SELECT COUNT(*)
+            FROM articlehasauthor
+            WHERE Record_ID_f = :article_id
+              AND authorID_f = :author_id
+            """
+        ),
+        {"article_id": article_id, "author_id": author_id},
+    ).scalar()
+    if int(link_exists or 0) > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Publication is already linked to this author.",
+        )
+
+    db.execute(
+        text(
+            """
+            INSERT INTO articlehasauthor (
+                Record_ID_f,
+                authorID_f,
+                affiliation,
+                corresponding_author
+            )
+            VALUES (
+                :article_id,
+                :author_id,
+                1,
+                0
+            )
+            """
+        ),
+        {"article_id": article_id, "author_id": author_id},
+    )
+    db.commit()
+
+    return {"status": "linked"}
