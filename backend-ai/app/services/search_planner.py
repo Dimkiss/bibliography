@@ -4,11 +4,6 @@ import re
 from datetime import date
 
 from app.schemas.search_plan import SearchPlanFilters, SearchPlanResponse
-from app.services.llm_planner import (
-    LlmPlanningError,
-    build_llm_search_plan,
-    is_llm_planner_enabled,
-)
 
 
 DATABASE_PATTERNS: tuple[tuple[str, str], ...] = (
@@ -569,31 +564,11 @@ def build_rule_based_search_plan(message: str) -> SearchPlanResponse:
     )
 
 
-def _build_delta_search_plan(message: str) -> SearchPlanResponse:
-    llm_failed = False
-
-    if is_llm_planner_enabled():
-        try:
-            return build_llm_search_plan(message)
-        except LlmPlanningError:
-            llm_failed = True
-
-    if llm_failed and _is_non_search_request(message):
-        return _build_non_search_plan()
-
-    if len(_parse_search_terms(message)) == 1:
-        return build_rule_based_search_plan(message)
-
-    return build_rule_based_search_plan(message)
-
-
 def build_search_plan(
     message: str,
     current_filters: SearchPlanFilters | None = None,
 ) -> SearchPlanResponse:
-    llm_enabled = is_llm_planner_enabled()
-
-    if not llm_enabled and _is_non_search_request(message):
+    if _is_non_search_request(message):
         return _build_non_search_plan()
 
     if _is_refine_request(message):
@@ -606,7 +581,4 @@ def build_search_plan(
 
         return _build_refine_plan_from_message(current_filters, refine_message)
 
-    if not llm_enabled and _is_pdf_search_request(message):
-        return build_rule_based_search_plan(message)
-
-    return _build_delta_search_plan(message)
+    return build_rule_based_search_plan(message)

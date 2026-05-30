@@ -306,6 +306,91 @@ def _build_pdf_text_query_score_sql(pattern_param_names: list[str]) -> str:
     )
 
 
+def _build_fulltext_condition_sql() -> str:
+    """FULLTEXT условие для чатового поиска по названию и аннотации."""
+    return "MATCH(a.Title_Analitic_F4, a.Abstract_F43) AGAINST(:fulltext_query IN BOOLEAN MODE) > 0"
+
+
+def _build_fulltext_score_sql() -> str:
+    """FULLTEXT score — чем выше, тем более релевантна статья."""
+    return "MATCH(a.Title_Analitic_F4, a.Abstract_F43) AGAINST(:fulltext_query IN BOOLEAN MODE)"
+
+
+def _build_fulltext_keyword_condition_sql() -> str:
+    """FULLTEXT условие по ключевым словам статьи."""
+    return """
+    EXISTS (
+        SELECT 1
+        FROM articlehaskeywords ahk
+        JOIN keywords k ON k.K_ID = ahk.Keyword_ID_f
+        WHERE ahk.Record_ID_f = a.Record_ID
+          AND MATCH(k.Keyword) AGAINST(:fulltext_query IN BOOLEAN MODE) > 0
+    )
+    """
+
+
+def _prepare_fulltext_query(text: str) -> str:
+    """
+    Подготавливает строку для FULLTEXT BOOLEAN MODE поиска.
+    Убирает короткие и стоп-слова, остальные помечает как +term* (must match, prefix).
+    Если после фильтрации ничего не осталось — возвращает пустую строку.
+    """
+    import re as _re
+    STOP_WORDS = {
+        "и", "в", "на", "с", "по", "для", "из", "к", "от", "до",
+        "или", "но", "при", "об", "за", "под", "над", "о",
+        "the", "and", "in", "of", "to", "a", "an", "for", "or",
+    }
+    words = _re.findall(r"[А-Яа-яЁёA-Za-z0-9]{3,}", text)
+    terms = [w for w in words if w.lower() not in STOP_WORDS]
+    if not terms:
+        return ""
+    # В BOOLEAN MODE: +слово* означает "обязательно начинается с этого префикса"
+    # Для коротких запросов требуем все слова (+), для длинных — ослабляем до обычного OR
+    if len(terms) <= 3:
+        return " ".join(f"+{t}*" for t in terms)
+    return " ".join(f"{t}*" for t in terms)
+
+
+def _build_keyword_match_sql(param_name: str) -> str:
+    return f"""
+    EXISTS (
+        SELECT 1
+        FROM articlehaskeywords ahk
+        JOIN keywords k ON k.K_ID = ahk.Keyword_ID_f
+        WHERE ahk.Record_ID_f = a.Record_ID
+          AND k.Keyword LIKE :{param_name}
+    )
+    """
+
+
+def _build_keyword_score_sql(keyword_param_names: list[str]) -> str:
+    """Очки за каждое совпавшее ключевое слово (для relevance_score)."""
+    if not keyword_param_names:
+        return "0"
+
+    return (
+        "("
+        + " + ".join(
+            f"CASE WHEN ({_build_keyword_match_sql(param_name).strip()}) THEN 10 ELSE 0 END"
+            for param_name in keyword_param_names
+        )
+        + ")"
+    )
+
+
+def _build_keyword_coverage_sql(keyword_param_names: list[str]) -> str | None:
+    """Количество совпавших ключевых слов — для сортировки: больше = выше."""
+    if len(keyword_param_names) <= 1:
+        return None
+
+    parts = [
+        f"CASE WHEN ({_build_keyword_match_sql(param_name).strip()}) THEN 1 ELSE 0 END"
+        for param_name in keyword_param_names
+    ]
+    return "(" + " + ".join(parts) + ")"
+
+
 def _build_publication_type_condition(
     publication_types: list[str],
     params: dict[str, Any],
@@ -403,23 +488,32 @@ def _build_common_filters(
     author: str | None,
     journal: str | None,
     keyword: str | list[str] | None,
+    keyword_param_names: list[str],
     year_from: int | None,
     year_to: int | None,
     publication_types: list[str],
     databases: list[str],
     original_translation_mode: str,
+    use_fulltext: bool = False,
 ) -> str:
     conditions: list[str] = []
 
-    if text_query_pattern_param_names:
+    if use_fulltext:
+        # FULLTEXT заменяет LIKE-поиск по text_query для чатового поиска.
+        # Ищем по названию, аннотации и ключевым словам одновременно.
         conditions.append(
-            "("
-            + " OR ".join(
-                f"({_build_text_query_match_sql(param_name).strip()})"
-                for param_name in text_query_pattern_param_names
-            )
-            + ")"
+            f"({_build_fulltext_condition_sql()} OR {_build_fulltext_keyword_condition_sql().strip()})"
         )
+    else:
+        if text_query_pattern_param_names:
+            conditions.append(
+                "("
+                + " OR ".join(
+                    f"({_build_text_query_match_sql(param_name).strip()})"
+                    for param_name in text_query_pattern_param_names
+                )
+                + ")"
+            )
 
     if refine_text_query_pattern_param_names:
         conditions.append(
@@ -482,20 +576,16 @@ def _build_common_filters(
             """
         )
 
-    keyword_terms = _parse_keyword_terms(keyword)
-    for index, keyword_term in enumerate(keyword_terms):
-        param_name = f"keyword_{index}"
-        params[param_name] = f"%{keyword_term}%"
+    if keyword_param_names:
+        # OR: статья содержит хотя бы одно из ключевых слов.
+        # Ранжирование по числу совпавших слов реализуется через keyword_coverage_sql в ORDER BY.
         conditions.append(
-            f"""
-            EXISTS (
-                SELECT 1
-                FROM articlehaskeywords ahk
-                JOIN keywords k ON k.K_ID = ahk.Keyword_ID_f
-                WHERE ahk.Record_ID_f = a.Record_ID
-                  AND k.Keyword LIKE :{param_name}
+            "("
+            + " OR ".join(
+                f"({_build_keyword_match_sql(param_name).strip()})"
+                for param_name in keyword_param_names
             )
-            """
+            + ")"
         )
 
     if year_from is not None:
@@ -783,6 +873,7 @@ def list_articles(
     publication_types: list[str] | None = None,
     databases: list[str] | None = None,
     article_ids: list[int] | None = None,
+    rag_article_ids: list[int] | None = None,
     original_translation_mode: str = "all",
     sort_by: str = "year",
     sort_order: str = "desc",
@@ -794,6 +885,11 @@ def list_articles(
     article_ids = [
         article_id
         for article_id in dict.fromkeys(article_ids or [])
+        if article_id > 0
+    ]
+    rag_article_ids = [
+        article_id
+        for article_id in dict.fromkeys(rag_article_ids or [])
         if article_id > 0
     ]
 
@@ -819,10 +915,29 @@ def list_articles(
         *text_query_pattern_param_names,
         *refine_text_query_pattern_param_names,
     ]
+
+    # Подготавливаем параметры ключевых слов заранее (аналогично text_query)
+    keyword_param_names: list[str] = []
+    for index, keyword_term in enumerate(_parse_keyword_terms(keyword)):
+        param_name = f"keyword_{index}"
+        params[param_name] = f"%{keyword_term}%"
+        keyword_param_names.append(param_name)
+
+    use_fulltext = False
+
+    # При чатовом поиске (rag_article_ids) text_query не нужен —
+    # RAG уже сделал семантический поиск. Убираем LIKE чтобы не грузить БД.
+    if rag_article_ids:
+        text_query_pattern_param_names = []
+        text_query_term_pattern_param_names = []
+        all_text_query_pattern_param_names = []
+
     relevance_score_sql = (
         _build_text_query_score_sql(all_text_query_pattern_param_names)
         + " + "
         + _build_pdf_text_query_score_sql(pdf_text_query_pattern_param_names)
+        + " + "
+        + _build_keyword_score_sql(keyword_param_names)
     )
     text_query_coverage_sql = _build_text_query_coverage_sql(
         text_query_term_pattern_param_names
@@ -830,6 +945,7 @@ def list_articles(
     refine_text_query_coverage_sql = _build_text_query_coverage_sql(
         refine_text_query_term_pattern_param_names
     )
+    keyword_coverage_sql = _build_keyword_coverage_sql(keyword_param_names)
     pdf_text_query_coverage_sql = _build_pdf_text_query_coverage_sql(
         pdf_text_query_term_pattern_param_names
     )
@@ -845,13 +961,16 @@ def list_articles(
         author=author,
         journal=journal,
         keyword=keyword,
+        keyword_param_names=keyword_param_names,
         year_from=year_from,
         year_to=year_to,
         publication_types=publication_types,
         databases=databases,
         original_translation_mode=original_translation_mode,
+        use_fulltext=use_fulltext,
     )
 
+    # article_ids — жёсткий AND-фильтр (старое поведение)
     article_ids_order_sql: str | None = None
     if article_ids:
         article_id_placeholders = _build_in_clause(
@@ -863,28 +982,61 @@ def list_articles(
         if sort_by == TEXT_QUERY_RELEVANCE_SORT_FIELD:
             article_ids_order_sql = f"FIELD(a.Record_ID, {article_id_placeholders})"
 
-    if text_query_coverage_sql:
-        filters_sql += f"\nAND {text_query_coverage_sql} >= 2"
+    # rag_article_ids — OR-буст: показывать эти статьи даже если они не проходят фильтры метапоиска.
+    # Если есть обычные условия фильтрации, оборачиваем их в OR с rag_article_ids.
+    rag_placeholders: str | None = None
+    if rag_article_ids:
+        rag_placeholders = _build_in_clause(
+            "rag_article_id",
+            [str(article_id) for article_id in rag_article_ids],
+            params,
+        )
+        if filters_sql.strip():
+            # Оборачиваем существующие фильтры: (обычные условия) OR (rag ids)
+            existing = filters_sql.strip()
+            # убираем ведущий AND чтобы завернуть в OR
+            if existing.upper().startswith("AND "):
+                existing = existing[4:]
+            filters_sql = f"\nAND (({existing}) OR a.Record_ID IN ({rag_placeholders}))"
+        else:
+            # Нет других условий — показываем только rag статьи
+            filters_sql = f"\nAND a.Record_ID IN ({rag_placeholders})"
 
-    if refine_text_query_coverage_sql:
+    if text_query_coverage_sql:
+        # При чатовом поиске требуем больше совпадений чтобы метапоиск не давал тысячи результатов
+        min_coverage = 3 if rag_article_ids and len(text_query_term_pattern_param_names) >= 3 else 2
+        filters_sql += f"\nAND {text_query_coverage_sql} >= {min_coverage}"
+
+    if refine_text_query_coverage_sql and not rag_article_ids:
         filters_sql += f"\nAND {refine_text_query_coverage_sql} >= 2"
 
-    if pdf_text_query_coverage_sql:
+    if pdf_text_query_coverage_sql and not rag_article_ids:
         filters_sql += f"\nAND {pdf_text_query_coverage_sql} >= 2"
 
     is_relevance_sort = (
         sort_by == TEXT_QUERY_RELEVANCE_SORT_FIELD
-        and bool(all_text_query_pattern_param_names or pdf_text_query_pattern_param_names)
+        and bool(all_text_query_pattern_param_names or pdf_text_query_pattern_param_names or rag_article_ids or keyword_param_names)
     )
+    # Для keyword-поиска без RAG: сначала статьи со всеми совпавшими словами
+    keyword_sort_prefix = ""
+    if keyword_coverage_sql and not rag_placeholders:
+        keyword_sort_prefix = f"{keyword_coverage_sql} DESC, "
     if article_ids_order_sql:
         order_by_sql = f"{article_ids_order_sql} ASC, a.Record_ID DESC"
+    elif rag_placeholders and sort_by == TEXT_QUERY_RELEVANCE_SORT_FIELD:
+        # RAG статьи первыми (в порядке FIELD = порядок RAG score), потом остальные по релевантности
+        order_by_sql = (
+            f"CASE WHEN a.Record_ID IN ({rag_placeholders}) THEN 0 ELSE 1 END ASC, "
+            f"FIELD(a.Record_ID, {rag_placeholders}) ASC, "
+            f"relevance_score DESC, a.Date_of_Publication_F20 DESC, a.Record_ID DESC"
+        )
     elif is_relevance_sort:
-        order_by_sql = f"relevance_score DESC, a.Date_of_Publication_F20 DESC, a.Record_ID DESC"
+        order_by_sql = f"{keyword_sort_prefix}relevance_score DESC, a.Date_of_Publication_F20 DESC, a.Record_ID DESC"
     else:
         order_by_sql = (
-            f"{QUARTILE_SORT_RANK} {sort_dir}, a.Record_ID DESC"
+            f"{keyword_sort_prefix}{QUARTILE_SORT_RANK} {sort_dir}, a.Record_ID DESC"
             if sort_by == "quartile"
-            else f"{sort_expr} {sort_dir}, a.Record_ID DESC"
+            else f"{keyword_sort_prefix}{sort_expr} {sort_dir}, a.Record_ID DESC"
         )
 
     if include_total or known_total is None:
@@ -926,7 +1078,10 @@ def list_articles(
     )
 
     id_rows = db.execute(id_query, page_params).mappings().all()
-    article_ids = [int(row["id"]) for row in id_rows]
+    # Сохраняем relevance_score для каждой статьи чтобы определить found_in_metadata
+    relevance_by_id: dict[int, float] = {int(row["id"]): float(row["relevance_score"] or 0) for row in id_rows}
+    article_ids = list(relevance_by_id.keys())
+    rag_article_ids_set = set(rag_article_ids)
 
     if not article_ids:
         total_pages = math.ceil(total / page_size) if total > 0 else 0
@@ -1036,10 +1191,14 @@ def list_articles(
     items: list[ArticleListItem] = []
     for row in rows:
         row_dict = dict(row)
+        article_id = row_dict["id"]
+        relevance_score = relevance_by_id.get(article_id, 0)
+        found_in_pdf = article_id in rag_article_ids_set
+        found_in_metadata = relevance_score > 0
 
         items.append(
             ArticleListItem(
-                id=row_dict["id"],
+                id=article_id,
                 title=row_dict.get("title"),
                 authors=row_dict.get("authors"),
                 journal=row_dict.get("journal"),
@@ -1051,7 +1210,9 @@ def list_articles(
                 publication_types=_parse_csv_list(row_dict.get("publication_types_csv")),
                 databases=_extract_databases(row_dict),
                 original_translation=row_dict.get("original_translation"),
-                has_pdf=pdf_files.article_pdf_exists(row_dict["id"]),
+                has_pdf=pdf_files.article_pdf_exists(article_id),
+                found_in_metadata=found_in_metadata,
+                found_in_pdf=found_in_pdf,
             )
         )
 

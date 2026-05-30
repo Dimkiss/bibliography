@@ -6,6 +6,7 @@ import { OutlineButton } from '@/shared/ui/OutlineButton';
 import type {
   AiPublicationRagSearchDto,
   AiPublicationSearchPlanDto,
+  PublicationListItemDto,
 } from '@/entities/publication';
 import styles from './PublicationAiSearchChat.module.css';
 
@@ -20,6 +21,7 @@ type ChatMessage = {
 type PublicationAiSearchChatProps = {
   isPlanning: boolean;
   resetRevision: number;
+  items: PublicationListItemDto[];
   onSubmit: (message: string) => Promise<AiPublicationRagSearchDto | null>;
   onReset: () => void;
 };
@@ -28,7 +30,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   {
     id: 1,
     role: 'assistant',
-    text: 'Напишите запрос по публикациям. Я заполню параметры поиска и обновлю выдачу.',
+    text: 'Напишите запрос — я найду публикации по содержимому PDF-файлов. Поиск работает только по статьям с текстовым слоем (около 4000 из 5700).',
   },
 ];
 
@@ -60,6 +62,7 @@ type FormattedRagMatch = {
 type FormattedRagPublicationGroup = {
   articleId: number;
   resultNumber: number | null;
+  title: string | null;
   matches: FormattedRagMatch[];
 };
 
@@ -322,13 +325,15 @@ function formatPlanItems(plan: AiPublicationSearchPlanDto): string[] {
 
 function formatRetrievalGroups(
   retrieval?: AiPublicationRagSearchDto['retrieval'],
+  itemPositionMap?: Map<number, number>,
+  itemTitleMap?: Map<number, string | null>,
 ): FormattedRagPublicationGroup[] {
   if (!retrieval || retrieval.status !== 'ok') {
     return [];
   }
 
   const groupsByArticleId = new Map<number, FormattedRagPublicationGroup>();
-  const resultNumberByArticleId = new Map<number, number>(
+  const ragOrderByArticleId = new Map<number, number>(
     retrieval.article_ids.map((articleId, index): [number, number] => [
       articleId,
       index + 1,
@@ -342,11 +347,17 @@ function formatRetrievalGroups(
     }
 
     const articleId = match.article_id;
+    const resultNumber =
+      itemPositionMap?.get(articleId) ??
+      ragOrderByArticleId.get(articleId) ??
+      null;
+    const title = itemTitleMap?.get(articleId) ?? null;
     const group =
       groupsByArticleId.get(articleId) ??
       {
         articleId,
-        resultNumber: resultNumberByArticleId.get(articleId) ?? null,
+        resultNumber,
+        title,
         matches: [],
       };
     const page =
@@ -384,10 +395,10 @@ function buildAssistantText(ragSearch: AiPublicationRagSearchDto | null): string
     const count = retrieval.article_ids.length;
 
     if (count > 0) {
-      return `Выдача обновлена: найдено ${count} публикаций по PDF-фрагментам.`;
+      return `Выдача обновлена. По тексту PDF найдено ${formatRuCount(count, ['публикация', 'публикации', 'публикаций'])}.`;
     }
 
-    return 'PDF-фрагменты найдены не были. Параметры поиска применены к выдаче.';
+    return 'По тексту PDF совпадений не найдено. Параметры поиска применены к выдаче.';
   }
 
   if (retrieval.status === 'disabled') {
@@ -396,8 +407,8 @@ function buildAssistantText(ragSearch: AiPublicationRagSearchDto | null): string
 
   if (retrieval.status === 'error') {
     return retrieval.error
-      ? `Параметры применены, но RAG-поиск по PDF не выполнен: ${retrieval.error}`
-      : 'Параметры применены, но RAG-поиск по PDF не выполнен.';
+      ? `Параметры применены, но поиск по PDF не выполнен: ${retrieval.error}`
+      : 'Параметры применены, но поиск по PDF не выполнен.';
   }
 
   return 'Параметры применены к выдаче.';
@@ -414,13 +425,17 @@ function RagMatchSnippet({ match }: { match: FormattedRagMatch }) {
 
 function RagPublicationMatchGroup({
   group,
+  foundInMetadata,
 }: {
   group: FormattedRagPublicationGroup;
+  foundInMetadata: boolean;
 }) {
   const [firstMatch, ...additionalMatches] = group.matches;
-  const title = group.resultNumber
+  const positionLabel = group.resultNumber
     ? `№${group.resultNumber} в выдаче`
     : `Публикация #${group.articleId}`;
+
+  const sourceLabel = foundInMetadata ? 'метаданные + текст PDF' : 'текст PDF';
 
   if (!firstMatch) {
     return null;
@@ -428,7 +443,13 @@ function RagPublicationMatchGroup({
 
   return (
     <li className={styles.matchGroup}>
-      <div className={styles.matchGroupTitle}>{title}</div>
+      <div className={styles.matchGroupTitle}>
+        {positionLabel}
+        <span className={styles.matchSource}>{sourceLabel}</span>
+      </div>
+      {group.title ? (
+        <div className={styles.matchGroupArticleTitle}>{group.title}</div>
+      ) : null}
       <ul className={styles.matchSnippets}>
         <RagMatchSnippet match={firstMatch} />
       </ul>
@@ -456,10 +477,16 @@ function RagPublicationMatchGroup({
 
 function RagMatchList({
   retrieval,
+  metadataArticleIds,
+  itemPositionMap,
+  itemTitleMap,
 }: {
   retrieval?: AiPublicationRagSearchDto['retrieval'];
+  metadataArticleIds: Set<number>;
+  itemPositionMap: Map<number, number>;
+  itemTitleMap: Map<number, string | null>;
 }) {
-  const groups = formatRetrievalGroups(retrieval);
+  const groups = formatRetrievalGroups(retrieval, itemPositionMap, itemTitleMap);
 
   if (!groups.length) {
     return null;
@@ -470,10 +497,14 @@ function RagMatchList({
 
   return (
     <div className={styles.matchesBlock}>
-      <div className={styles.matchListTitle}>PDF-фрагменты</div>
+      <div className={styles.matchListTitle}>Найдено в тексте PDF</div>
       <ul className={styles.matchList}>
         {visibleGroups.map((group) => (
-          <RagPublicationMatchGroup key={group.articleId} group={group} />
+          <RagPublicationMatchGroup
+            key={group.articleId}
+            group={group}
+            foundInMetadata={metadataArticleIds.has(group.articleId)}
+          />
         ))}
       </ul>
 
@@ -489,7 +520,11 @@ function RagMatchList({
           </summary>
           <ul className={styles.matchList}>
             {hiddenGroups.map((group) => (
-              <RagPublicationMatchGroup key={group.articleId} group={group} />
+              <RagPublicationMatchGroup
+                key={group.articleId}
+                group={group}
+                foundInMetadata={metadataArticleIds.has(group.articleId)}
+              />
             ))}
           </ul>
         </details>
@@ -501,9 +536,19 @@ function RagMatchList({
 export function PublicationAiSearchChat({
   isPlanning,
   resetRevision,
+  items,
   onSubmit,
   onReset,
 }: PublicationAiSearchChatProps) {
+  const itemPositionMap = new Map<number, number>(
+    items.map((item, index) => [item.id, index + 1]),
+  );
+  const itemTitleMap = new Map<number, string | null>(
+    items.map((item) => [item.id, item.title ?? null]),
+  );
+  const metadataArticleIds = new Set(
+    items.filter((item) => item.found_in_metadata).map((item) => item.id),
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(loadStoredMessages);
@@ -635,7 +680,12 @@ export function PublicationAiSearchChat({
                     ))}
                   </ul>
                 ) : null}
-                <RagMatchList retrieval={message.retrieval} />
+                <RagMatchList
+                  retrieval={message.retrieval}
+                  metadataArticleIds={metadataArticleIds}
+                  itemPositionMap={itemPositionMap}
+                  itemTitleMap={itemTitleMap}
+                />
               </div>
             ))}
 

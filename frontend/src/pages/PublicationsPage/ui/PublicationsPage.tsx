@@ -62,6 +62,7 @@ export function PublicationsPage() {
             <PublicationAiSearchChat
               isPlanning={search.isAiPlanning}
               resetRevision={search.aiResetRevision}
+              items={search.items}
               onSubmit={search.handleAiSearch}
               onReset={search.handleReset}
             />

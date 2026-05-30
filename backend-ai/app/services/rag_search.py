@@ -18,6 +18,8 @@ from app.services.search_planner import build_search_plan
 
 DEFAULT_COLLECTION_NAME = "publication_pdf_chunks"
 DEFAULT_EMBEDDING_MODEL = "intfloat/multilingual-e5-large"
+DEFAULT_SCORE_THRESHOLD = 0.55
+DEFAULT_RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
 
 def _is_rag_enabled() -> bool:
@@ -60,6 +62,14 @@ def _get_matches_per_article() -> int:
         return 3
 
 
+def _get_score_threshold() -> float:
+    value = os.getenv("AI_RAG_SCORE_THRESHOLD", "").strip()
+    try:
+        return float(value) if value else DEFAULT_SCORE_THRESHOLD
+    except ValueError:
+        return DEFAULT_SCORE_THRESHOLD
+
+
 @lru_cache(maxsize=1)
 def _get_embedding_model() -> TextEmbedding:
     return TextEmbedding(
@@ -71,6 +81,30 @@ def _get_embedding_model() -> TextEmbedding:
 @lru_cache(maxsize=1)
 def _get_qdrant_client() -> QdrantClient:
     return QdrantClient(url=_get_qdrant_url(), timeout=30)
+
+
+def _is_reranker_enabled() -> bool:
+    return os.getenv("AI_RERANKER_ENABLED", "false").strip().lower() in {
+        "1", "true", "yes", "on",
+    }
+
+
+def _get_reranker_model_name() -> str:
+    return os.getenv("AI_RERANKER_MODEL", DEFAULT_RERANKER_MODEL).strip()
+
+
+@lru_cache(maxsize=1)
+def _get_reranker() -> Any | None:
+    """Лениво загружает cross-encoder модель для реранкинга."""
+    try:
+        from sentence_transformers import CrossEncoder
+        model_name = _get_reranker_model_name()
+        cache_dir = _get_embedding_cache_dir()
+        print(f"Loading reranker model: {model_name}")
+        return CrossEncoder(model_name, cache_folder=cache_dir)
+    except Exception as exc:
+        print(f"Reranker model load failed: {exc}")
+        return None
 
 
 @lru_cache(maxsize=1)
@@ -87,6 +121,8 @@ def _build_retrieval_query(
     plan: SearchPlanResponse,
     filters: SearchPlanFilters,
 ) -> str | None:
+    # Приоритет: семантический запрос из плана → pdf запрос → общий текстовый запрос → остальное.
+    # message убран из цепочки — он слишком широкий и может вызвать RAG там где не нужно.
     candidates = [
         plan.semantic.query,
         filters.pdf_text_query,
@@ -94,7 +130,6 @@ def _build_retrieval_query(
         filters.refine_text_query,
         filters.title,
         " ".join(filters.keyword),
-        message,
     ]
 
     for candidate in candidates:
@@ -220,6 +255,8 @@ def _filter_existing_article_ids(article_ids: list[int]) -> list[int]:
     }
     placeholders = ", ".join(f":article_id_{index}" for index in range(len(article_ids)))
 
+    pdf_storage_dir = os.getenv("PDF_STORAGE_DIR", "/app/db/pdf").rstrip("/")
+
     with engine.connect() as connection:
         rows = connection.execute(
             text(
@@ -232,30 +269,93 @@ def _filter_existing_article_ids(article_ids: list[int]) -> list[int]:
             params,
         ).mappings().all()
 
-    existing_ids = {int(row["Record_ID"]) for row in rows}
+    import pathlib
+    existing_ids: set[int] = set()
+    for row in rows:
+        article_id = int(row["Record_ID"])
+        # Проверяем что PDF файл реально существует
+        pdf_path = pathlib.Path(f"{pdf_storage_dir}/{article_id}.pdf")
+        if pdf_path.is_file():
+            existing_ids.add(article_id)
+
     return [article_id for article_id in article_ids if article_id in existing_ids]
 
 
-def _search_chunks(query: str, limit: int) -> RagSearchRetrieval:
+def _get_qdrant_search_limit() -> int:
+    """Максимум чанков за один запрос к Qdrant. Score threshold отсекает нерелевантное."""
+    value = os.getenv("AI_RAG_QDRANT_LIMIT", "1000").strip()
+    try:
+        return max(100, int(value))
+    except ValueError:
+        return 1000
+
+
+def _rerank_articles(
+    query: str,
+    matches_by_article: dict[int, list[RagChunkMatch]],
+) -> dict[int, float]:
+    """
+    Переранжирует статьи через cross-encoder.
+    Для каждой статьи берёт лучший чанк и оценивает пару (query, chunk_text).
+    Возвращает словарь article_id → reranker_score.
+    """
+    reranker = _get_reranker()
+    if reranker is None:
+        # Fallback: используем max embedding score
+        return {
+            article_id: max(m.score for m in matches)
+            for article_id, matches in matches_by_article.items()
+        }
+
+    # Берём лучший чанк каждой статьи для реранкинга
+    pairs: list[tuple[str, str]] = []
+    article_ids_order: list[int] = []
+
+    for article_id, matches in matches_by_article.items():
+        best_match = max(matches, key=lambda m: m.score)
+        # Восстанавливаем полный текст чанка из payload (не обрезанный snippet)
+        pairs.append((query, best_match.text))
+        article_ids_order.append(article_id)
+
+    scores = reranker.predict(pairs)
+
+    return {
+        article_id: float(score)
+        for article_id, score in zip(article_ids_order, scores)
+    }
+
+
+def _search_chunks(query: str) -> RagSearchRetrieval:
     client = _get_qdrant_client()
     collection_name = _get_collection_name()
     vector = _embed_query(query)
-    search_limit = min(max(limit * 4, limit), 100)
+    score_threshold = _get_score_threshold()
+    qdrant_limit = _get_qdrant_search_limit()
 
     points = client.query_points(
         collection_name=collection_name,
         query=vector,
-        limit=search_limit,
+        limit=qdrant_limit,
         with_payload=True,
+        score_threshold=score_threshold,
     ).points
 
     matches_by_article: dict[int, list[RagChunkMatch]] = defaultdict(list)
+    # Дедупликация по sha1 текста чанка — один и тот же текст не показываем дважды
+    # (актуально для сборников где один PDF разбит на несколько статей)
+    seen_chunk_hashes: set[str] = set()
 
     for point in points:
         payload = dict(point.payload or {})
         article_id = _payload_int(payload, "article_id")
         if article_id <= 0:
             continue
+
+        raw_text = str(payload.get("text") or "").strip()
+        chunk_hash = raw_text[:200]  # первые 200 символов как ключ дедупликации
+        if chunk_hash in seen_chunk_hashes:
+            continue
+        seen_chunk_hashes.add(chunk_hash)
 
         matches_by_article[article_id].append(
             RagChunkMatch(
@@ -267,12 +367,23 @@ def _search_chunks(query: str, limit: int) -> RagSearchRetrieval:
             )
         )
 
-    candidate_article_ids = sorted(
-        matches_by_article,
-        key=lambda article_id: max(match.score for match in matches_by_article[article_id]),
-        reverse=True,
-    )
-    article_ids = _filter_existing_article_ids(candidate_article_ids)[:limit]
+    # Реранкинг: если включён — пересортировываем статьи через cross-encoder
+    if _is_reranker_enabled() and matches_by_article:
+        reranker_scores = _rerank_articles(query, matches_by_article)
+        candidate_article_ids = sorted(
+            matches_by_article,
+            key=lambda aid: reranker_scores.get(aid, 0),
+            reverse=True,
+        )
+    else:
+        candidate_article_ids = sorted(
+            matches_by_article,
+            key=lambda article_id: max(m.score for m in matches_by_article[article_id]),
+            reverse=True,
+        )
+
+    # Без ограничения по количеству — возвращаем все статьи выше порога релевантности
+    article_ids = _filter_existing_article_ids(candidate_article_ids)
     matches = [
         match
         for article_id in article_ids
@@ -294,7 +405,7 @@ def _search_chunks(query: str, limit: int) -> RagSearchRetrieval:
 def build_rag_search(
     message: str,
     current_filters: SearchPlanFilters | None = None,
-    limit: int = 30,
+    limit: int = 30,  # оставлен для совместимости с API, больше не используется в RAG
 ) -> RagSearchResponse:
     plan = build_search_plan(message, current_filters=current_filters)
 
@@ -312,7 +423,7 @@ def build_rag_search(
         )
 
     try:
-        retrieval = _search_chunks(query, limit=limit)
+        retrieval = _search_chunks(query)
     except Exception as exc:
         retrieval = RagSearchRetrieval(
             status="error",
@@ -320,10 +431,11 @@ def build_rag_search(
             error=str(exc),
         )
 
-    if retrieval.article_ids:
-        plan.filters.article_ids = retrieval.article_ids
+    # RAG результаты не перезаписывают plan.filters.article_ids —
+    # они возвращаются отдельно в retrieval.
+    # Основной бэкенд сам объединяет RAG и метапоиск.
+    if retrieval.status == "ok":
         plan.semantic.query = query
-        plan.semantic.scope = "metadata_and_pdf"
         plan.sort.by = "relevance"
         plan.sort.order = "desc"
 

@@ -66,6 +66,7 @@ function cloneSearchForm(
     publicationTypes: [...form.publicationTypes],
     databases: [...form.databases],
     articleIds: [...form.articleIds],
+    ragArticleIds: [...(form.ragArticleIds ?? [])],
   };
 }
 
@@ -127,6 +128,9 @@ function normalizeSearchForm(value: unknown): PublicationSearchFormState {
         : 'all',
     articleIds: Array.isArray(form.articleIds)
       ? form.articleIds.filter((item): item is number => Number.isInteger(item) && item > 0)
+      : [],
+    ragArticleIds: Array.isArray(form.ragArticleIds)
+      ? form.ragArticleIds.filter((item): item is number => Number.isInteger(item) && item > 0)
       : [],
   };
 }
@@ -544,6 +548,7 @@ export function usePublicationsSearchPageState() {
   const [aiSearchQuery, setAiSearchQuery] = useState('');
   const [aiSearchExplanation, setAiSearchExplanation] = useState<string | null>(null);
   const [aiResetRevision, setAiResetRevision] = useState(0);
+  const [ragMatchesMap, setRagMatchesMap] = useState<Map<number, AiPublicationRagSearchDto['retrieval']['matches']>>(new Map());
   const [hasSearched, setHasSearched] = useState(initialSearchState.hasSearched);
   const [error, setError] = useState<string | null>(null);
 
@@ -803,12 +808,14 @@ export function usePublicationsSearchPageState() {
         return ragSearch;
       }
 
-      const hasRagArticleIds = plan.filters.article_ids.length > 0;
+      // RAG article_ids идут как rag_article_ids (OR-буст), а не как article_ids (AND-фильтр).
+      // text_query всегда передаётся — нужен для found_in_metadata и обычного метапоиска.
+      const ragIds = ragSearch.retrieval.status === 'ok' ? ragSearch.retrieval.article_ids : [];
       const nextForm: PublicationSearchFormState = {
         ...cloneSearchForm(INITIAL_PUBLICATION_SEARCH_FORM),
-        textQuery: hasRagArticleIds ? '' : plan.filters.text_query ?? '',
-        refineTextQuery: hasRagArticleIds ? '' : plan.filters.refine_text_query ?? '',
-        pdfTextQuery: hasRagArticleIds ? '' : plan.filters.pdf_text_query ?? '',
+        textQuery: plan.filters.text_query ?? '',
+        refineTextQuery: plan.filters.refine_text_query ?? '',
+        pdfTextQuery: plan.filters.pdf_text_query ?? '',
         title: plan.filters.title ?? '',
         author: plan.filters.author ?? '',
         journal: plan.filters.journal ?? '',
@@ -824,7 +831,8 @@ export function usePublicationsSearchPageState() {
         publicationTypes: plan.filters.publication_types,
         databases: plan.filters.databases,
         originalTranslationMode: plan.filters.original_translation_mode,
-        articleIds: plan.filters.article_ids,
+        articleIds: [],
+        ragArticleIds: ragIds,
       };
       const nextActiveFields = SEARCH_FIELD_OPTIONS.map((option) => option.key).filter(
         (field) => nextForm[field].trim(),
@@ -832,6 +840,16 @@ export function usePublicationsSearchPageState() {
       const normalizedActiveFields: SearchFieldKey[] = nextActiveFields.length
         ? nextActiveFields
         : [...DEFAULT_ACTIVE_FIELDS];
+
+      // Строим карту article_id → matches для отображения фрагментов в чате
+      const newMatchesMap = new Map<number, AiPublicationRagSearchDto['retrieval']['matches']>();
+      if (ragSearch.retrieval.status === 'ok') {
+        for (const match of ragSearch.retrieval.matches) {
+          const existing = newMatchesMap.get(match.article_id) ?? [];
+          newMatchesMap.set(match.article_id, [...existing, match]);
+        }
+      }
+      setRagMatchesMap(newMatchesMap);
 
       setForm(nextForm);
       setActiveFields(normalizedActiveFields);
@@ -874,6 +892,7 @@ export function usePublicationsSearchPageState() {
     setAiSearchQuery('');
     setAiSearchExplanation(null);
     setAiResetRevision((prev) => prev + 1);
+    setRagMatchesMap(new Map());
     setItems([]);
     setSelectedPublicationIds([]);
     setError(null);
@@ -976,6 +995,7 @@ export function usePublicationsSearchPageState() {
     aiSearchQuery,
     aiSearchExplanation,
     aiResetRevision,
+    ragMatchesMap,
     setAiSearchQuery,
     setViewMode,
     handleFieldChange,

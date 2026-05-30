@@ -143,10 +143,34 @@
 }
 
 .matchGroupTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   color: var(--color-text-primary);
   font-size: var(--type-body-sm-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--type-body-sm-line);
+}
+
+.matchGroupArticleTitle {
+  color: var(--color-text-primary);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  margin-top: var(--space-1);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.matchSource {
+  font-size: 11px;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+  background: rgba(26, 27, 33, 0.06);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
 }
 
 .matchSnippets {

@@ -45,14 +45,14 @@ services:
     environment:
       DATABASE_URL: mysql+pymysql://root:root@db:3306/bibl_new
       CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
-      AI_LLM_ENABLED: "true"
+      AI_LLM_ENABLED: "false"
       AI_RAG_ENABLED: "true"
+      AI_RAG_SCORE_THRESHOLD: "0.80"
       AI_EMBEDDING_MODEL: intfloat/multilingual-e5-large
       AI_EMBEDDING_CACHE_DIR: /app/model-cache
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: qwen2.5:3b-instruct
       QDRANT_URL: http://qdrant:6333
       QDRANT_COLLECTION: publication_pdf_chunks
+      PDF_STORAGE_DIR: /app/db/pdf
     ports:
       - "8001:8001"
     volumes:
@@ -63,7 +63,6 @@ services:
       - ai-model-cache:/app/model-cache
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload", "--reload-dir", "/app/app"]
     depends_on:
-      - ollama
       - qdrant
 
   ai-indexer-gpu:
@@ -102,15 +101,6 @@ services:
     volumes:
       - qdrant-data:/qdrant/storage
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: bibliography-ollama
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-
   frontend:
     build:
       context: ./frontend
@@ -132,6 +122,5 @@ services:
 volumes:
   db-data:
   frontend-node-modules:
-  ollama-data:
   qdrant-data:
   ai-model-cache:

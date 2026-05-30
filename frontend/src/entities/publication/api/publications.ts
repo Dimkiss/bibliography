@@ -18,6 +18,8 @@ export type PublicationListItemDto = PublicationPreviewDto & {
   databases: string[];
   original_translation: string | null;
   has_pdf: boolean;
+  found_in_metadata: boolean;
+  found_in_pdf: boolean;
 };
 
 export type PublicationsPaginationDto = {
@@ -113,6 +115,7 @@ export type GetPublicationsParams = {
   databases?: string[];
   originalTranslationMode?: string;
   articleIds?: number[];
+  ragArticleIds?: number[];
   sortBy?: PublicationSortField;
   sortOrder?: PublicationSortOrder;
   includeTotal?: boolean;
@@ -331,6 +334,12 @@ export async function getPublications(
   params.articleIds?.forEach((value) => {
     if (Number.isInteger(value) && value > 0) {
       searchParams.append('article_ids', String(value));
+    }
+  });
+
+  params.ragArticleIds?.forEach((value) => {
+    if (Number.isInteger(value) && value > 0) {
+      searchParams.append('rag_article_ids', String(value));
     }
   });
 

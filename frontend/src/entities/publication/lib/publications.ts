@@ -28,6 +28,7 @@ export type PublicationSearchFormState = {
   databases: string[];
   originalTranslationMode: string;
   articleIds: number[];
+  ragArticleIds: number[];
 };
 
 export const SEARCH_FIELD_OPTIONS: Array<{ key: SearchFieldKey; label: string }> = [
@@ -56,6 +57,7 @@ export const INITIAL_PUBLICATION_SEARCH_FORM: PublicationSearchFormState = {
   databases: [],
   originalTranslationMode: 'all',
   articleIds: [],
+  ragArticleIds: [],
 };
 
 export type PublicationsSortFieldValue = PublicationSortField;
@@ -147,7 +149,7 @@ export function hasPublicationSearchCriteria(
     return true;
   }
 
-  if (form.articleIds.length) {
+  if (form.articleIds.length || form.ragArticleIds.length) {
     return true;
   }
 
@@ -172,6 +174,7 @@ export function buildPublicationsQueryFromForm(
     databases: form.databases,
     originalTranslationMode: form.originalTranslationMode,
     articleIds: form.articleIds,
+    ragArticleIds: form.ragArticleIds,
     sortBy,
     sortOrder,
   };
