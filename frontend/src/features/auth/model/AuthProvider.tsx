@@ -21,6 +21,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const logout = useCallback(() => {
     clearAccessToken();
+    // Чистим кэш результатов поиска (публикации, издания, ИИ-чат),
+    // чтобы данные предыдущего пользователя не оставались после выхода.
+    window.sessionStorage.clear();
     setUser(null);
   }, []);
 

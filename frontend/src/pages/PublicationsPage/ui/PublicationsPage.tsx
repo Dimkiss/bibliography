@@ -59,13 +59,15 @@ export function PublicationsPage() {
               onReset={search.handleReset}
             />
 
-            <PublicationAiSearchChat
-              isPlanning={search.isAiPlanning}
-              resetRevision={search.aiResetRevision}
-              items={search.items}
-              onSubmit={search.handleAiSearch}
-              onReset={search.handleReset}
-            />
+            {isAuthenticated ? (
+              <PublicationAiSearchChat
+                isPlanning={search.isAiPlanning}
+                resetRevision={search.aiResetRevision}
+                items={search.items}
+                onSubmit={search.handleAiSearch}
+                onReset={search.handleReset}
+              />
+            ) : null}
 
             {search.hasSearched ? (
               <div className={`app-surface ${styles.resultsBlock}`}>

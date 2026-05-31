@@ -1,7 +1,10 @@
 import os
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+
+from app.dependencies.auth import get_current_user
+from app.models import User
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -55,10 +58,16 @@ def trigger_article_pdf_indexing(article_id: int) -> None:
 
 
 @router.post("/publications/search-plan")
-async def proxy_search_plan(request: Request):
+async def proxy_search_plan(
+    request: Request,
+    _current_user: User = Depends(get_current_user),
+):
     return await _proxy_post("/ai/publications/search-plan", request)
 
 
 @router.post("/publications/rag-search")
-async def proxy_rag_search(request: Request):
+async def proxy_rag_search(
+    request: Request,
+    _current_user: User = Depends(get_current_user),
+):
     return await _proxy_post("/ai/publications/rag-search", request)
