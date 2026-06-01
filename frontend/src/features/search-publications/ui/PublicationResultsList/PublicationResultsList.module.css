@@ -416,9 +416,6 @@
 }
 
 .publicationMenu {
-  position: absolute;
-  top: 0;
-  right: calc(100% + 10px);
   z-index: 30;
   width: 274px;
   padding: 10px 0;

@@ -14,6 +14,7 @@ type EditionListViewProps = {
   kind: EditionKind;
   items: EditionListItemDto[];
   selectedIdSet: Set<string>;
+  isAdmin: boolean;
   openActionMenuId: string | null;
   onOpenEdition: (item: EditionListItemDto) => void;
   onOpenEditionByKeyboard: (
@@ -22,14 +23,15 @@ type EditionListViewProps = {
   ) => void;
   onToggleItemSelection: (id: string) => void;
   onToggleActionMenu: (id: string) => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: (item: EditionListItemDto) => void;
+  onDelete: (item: EditionListItemDto) => void;
 };
 
 export function EditionListView({
   kind,
   items,
   selectedIdSet,
+  isAdmin,
   openActionMenuId,
   onOpenEdition,
   onOpenEditionByKeyboard,
@@ -103,12 +105,14 @@ export function EditionListView({
               </div>
             )}
 
-            <EditionRowActions
-              isMenuOpen={openActionMenuId === item.id}
-              onToggleMenu={() => onToggleActionMenu(item.id)}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
+            {isAdmin ? (
+              <EditionRowActions
+                isMenuOpen={openActionMenuId === item.id}
+                onToggleMenu={() => onToggleActionMenu(item.id)}
+                onEdit={() => onEdit(item)}
+                onDelete={() => onDelete(item)}
+              />
+            ) : null}
           </article>
         );
       })}

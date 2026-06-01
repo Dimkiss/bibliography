@@ -6,7 +6,18 @@ import { NavButton } from '@/shared/ui/NavButton';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import { useAuth } from '@/features/auth';
 import { navigateTo } from '@/shared/lib/navigation';
-import { ADMIN_ROLE_ID } from '@/entities/role';
+import {
+  ADMIN_ROLE_ID,
+  ADMINISTRATION_ROLE_ID,
+  DEPARTMENT_HEAD_ROLE_ID,
+} from '@/entities/role';
+
+type NavItem = {
+  id: string;
+  label: string;
+  iconName: string;
+  path: string;
+};
 
 const baseNavItems = [
   { id: 'home', label: 'Главная', iconName: 'main-page', path: '/' },
@@ -22,24 +33,26 @@ const baseNavItems = [
     iconName: 'journal-outline',
     path: '/journals',
   },
+] as const;
+
+const tailNavItems = [
   { id: 'help', label: 'Справка', iconName: 'help-outline', path: '/help' },
   { id: 'about', label: 'О проекте', iconName: 'info-outline', path: '/about' },
 ] as const;
 
-const adminNavItems = [
-  {
-    id: 'user-management',
-    label: 'Управление пользователями',
-    iconName: 'gmail_groups',
-    path: '/user-management',
-  },
-  {
-    id: 'author-management',
-    label: 'Управление авторами',
-    iconName: 'person',
-    path: '/author-management',
-  },
-] as const;
+const userManagementNavItem = {
+  id: 'user-management',
+  label: 'Пользователи',
+  iconName: 'gmail_groups',
+  path: '/user-management',
+} as const;
+
+const authorManagementNavItem = {
+  id: 'author-management',
+  label: 'Авторы',
+  iconName: 'person',
+  path: '/author-management',
+} as const;
 
 type HeaderActionVariant = 'default' | 'hidden' | 'logout';
 
@@ -90,10 +103,19 @@ export function Header({
   }, []);
 
   const isAdmin = isAuthenticated && user?.role_id === ADMIN_ROLE_ID;
+  const canAccessAuthors =
+    isAuthenticated &&
+    (user?.role_id === ADMIN_ROLE_ID ||
+      user?.role_id === ADMINISTRATION_ROLE_ID ||
+      user?.role_id === DEPARTMENT_HEAD_ROLE_ID);
 
   const navItems = useMemo(() => {
-    return isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
-  }, [isAdmin]);
+    const items: NavItem[] = [...baseNavItems];
+    if (canAccessAuthors) items.push(authorManagementNavItem);
+    if (isAdmin) items.push(userManagementNavItem);
+    items.push(...tailNavItems);
+    return items;
+  }, [isAdmin, canAccessAuthors]);
 
   const activeItem = useMemo(
     () => getActiveNavItem(pathname, navItems),

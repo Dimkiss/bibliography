@@ -572,7 +572,7 @@ def _build_common_filters(
             elif value == "scopus":
                 db_conditions.append("COALESCE(j.Scopus, 0) = 1")
             elif value == "white_list":
-                db_conditions.append("COALESCE(j.LWL, 0) = 1")
+                db_conditions.append("COALESCE(j.LWL, 0) > 0")
             elif value == "rinc":
                 db_conditions.append("COALESCE(j.Rints, 0) = 1")
             elif value == "rinc_core":
@@ -663,9 +663,8 @@ def _build_text_query_coverage_sql(
 
 def _build_metrics(row: dict[str, Any]) -> list[ArticleMetricItem]:
     white_list_enabled = bool(row.get("white_list_flag"))
-    white_list_extra = None
-    if white_list_enabled and row.get("rinc_core_flag"):
-        white_list_extra = "УБС 1"
+    white_list_level = str(row.get("white_list_level") or "").strip()
+    white_list_extra = f"УБС {white_list_level}" if white_list_level else None
 
     metrics = [
         ArticleMetricItem(
@@ -1071,6 +1070,7 @@ def list_articles(
             COALESCE(j.WOS, 0) AS wos_flag,
             COALESCE(j.Scopus, 0) AS scopus_flag,
             COALESCE(j.LWL, 0) AS white_list_flag,
+            NULLIF(NULLIF(CAST(j.LWL AS CHAR), ''), '0') AS white_list_level,
             COALESCE(j.Rints, 0) AS rinc_flag,
             COALESCE(j.RintsCore, 0) AS rinc_core_flag,
             COALESCE(j.RSCI, 0) AS rsci_flag,
@@ -1268,6 +1268,7 @@ def get_article_detail(
                 COALESCE(j.WOS, 0) AS wos_flag,
                 COALESCE(j.Scopus, 0) AS scopus_flag,
                 COALESCE(j.LWL, 0) AS white_list_flag,
+                NULLIF(NULLIF(CAST(j.LWL AS CHAR), ''), '0') AS white_list_level,
                 COALESCE(j.Rints, 0) AS rinc_flag,
                 COALESCE(j.RintsCore, 0) AS rinc_core_flag,
                 COALESCE(j.RSCI, 0) AS rsci_flag,

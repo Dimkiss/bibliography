@@ -2,12 +2,16 @@ import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 
 import {
   buildEditionDetailsPath,
+  buildNonperiodicalEditionEditPath,
+  buildPeriodicalEditionEditPath,
   type EditionKind,
   type EditionListItemDto,
   type EditionSortOrder,
   type EditionsSortFieldValue,
 } from '@/entities/edition';
 import { navigateTo } from '@/shared/lib/navigation';
+import { useAuth } from '@/features/auth';
+import { ADMIN_ROLE_ID } from '@/entities/role';
 import { EditionListView } from './EditionListView';
 import { EditionResultsToolbar } from './EditionResultsToolbar';
 import { EditionTableView } from './EditionTableView';
@@ -54,6 +58,8 @@ export function EditionResultsList({
   onSortFieldChange,
   onSortOrderChange,
 }: EditionResultsListProps) {
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = Boolean(isAuthenticated && user?.role_id === ADMIN_ROLE_ID);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState('');
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -93,13 +99,28 @@ export function EditionResultsList({
     setOpenActionMenuId((prev) => (prev === id ? null : id));
   };
 
-  const handleUnavailableAction = (message: string) => {
-    setOpenActionMenuId(null);
-    setActionMessage(message);
-  };
-
   const handleOpenEdition = (item: EditionListItemDto) => {
     navigateTo(buildEditionDetailsPath(item.kind, item.source_id));
+  };
+
+  const handleEditEdition = (item: EditionListItemDto) => {
+    setOpenActionMenuId(null);
+
+    if (item.kind === 'nonperiodical') {
+      navigateTo(buildNonperiodicalEditionEditPath(item.source_id));
+      return;
+    }
+
+    navigateTo(buildPeriodicalEditionEditPath(item.source_id));
+  };
+
+  const handleDeleteEdition = (item: EditionListItemDto) => {
+    setOpenActionMenuId(null);
+    setActionMessage(
+      item.kind === 'nonperiodical'
+        ? 'Удаление непериодических изданий пока недоступно.'
+        : 'Удаление периодических изданий пока недоступно.',
+    );
   };
 
   const handleOpenEditionByKeyboard = (
@@ -123,6 +144,7 @@ export function EditionResultsList({
         pageIds={pageIds}
         isAllPageSelected={isAllPageSelected}
         isPageSelectionIndeterminate={isPageSelectionIndeterminate}
+        isAdmin={isAdmin}
         openActionMenuId={openActionMenuId}
         sortField={sortField}
         sortOrder={sortOrder}
@@ -133,21 +155,22 @@ export function EditionResultsList({
         onToggleActionMenu={handleToggleActionMenu}
         onSortFieldChange={onSortFieldChange}
         onSortOrderChange={onSortOrderChange}
-        onEdit={() => handleUnavailableAction('Редактирование изданий пока недоступно.')}
-        onDelete={() => handleUnavailableAction('Удаление изданий пока недоступно.')}
+        onEdit={handleEditEdition}
+        onDelete={handleDeleteEdition}
       />
     ) : (
       <EditionListView
         kind={kind}
         items={items}
         selectedIdSet={selectedIdSet}
+        isAdmin={isAdmin}
         openActionMenuId={openActionMenuId}
         onOpenEdition={handleOpenEdition}
         onOpenEditionByKeyboard={handleOpenEditionByKeyboard}
         onToggleItemSelection={onToggleItemSelection}
         onToggleActionMenu={handleToggleActionMenu}
-        onEdit={() => handleUnavailableAction('Редактирование изданий пока недоступно.')}
-        onDelete={() => handleUnavailableAction('Удаление изданий пока недоступно.')}
+        onEdit={handleEditEdition}
+        onDelete={handleDeleteEdition}
       />
     );
 

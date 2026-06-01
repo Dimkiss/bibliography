@@ -683,12 +683,12 @@ def _list_periodical_editions(
                 jn.JournalName AS title,
                 NULLIF(jn.ISSN, '') AS identifier,
                 j.Year AS year,
-                NULLIF(CAST(j.LWL AS CHAR), '') AS white_list_level,
+                NULLIF(NULLIF(CAST(j.LWL AS CHAR), ''), '0') AS white_list_level,
                 NULLIF(j.Quartile, '') AS wos_quartile,
                 NULLIF(j.QuartileScopus, '') AS scopus_quartile,
                 (
                     SELECT GROUP_CONCAT(
-                        CONCAT(jl.Year, ':', COALESCE(NULLIF(CAST(jl.LWL AS CHAR), ''), '-'))
+                        CONCAT(jl.Year, ':', COALESCE(NULLIF(NULLIF(CAST(jl.LWL AS CHAR), ''), '0'), '-'))
                         ORDER BY jl.Year DESC
                         SEPARATOR '|||'
                     )
@@ -1038,9 +1038,14 @@ def _get_periodical_detail(db: Session, source_id: int) -> EditionDetailResponse
                 NULLIF(NULLIF(CAST(j.LWL AS CHAR), ''), '0') AS white_list_level,
                 NULLIF(j.Quartile, '') AS wos_quartile,
                 j.Impact_Factor AS impact_factor,
+                j.FiveYearIF AS five_year_if,
                 NULLIF(j.QuartileScopus, '') AS scopus_quartile,
+                COALESCE(j.WOS, 0) AS wos_flag,
+                COALESCE(j.Scopus, 0) AS scopus_flag,
                 COALESCE(j.Rints, 0) AS rinc_flag,
                 COALESCE(j.RintsCore, 0) AS rinc_core_flag,
+                COALESCE(j.RSCI, 0) AS rsci_flag,
+                COALESCE(j.Foreign_, 0) AS foreign_flag,
                 COALESCE(j.BAK, 0) AS vak_flag
             FROM journals j
             WHERE j.JN_ID_f = :source_id
@@ -1106,9 +1111,14 @@ def _get_periodical_detail(db: Session, source_id: int) -> EditionDetailResponse
                 white_list_level=metric_row.get("white_list_level"),
                 wos_quartile=_normalize_quartile(metric_row.get("wos_quartile")),
                 impact_factor=_format_decimal_value(metric_row.get("impact_factor")),
+                five_year_if=_format_decimal_value(metric_row.get("five_year_if")),
                 scopus_quartile=_normalize_quartile(metric_row.get("scopus_quartile")),
+                wos=_format_boolean(metric_row.get("wos_flag")),
+                scopus=_format_boolean(metric_row.get("scopus_flag")),
                 rinc=_format_boolean(metric_row.get("rinc_flag")),
                 rinc_core=_format_boolean(metric_row.get("rinc_core_flag")),
+                rsci=_format_boolean(metric_row.get("rsci_flag")),
+                foreign=_format_boolean(metric_row.get("foreign_flag")),
                 vak=_format_boolean(metric_row.get("vak_flag")),
             )
             for metric_row in metric_rows

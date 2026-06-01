@@ -1,15 +1,30 @@
 import { Footer } from '@/widgets/Footer';
 import { Header } from '@/widgets/Header';
+import { buildPeriodicalEditionCreatePath } from '@/entities/edition';
+import { ADMIN_ROLE_ID } from '@/entities/role';
+import { useAuth } from '@/features/auth';
 import {
   EditionResultsList,
   EditionSearchPanel,
   EditionsPagination,
   useEditionsSearchPageState,
 } from '@/features/search-editions';
+import { navigateTo } from '@/shared/lib/navigation';
+import { Button } from '@/shared/ui/Button';
 import styles from './EditionsPage.module.css';
 
 export function EditionsPage() {
+  const { user, isAuthenticated } = useAuth();
   const search = useEditionsSearchPageState();
+  const canCreateEdition = Boolean(isAuthenticated && user?.role_id === ADMIN_ROLE_ID);
+  const createButtonLabel =
+    search.kind === 'periodical'
+      ? 'Добавить периодическое издание'
+      : 'Добавить непериодическое издание';
+  const createPath =
+    search.kind === 'periodical'
+      ? buildPeriodicalEditionCreatePath()
+      : '/articles/create?scenario=book-monograph';
 
   return (
     <div className="app-page">
@@ -17,6 +32,17 @@ export function EditionsPage() {
 
       <main className="app-main">
         <div className="container app-block-group">
+          {canCreateEdition ? (
+            <div className={styles.actionsRow}>
+              <Button
+                label={createButtonLabel}
+                iconName="add"
+                size="normal"
+                onClick={() => navigateTo(createPath)}
+              />
+            </div>
+          ) : null}
+
           <div className={styles.content}>
             <EditionSearchPanel
               kind={search.kind}

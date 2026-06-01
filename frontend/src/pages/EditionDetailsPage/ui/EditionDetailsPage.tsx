@@ -4,6 +4,8 @@ import { Footer } from '@/widgets/Footer';
 import { Header } from '@/widgets/Header';
 import {
   buildEditionDetailsPath,
+  buildNonperiodicalEditionEditPath,
+  buildPeriodicalEditionEditPath,
   formatEditionPresence,
   formatWhiteListLevel,
   getEditionDetail,
@@ -13,7 +15,10 @@ import {
   type RelatedEditionDto,
 } from '@/entities/edition';
 import { buildDoiUrl, getPublicationPdfUrl } from '@/entities/publication';
+import { ADMIN_ROLE_ID } from '@/entities/role';
+import { useAuth } from '@/features/auth';
 import { navigateTo } from '@/shared/lib/navigation';
+import { Button } from '@/shared/ui/Button';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
 import styles from './EditionDetailsPage.module.css';
@@ -78,6 +83,16 @@ function formatWosValue(
 
   if (impactFactor?.trim()) {
     parts.push(`IF: ${impactFactor.trim()}`);
+  }
+
+  return parts.join('\n');
+}
+
+function formatRincValue(rinc: boolean, rincCore: boolean): string {
+  const parts = [formatEditionPresence(rinc)];
+
+  if (rincCore) {
+    parts.push('core');
   }
 
   return parts.join('\n');
@@ -241,6 +256,7 @@ function RelatedEditionLink({ item }: { item: RelatedEditionDto }) {
 }
 
 export function EditionDetailsPage() {
+  const { user, isAuthenticated } = useAuth();
   const routeParams = useMemo(
     () => getEditionRouteParams(window.location.pathname),
     [],
@@ -314,6 +330,23 @@ export function EditionDetailsPage() {
     () => groupPeriodicalPublications(item?.publications ?? []),
     [item?.publications],
   );
+  const canEditEdition = Boolean(
+    isAuthenticated &&
+      user?.role_id === ADMIN_ROLE_ID &&
+      (item?.kind === 'nonperiodical' || item?.kind === 'periodical'),
+  );
+
+  const handleEditEdition = () => {
+    if (!item) {
+      return;
+    }
+
+    navigateTo(
+      item.kind === 'periodical'
+        ? buildPeriodicalEditionEditPath(item.source_id)
+        : buildNonperiodicalEditionEditPath(item.source_id),
+    );
+  };
 
   const handleCopyPublication = async (publication: EditionPublicationDto) => {
     const text = [publication.title, publication.authors, publication.doi]
@@ -346,10 +379,22 @@ export function EditionDetailsPage() {
             {!isLoading && !error && item ? (
               <>
                 <div className={styles.heading}>
-                  <h1 className={styles.title}>{item.title || 'Без названия'}</h1>
-                  <div className={styles.identifier}>
-                    {item.identifier_label}: {item.identifier || '—'}
+                  <div className={styles.headingMain}>
+                    <h1 className={styles.title}>{item.title || 'Без названия'}</h1>
+                    <div className={styles.identifier}>
+                      {item.identifier_label}: {item.identifier || '—'}
+                    </div>
                   </div>
+
+                  {canEditEdition ? (
+                    <Button
+                      label="Редактировать"
+                      iconName="edit"
+                      size="normal"
+                      className={styles.editButton}
+                      onClick={handleEditEdition}
+                    />
+                  ) : null}
                 </div>
 
                 {item.kind === 'periodical' ? (
@@ -383,8 +428,7 @@ export function EditionDetailsPage() {
                               </td>
                               <td>{formatMetricValue(metric.scopus_quartile)}</td>
                               <td className={styles.multilineCell}>
-                                {formatEditionPresence(metric.rinc)}
-                                {metric.rinc_core ? '\ncore' : ''}
+                                {formatRincValue(metric.rinc, metric.rinc_core)}
                               </td>
                               <td>{formatEditionPresence(metric.vak)}</td>
                             </tr>

@@ -35,6 +35,10 @@ def get_profile_publications(
     ),
     year_from: int | None = Query(None, ge=1900, le=2100),
     year_to: int | None = Query(None, ge=1900, le=2100),
+    text_query: str | None = Query(None),
+    publication_types: list[str] | None = Query(None),
+    databases: list[str] | None = Query(None),
+    original_translation_mode: str = Query("all"),
     sort_by: str = Query("year"),
     sort_order: str = Query("desc"),
     current_user: User = Depends(get_current_user),
@@ -48,6 +52,10 @@ def get_profile_publications(
         page_size=page_size,
         year_from=year_from,
         year_to=year_to,
+        text_query=text_query,
+        publication_types=publication_types,
+        databases=databases,
+        original_translation_mode=original_translation_mode,
         sort_by=sort_by,
         sort_order=sort_order,
     )
@@ -57,6 +65,10 @@ def get_profile_publications(
 def get_profile_stats(
     year_from: int | None = Query(None, ge=1900, le=2100),
     year_to: int | None = Query(None, ge=1900, le=2100),
+    text_query: str | None = Query(None),
+    publication_types: list[str] | None = Query(None),
+    databases: list[str] | None = Query(None),
+    original_translation_mode: str = Query("all"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -66,6 +78,10 @@ def get_profile_stats(
         author_id=author_id,
         year_from=year_from,
         year_to=year_to,
+        text_query=text_query,
+        publication_types=publication_types,
+        databases=databases,
+        original_translation_mode=original_translation_mode,
     )
 
 

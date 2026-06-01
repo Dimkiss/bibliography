@@ -187,7 +187,7 @@ export function EditionSearchPanel({
         <div className={styles.filtersRow}>
           {kind === 'periodical' ? (
             <FilterDropdown
-              label="Квартиль/Уровень"
+              label="Q/УБС"
               mode="multi"
               options={metricLevels}
               value={value.metricLevels}

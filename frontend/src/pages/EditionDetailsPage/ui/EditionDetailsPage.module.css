@@ -22,8 +22,20 @@
 
 .heading {
   display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.headingMain {
+  min-width: 0;
+  display: flex;
   flex-direction: column;
   gap: var(--space-1);
+}
+
+.editButton {
+  flex: 0 0 auto;
 }
 
 .title {
@@ -414,6 +426,10 @@
   }
 
   .bottomRow {
+    flex-direction: column;
+  }
+
+  .heading {
     flex-direction: column;
   }
 

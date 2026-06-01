@@ -77,6 +77,58 @@
   white-space: nowrap;
 }
 
+.errorBanner {
+  padding: 14px var(--space-6);
+  border: 1px solid rgba(186, 26, 26, 0.18);
+  border-radius: 16px;
+  background: rgba(186, 26, 26, 0.08);
+  color: var(--color-danger);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.searchLabel {
+  color: var(--color-text-subtle);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+  white-space: nowrap;
+}
+
+.searchInput {
+  min-width: min(420px, 100%);
+  flex: 1 1 320px;
+  height: var(--control-height-md);
+  padding: 0 var(--space-5);
+  border: 1px solid var(--color-outline-input);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.searchInput:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
+}
+
 @media (max-width: 640px) {
   .sectionHeader {
     flex-direction: column;
@@ -85,5 +137,15 @@
 
   .statCard {
     flex: 1 1 120px;
+  }
+
+  .searchRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .searchInput {
+    min-width: 0;
+    width: 100%;
   }
 }

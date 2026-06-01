@@ -23,6 +23,8 @@ export type JournalOptionDto = AdminOptionDto & {
 };
 
 export type PublisherOptionDto = AdminOptionDto;
+export type PlaceOptionDto = AdminOptionDto;
+export type MediumDesignatorOptionDto = AdminOptionDto;
 
 export type AuthorOptionDto = {
   id: number | null;
@@ -44,6 +46,14 @@ export type WorkFormTypeDto = {
   value: string;
   label: string | null;
   label_ru: string | null;
+};
+
+export type WorkFormFieldDto = {
+  article_field: string | null;
+  label: string | null;
+  foreign_table_name: string | null;
+  field_height: number | null;
+  not_in_articles_field: boolean;
 };
 
 export type PublicationTypeDto = {
@@ -117,6 +127,60 @@ export type CreateAdminArticlePayload = {
   scopus_excluded?: boolean | null;
   num_foreigners?: number | null;
   ship?: string | null;
+};
+
+export type AdminArticleEditAuthorDto = {
+  author_id: number;
+  author_name: string;
+  affiliation: number;
+  corresponding_author: boolean;
+};
+
+export type AdminArticleEditDto = {
+  id: number;
+  title: string | null;
+  year: number | null;
+  authors_text: string | null;
+  authors: AdminArticleEditAuthorDto[];
+  author_role: string | null;
+  abstract: string | null;
+  doi: string | null;
+  journal_id: number | null;
+  journal_label: string | null;
+  edition: string | null;
+  work_form_type: string | null;
+  medium_designator_id: number | null;
+  medium_designator_label: string | null;
+  author_of_material: string | null;
+  title_of_material: string | null;
+  date_of_meeting: string | null;
+  place_of_meeting_id: number | null;
+  place_of_meeting_label: string | null;
+  place_of_publication_id: number | null;
+  place_of_publication_label: string | null;
+  publisher_id: number | null;
+  publisher_label: string | null;
+  publication_date: string | null;
+  volume: string | null;
+  issue: string | null;
+  pages: string | null;
+  extent_of_work: string | null;
+  url: string | null;
+  issn: string | null;
+  isbn: string | null;
+  notes: string | null;
+  speaker: string | null;
+  publication_type_flags: string[];
+  keywords: string[];
+  department_codes: number[];
+  original_version_id: number | null;
+  translation_version_id: number | null;
+  article_language: string | null;
+  tirage: string | null;
+  wos_excluded: boolean | null;
+  scopus_excluded: boolean | null;
+  num_foreigners: number | null;
+  ship: string | null;
 };
 
 type SearchListParams = {
@@ -202,6 +266,18 @@ export async function getAdminWorkFormTypes(): Promise<WorkFormTypeDto[]> {
   return getJson<WorkFormTypeDto[]>(`${API_BASE_URL}/admin/work-form-types`);
 }
 
+export async function getAdminWorkFormFields(
+  workFormType: string,
+): Promise<WorkFormFieldDto[]> {
+  const searchParams = new URLSearchParams({
+    work_form_type: workFormType,
+  });
+
+  return getJson<WorkFormFieldDto[]>(
+    `${API_BASE_URL}/admin/work-form-fields?${searchParams.toString()}`,
+  );
+}
+
 export async function getAdminPublicationTypes(
   workFormType?: string,
 ): Promise<PublicationTypeDto[]> {
@@ -268,6 +344,38 @@ export async function getAdminPublishers(
   );
 }
 
+export async function getAdminPlaces(
+  params: SearchListParams = {},
+): Promise<AdminOptionListResponseDto<PlaceOptionDto>> {
+  const searchParams = makeSearchParams({
+    searchKey: 'search',
+    query: params.query,
+    all: params.all,
+    page: params.page,
+    pageSize: params.pageSize,
+  });
+
+  return getJson<AdminOptionListResponseDto<PlaceOptionDto>>(
+    `${API_BASE_URL}/admin/places?${searchParams.toString()}`,
+  );
+}
+
+export async function getAdminMediumDesignators(
+  params: SearchListParams = {},
+): Promise<AdminOptionListResponseDto<MediumDesignatorOptionDto>> {
+  const searchParams = makeSearchParams({
+    searchKey: 'search',
+    query: params.query,
+    all: params.all,
+    page: params.page,
+    pageSize: params.pageSize,
+  });
+
+  return getJson<AdminOptionListResponseDto<MediumDesignatorOptionDto>>(
+    `${API_BASE_URL}/admin/medium-designators?${searchParams.toString()}`,
+  );
+}
+
 export async function getAdminRelatedArticles(
   params: SearchListParams = {},
 ): Promise<ArticleSearchResponseDto> {
@@ -301,6 +409,32 @@ export async function searchAdminJournals(query: string): Promise<AdminOptionDto
 
 export async function searchAdminPublishers(query: string): Promise<AdminOptionDto[]> {
   const response = await getAdminPublishers({
+    query,
+    page: 1,
+    pageSize: 20,
+  });
+
+  return response.items.map((item) => ({
+    id: item.id,
+    label: item.label,
+  }));
+}
+
+export async function searchAdminPlaces(query: string): Promise<AdminOptionDto[]> {
+  const response = await getAdminPlaces({
+    query,
+    page: 1,
+    pageSize: 20,
+  });
+
+  return response.items.map((item) => ({
+    id: item.id,
+    label: item.label,
+  }));
+}
+
+export async function searchAdminMediumDesignators(query: string): Promise<AdminOptionDto[]> {
+  const response = await getAdminMediumDesignators({
     query,
     page: 1,
     pageSize: 20,
@@ -372,11 +506,37 @@ export async function searchAdminEditionSources(
   }));
 }
 
+export async function getAdminArticleForEdit(
+  articleId: number,
+): Promise<AdminArticleEditDto> {
+  return getJson<AdminArticleEditDto>(`${API_BASE_URL}/admin/articles/${articleId}/edit`);
+}
+
 export async function createAdminArticle(
   payload: CreateAdminArticlePayload,
 ): Promise<{ id: number }> {
   const response = await fetch(`${API_BASE_URL}/admin/articles`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...buildAuthHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+
+  return response.json();
+}
+
+export async function updateAdminArticle(
+  articleId: number,
+  payload: CreateAdminArticlePayload,
+): Promise<{ id: number }> {
+  const response = await fetch(`${API_BASE_URL}/admin/articles/${articleId}`, {
+    method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
       ...buildAuthHeaders(),

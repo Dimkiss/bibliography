@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import styles from './AuthorManagementPage.module.css';
 import { Header } from '@/widgets/Header';
@@ -17,6 +17,7 @@ import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
 import { TextField } from '@/shared/ui/TextField';
 import { Icon } from '@/shared/ui/Icon';
 import { Checkbox } from '@/shared/ui/Checkbox';
+import { ViewportMenu } from '@/shared/ui/ViewportMenu';
 import {
   getAdminAuthorsFull,
   createAdminAuthor,
@@ -105,6 +106,7 @@ export function AuthorManagementPage() {
   });
   const [downloadingReport, setDownloadingReport] =
     useState<AuthorReportKind | null>(null);
+  const actionMenuAnchorRef = useRef<HTMLElement | null>(null);
 
   // Фильтр по подразделениям (мульти-выбор, клиентская фильтрация)
   const [filterDepartmentIds, setFilterDepartmentIds] = useState<string[]>([]);
@@ -213,7 +215,7 @@ export function AuthorManagementPage() {
     setPageError('');
     const [authorsData, departmentsData] = await Promise.all([
       getAdminAuthorsFull(),
-      getAdminDepartments(),
+      isDepartmentHead ? Promise.resolve([]) : getAdminDepartments(),
     ]);
     setAuthors(authorsData);
     setDepartments(departmentsData);
@@ -234,7 +236,7 @@ export function AuthorManagementPage() {
       try {
         const [authorsData, departmentsData] = await Promise.all([
           getAdminAuthorsFull(),
-          getAdminDepartments(),
+          isDepartmentHead ? Promise.resolve([]) : getAdminDepartments(),
         ]);
 
         if (!isMounted) {
@@ -702,14 +704,20 @@ export function AuthorManagementPage() {
                                 aria-expanded={openActionMenuId === item.id}
                                 onClick={(event) => {
                                   event.stopPropagation();
+                                  actionMenuAnchorRef.current = event.currentTarget;
                                   setOpenActionMenuId((prev) =>
                                     prev === item.id ? null : item.id,
                                   );
                                 }}
                               />
 
-                              {openActionMenuId === item.id ? (
-                                <div className={`app-search-menu ${styles.authorMenu}`} role="menu">
+                              <ViewportMenu
+                                isOpen={openActionMenuId === item.id}
+                                triggerRef={actionMenuAnchorRef}
+                                placement="bottom-end"
+                                className={`app-search-menu ${styles.authorMenu}`}
+                                role="menu"
+                              >
                                   <div className="app-search-options-list">
                                     <button
                                       type="button"
@@ -738,8 +746,7 @@ export function AuthorManagementPage() {
                                       <span>Удалить</span>
                                     </button>
                                   </div>
-                                </div>
-                              ) : null}
+                              </ViewportMenu>
                             </div>
                           </td>
                         ) : null}

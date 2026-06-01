@@ -4,7 +4,7 @@ import styles from './AuthorDetailsPage.module.css';
 import { Header } from '@/widgets/Header';
 import { Footer } from '@/widgets/Footer';
 import { useAuth } from '@/features/auth';
-import { ADMIN_ROLE_ID } from '@/entities/role';
+import { ADMIN_ROLE_ID, ADMINISTRATION_ROLE_ID, DEPARTMENT_HEAD_ROLE_ID } from '@/entities/role';
 import { navigateTo } from '@/shared/lib/navigation';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import { YearRangeSelect, type YearRange } from '@/shared/ui/YearRangeSelect';
@@ -129,6 +129,11 @@ export function AuthorDetailsPage() {
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
 
   const isAdmin = isAuthenticated && user?.role_id === ADMIN_ROLE_ID;
+  const hasPageAccess =
+    isAuthenticated &&
+    (user?.role_id === ADMIN_ROLE_ID ||
+      user?.role_id === ADMINISTRATION_ROLE_ID ||
+      user?.role_id === DEPARTMENT_HEAD_ROLE_ID);
 
   useEffect(() => {
     if (!isInitializing && !isAuthenticated) {
@@ -136,10 +141,10 @@ export function AuthorDetailsPage() {
       return;
     }
 
-    if (!isInitializing && isAuthenticated && !isAdmin) {
+    if (!isInitializing && isAuthenticated && !hasPageAccess) {
       navigateTo('/');
     }
-  }, [isAuthenticated, isInitializing, isAdmin]);
+  }, [isAuthenticated, isInitializing, hasPageAccess]);
 
   useEffect(() => {
     let isMounted = true;
@@ -177,14 +182,14 @@ export function AuthorDetailsPage() {
       }
     }
 
-    if (!isInitializing && isAuthenticated && isAdmin) {
+    if (!isInitializing && isAuthenticated && hasPageAccess) {
       void loadAuthor();
     }
 
     return () => {
       isMounted = false;
     };
-  }, [authorId, isAuthenticated, isAdmin, isInitializing]);
+  }, [authorId, isAuthenticated, hasPageAccess, isInitializing]);
 
   useEffect(() => {
     let isMounted = true;
@@ -216,7 +221,7 @@ export function AuthorDetailsPage() {
   }, []);
 
   const loadPublications = useCallback(async () => {
-    if (authorId === null || !isAdmin) {
+    if (authorId === null || !hasPageAccess) {
       return;
     }
 
@@ -252,7 +257,7 @@ export function AuthorDetailsPage() {
     activeYearTo,
     authorId,
     databases,
-    isAdmin,
+    hasPageAccess,
     originalTranslationMode,
     page,
     pageSize,
@@ -263,7 +268,7 @@ export function AuthorDetailsPage() {
   ]);
 
   const loadStats = useCallback(async () => {
-    if (authorId === null || !isAdmin) {
+    if (authorId === null || !hasPageAccess) {
       return;
     }
 
@@ -286,7 +291,7 @@ export function AuthorDetailsPage() {
     activeYearTo,
     authorId,
     databases,
-    isAdmin,
+    hasPageAccess,
     originalTranslationMode,
     publicationSearchQuery,
     publicationTypes,
@@ -482,7 +487,7 @@ export function AuthorDetailsPage() {
     databases.length > 0 ||
     originalTranslationMode !== 'all';
 
-  if (isInitializing || !isAuthenticated || !isAdmin) {
+  if (isInitializing || !isAuthenticated || !hasPageAccess) {
     return null;
   }
 
@@ -627,11 +632,13 @@ export function AuthorDetailsPage() {
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Публикации автора</h2>
               <div className={styles.headerActions}>
-                <OutlineButton
-                  label="Привязать публикацию"
-                  iconName="add"
-                  onClick={() => setIsLinkDialogOpen(true)}
-                />
+                {isAdmin ? (
+                  <OutlineButton
+                    label="Привязать публикацию"
+                    iconName="add"
+                    onClick={() => setIsLinkDialogOpen(true)}
+                  />
+                ) : null}
                 <OutlineButton
                   label={isReportDownloading ? 'Формирование...' : 'Скачать отчёт (.xlsx)'}
                   iconName="arrow-downward"

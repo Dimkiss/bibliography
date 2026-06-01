@@ -10,6 +10,7 @@ from app.routers.init import router as init_router
 from app.routers.admin_users import router as admin_users_router
 from app.routers.admin_reference import router as admin_reference_router
 from app.routers.admin_articles import router as admin_articles_router
+from app.routers.admin_editions import router as admin_editions_router
 from app.routers import articles
 from app.routers import editions
 from app.routers.analytics import router as analytics_router
@@ -45,6 +46,7 @@ app.include_router(init_router)
 app.include_router(admin_users_router)
 app.include_router(admin_reference_router)
 app.include_router(admin_articles_router)
+app.include_router(admin_editions_router)
 app.include_router(articles.router)
 app.include_router(editions.router)
 app.include_router(analytics_router)

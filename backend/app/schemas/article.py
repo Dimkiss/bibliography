@@ -237,17 +237,22 @@ class ArticleEditResponse(BaseModel):
     doi: str | None = None
 
     journal_id: int | None = None
+    journal_label: str | None = None
     edition: str | None = None
     work_form_type: str | None = None
     medium_designator_id: int | None = None
+    medium_designator_label: str | None = None
 
     author_of_material: str | None = None
     title_of_material: str | None = None
     date_of_meeting: str | None = None
     place_of_meeting_id: int | None = None
+    place_of_meeting_label: str | None = None
 
     place_of_publication_id: int | None = None
+    place_of_publication_label: str | None = None
     publisher_id: int | None = None
+    publisher_label: str | None = None
     publication_date: str | None = None
 
     volume: str | None = None

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import styles from './UserManagementPage.module.css';
 import { Header } from '@/widgets/Header';
@@ -8,7 +8,10 @@ import { navigateTo } from '@/shared/lib/navigation';
 import { ADMIN_ROLE_ID } from '@/entities/role';
 import { Button } from '@/shared/ui/Button';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
+import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
 import { TextField } from '@/shared/ui/TextField';
+import { Icon } from '@/shared/ui/Icon';
+import { ViewportMenu } from '@/shared/ui/ViewportMenu';
 import {
   createAdminUser,
   deleteAdminUser,
@@ -88,7 +91,10 @@ export function UserManagementPage() {
 
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(initialFormState);
+  const actionMenuAnchorRef = useRef<HTMLElement | null>(null);
 
   const isAdmin = isAuthenticated && user?.role_id === ADMIN_ROLE_ID;
 
@@ -102,11 +108,6 @@ export function UserManagementPage() {
       navigateTo('/');
     }
   }, [isAuthenticated, isInitializing, isAdmin]);
-
-  const selectedUser = useMemo(
-    () => users.find((item) => item.id === selectedUserId) ?? null,
-    [users, selectedUserId],
-  );
 
   const isEditMode = editingUserId !== null;
 
@@ -201,6 +202,34 @@ export function UserManagementPage() {
     };
   }, [isAuthenticated, isInitializing, isAdmin]);
 
+  useEffect(() => {
+    if (!isModalOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isFormSubmitting) {
+        closeModal();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFormSubmitting, isModalOpen]);
+
+  useEffect(() => {
+    if (openActionMenuId === null) {
+      return;
+    }
+
+    const handleOutsideClick = () => {
+      setOpenActionMenuId(null);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [openActionMenuId]);
+
   const handleFormChange = (field: keyof FormState, value: string) => {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
@@ -234,12 +263,25 @@ export function UserManagementPage() {
       )
     : authors;
 
+  const closeModal = (force = false) => {
+    if (isFormSubmitting && !force) {
+      return;
+    }
+
+    setIsModalOpen(false);
+    setEditingUserId(null);
+    setSelectedUserId(null);
+    setForm(initialFormState);
+    setFormError('');
+  };
+
   const handleStartCreate = async () => {
     setEditingUserId(null);
     setSelectedUserId(null);
     setForm(initialFormState);
     setFormError('');
     setSuccessMessage('');
+    setIsModalOpen(true);
 
     try {
       await loadAuthors(null);
@@ -266,6 +308,7 @@ export function UserManagementPage() {
       author_id:
         targetUser.author_id !== null ? String(targetUser.author_id) : '',
     });
+    setIsModalOpen(true);
 
     try {
       await loadAuthors(targetUser.id);
@@ -279,10 +322,7 @@ export function UserManagementPage() {
   };
 
   const handleCancelEdit = async () => {
-    setEditingUserId(null);
-    setForm(initialFormState);
-    setFormError('');
-    setSuccessMessage('');
+    closeModal();
 
     try {
       await loadAuthors(selectedUserId);
@@ -351,6 +391,7 @@ export function UserManagementPage() {
           ...prev,
           password: '',
         }));
+        closeModal(true);
         setSuccessMessage('Пользователь обновлён.');
       } else {
         const createdUser = await createAdminUser({
@@ -366,6 +407,7 @@ export function UserManagementPage() {
         setSelectedUserId(createdUser.id);
         setEditingUserId(null);
         setForm(initialFormState);
+        closeModal(true);
         setSuccessMessage('Пользователь создан.');
       }
     } catch (error) {
@@ -404,6 +446,7 @@ export function UserManagementPage() {
 
       setSelectedUserId(nextSelectedUserId);
       await loadData(nextSelectedUserId);
+      setOpenActionMenuId(null);
       setSuccessMessage('Пользователь удалён.');
     } catch (error) {
       setFormError(
@@ -425,14 +468,9 @@ export function UserManagementPage() {
       <main className="app-main">
         <div className="container app-block-group">
           <section className={styles.layout}>
-            <div className={styles.panel}>
+            <div className="app-surface">
               <div className={styles.panelHeader}>
-                <div>
-                  <h1 className={styles.title}>Пользователи</h1>
-                  <p className={styles.subtitle}>
-                    Создание, редактирование и удаление учётных записей
-                  </p>
-                </div>
+                <div className={styles.panelHeaderSpacer} />
 
                 <Button
                   label="Новый пользователь"
@@ -460,7 +498,7 @@ export function UserManagementPage() {
                       <th>Роль</th>
                       <th>Подразделение</th>
                       <th>Автор</th>
-                      <th>Действия</th>
+                      <th className={styles.actionsColumn} aria-label="Действия" />
                     </tr>
                   </thead>
                   <tbody>
@@ -494,27 +532,62 @@ export function UserManagementPage() {
                             <td>{item.department_name ?? '—'}</td>
                             <td>{item.author_name ?? '—'}</td>
                             <td>
-                              <div className={styles.rowActions}>
-                                <OutlineButton
-                                  label="Изменить"
-                                  size="small"
-                                  iconName="edit"
+                              <div
+                                className={styles.rowActions}
+                                onClick={(event) => event.stopPropagation()}
+                                onMouseDown={(event) => event.stopPropagation()}
+                              >
+                                <OutlineIconButton
+                                  iconName="more_horiz"
+                                  iconSize={20}
+                                  size="small-x"
+                                  aria-label="Действия с пользователем"
+                                  aria-expanded={openActionMenuId === item.id}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    void handleStartEdit(item);
+                                    actionMenuAnchorRef.current = event.currentTarget;
+                                    setOpenActionMenuId((prev) =>
+                                      prev === item.id ? null : item.id,
+                                    );
                                   }}
                                 />
 
-                                <OutlineButton
-                                  label="Удалить"
-                                  size="small"
-                                  iconName="delete"
-                                  disabled={isCurrentUser}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    void handleDeleteUser(item);
-                                  }}
-                                />
+                                <ViewportMenu
+                                  isOpen={openActionMenuId === item.id}
+                                  triggerRef={actionMenuAnchorRef}
+                                  placement="bottom-end"
+                                  className={`app-search-menu ${styles.userMenu}`}
+                                  role="menu"
+                                >
+                                    <div className="app-search-options-list">
+                                      <button
+                                        type="button"
+                                        className={`app-search-option-button ${styles.userMenuItem}`}
+                                        onClick={() => {
+                                          setOpenActionMenuId(null);
+                                          void handleStartEdit(item);
+                                        }}
+                                        role="menuitem"
+                                      >
+                                        <Icon name="edit" size={24} />
+                                        <span>Редактировать</span>
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        className={`app-search-option-button ${styles.userMenuItem}`}
+                                        onClick={() => {
+                                          setOpenActionMenuId(null);
+                                          void handleDeleteUser(item);
+                                        }}
+                                        disabled={isCurrentUser}
+                                        role="menuitem"
+                                      >
+                                        <Icon name="delete" size={24} />
+                                        <span>Удалить</span>
+                                      </button>
+                                    </div>
+                                </ViewportMenu>
                               </div>
                             </td>
                           </tr>
@@ -525,20 +598,45 @@ export function UserManagementPage() {
                 </table>
               </div>
             </div>
+          </section>
+        </div>
+      </main>
 
-            <aside className={styles.formPanel}>
-              <div className={styles.formHeader}>
-                <h2 className={styles.formTitle}>
+      {isModalOpen ? (
+        <div
+          className={styles.modalOverlay}
+          role="presentation"
+          onMouseDown={() => closeModal()}
+        >
+          <div
+            className={styles.modalDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="user-form-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div>
+                <h2 id="user-form-title" className={styles.modalTitle}>
                   {isEditMode ? 'Редактирование пользователя' : 'Новый пользователь'}
                 </h2>
-                <p className={styles.formSubtitle}>
+                <p className={styles.modalSubtitle}>
                   {isEditMode
-                    ? 'Измените поля и сохраните изменения.'
-                    : 'Заполните форму для создания новой учётной записи.'}
+                    ? 'Измените данные пользователя и сохраните изменения.'
+                    : 'Заполните карточку нового пользователя.'}
                 </p>
               </div>
+              <button
+                type="button"
+                className={styles.modalCloseButton}
+                onClick={() => closeModal()}
+                aria-label="Закрыть окно"
+              >
+                ×
+              </button>
+            </div>
 
-              <div className={styles.form}>
+            <div className={styles.formGrid}>
                 <TextField
                   label="Логин"
                   value={form.login}
@@ -555,17 +653,19 @@ export function UserManagementPage() {
                   }
                 />
 
-                <TextField
-                  label={isEditMode ? 'Новый пароль' : 'Пароль'}
-                  type="password"
-                  value={form.password}
-                  supportingText={
-                    isEditMode ? 'Оставьте пустым, чтобы не менять пароль.' : ''
-                  }
-                  onChange={(event) =>
-                    handleFormChange('password', event.target.value)
-                  }
-                />
+                <div className={styles.formFieldWide}>
+                  <TextField
+                    label={isEditMode ? 'Новый пароль' : 'Пароль'}
+                    type="password"
+                    value={form.password}
+                    supportingText={
+                      isEditMode ? 'Оставьте пустым, чтобы не менять пароль.' : ''
+                    }
+                    onChange={(event) =>
+                      handleFormChange('password', event.target.value)
+                    }
+                  />
+                </div>
 
                 <div className={styles.fieldBlock}>
                   <label className={styles.selectLabel} htmlFor="role_id">
@@ -637,94 +737,29 @@ export function UserManagementPage() {
                 </div>
 
                 {formError ? (
-                  <div className={styles.errorBanner}>{formError}</div>
-                ) : null}
-
-                <div className={styles.formActions}>
-                  <Button
-                    label={isEditMode ? 'Сохранить' : 'Создать'}
-                    iconName={isEditMode ? 'edit' : 'add'}
-                    onClick={() => void handleSubmit()}
-                    disabled={isFormSubmitting}
-                  />
-
-                  <OutlineButton
-                    label="Сбросить"
-                    iconName="cancel"
-                    onClick={() => {
-                      if (isEditMode && selectedUser) {
-                        void handleStartEdit(selectedUser);
-                        return;
-                      }
-
-                      void handleStartCreate();
-                    }}
-                    disabled={isFormSubmitting}
-                  />
-
-                  {isEditMode ? (
-                    <OutlineButton
-                      label="Отмена"
-                      onClick={() => void handleCancelEdit()}
-                      disabled={isFormSubmitting}
-                    />
-                  ) : null}
-                </div>
-              </div>
-
-              {selectedUser ? (
-                <div className={styles.detailsCard}>
-                  <h3 className={styles.detailsTitle}>Выбранный пользователь</h3>
-
-                  <div className={styles.detailsGrid}>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>ID</span>
-                      <span className={styles.detailValue}>
-                        {selectedUser.id}
-                      </span>
-                    </div>
-
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Логин</span>
-                      <span className={styles.detailValue}>
-                        {selectedUser.login}
-                      </span>
-                    </div>
-
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>ФИО</span>
-                      <span className={styles.detailValue}>
-                        {selectedUser.full_name}
-                      </span>
-                    </div>
-
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Роль</span>
-                      <span className={styles.detailValue}>
-                        {selectedUser.role_name ?? '—'}
-                      </span>
-                    </div>
-
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Подразделение</span>
-                      <span className={styles.detailValue}>
-                        {selectedUser.department_name ?? '—'}
-                      </span>
-                    </div>
-
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Автор</span>
-                      <span className={styles.detailValue}>
-                        {selectedUser.author_name ?? '—'}
-                      </span>
-                    </div>
+                  <div className={styles.formFieldWide}>
+                    <div className={styles.errorBanner}>{formError}</div>
                   </div>
-                </div>
-              ) : null}
-            </aside>
-          </section>
+                ) : null}
+            </div>
+
+            <div className={styles.modalActions}>
+              <OutlineButton
+                label="Отмена"
+                iconName="cancel"
+                onClick={() => void handleCancelEdit()}
+                disabled={isFormSubmitting}
+              />
+              <Button
+                label={isEditMode ? 'Сохранить' : 'Создать'}
+                iconName={isEditMode ? 'edit' : 'add'}
+                onClick={() => void handleSubmit()}
+                disabled={isFormSubmitting}
+              />
+            </div>
+          </div>
         </div>
-      </main>
+      ) : null}
 
       <Footer />
     </div>

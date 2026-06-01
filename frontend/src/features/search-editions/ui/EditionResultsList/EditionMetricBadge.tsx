@@ -27,15 +27,15 @@ export function EditionMetrics({ item }: { item: EditionListItemDto }) {
   return (
     <div className={styles.metrics}>
       <span className={styles.metric}>
-        <span className={styles.metricLabel}>Белый список</span>
+        <span className={styles.metricLabel}>УБС</span>
         <EditionWhiteListLevelBadge item={item} />
       </span>
       <span className={styles.metric}>
-        <span className={styles.metricLabel}>Web of Science</span>
+        <span className={styles.metricLabel}>Q WoS</span>
         <EditionWosQuartileBadge item={item} />
       </span>
       <span className={styles.metric}>
-        <span className={styles.metricLabel}>Scopus</span>
+        <span className={styles.metricLabel}>Q Scopus</span>
         <EditionScopusQuartileBadge item={item} />
       </span>
       <EditionMetricBadge label="РИНЦ" value={formatEditionPresence(item.rinc)} />

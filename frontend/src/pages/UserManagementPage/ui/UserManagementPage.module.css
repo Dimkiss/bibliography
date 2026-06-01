@@ -1,93 +1,92 @@
 .layout {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(320px, 420px);
-  gap: var(--space-7);
-  align-items: start;
-}
-
-.panel,
-.formPanel {
-  background: var(--color-surface);
-  border: 1px solid var(--Text-field);
-  border-radius: 24px;
-  box-shadow: 0 12px 40px rgba(14, 26, 53, 0.08);
-}
-
-.panel {
-  padding: var(--space-7);
-}
-
-.formPanel {
-  padding: var(--space-7);
-  position: sticky;
-  top: var(--space-7);
-}
-
-.panelHeader,
-.formHeader {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  display: block;
 }
 
 .panelHeader {
-  margin-bottom: 20px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-3);
 }
 
-.title {
-  margin: 0;
-  color: var(--blue);
-  font-family: var(--font-family-ui);
-  font-size: 32px;
-  font-weight: var(--font-weight-medium);
-  line-height: 40px;
-}
-
-.subtitle,
-.formSubtitle {
-  margin: 0;
-  color: var(--Scrollbar);
-  font-family: var(--font-family-ui);
-  font-size: var(--type-body-lg-size);
-  line-height: var(--type-body-lg-line);
-}
-
-.formTitle {
-  margin: 0;
-  color: var(--blue);
-  font-family: var(--font-family-ui);
-  font-size: 24px;
-  font-weight: var(--font-weight-medium);
-  line-height: 32px;
+.panelHeaderSpacer {
+  flex: 1;
 }
 
 .tableWrap {
   width: 100%;
   overflow-x: auto;
-  border: 1px solid var(--Text-field);
-  border-radius: 20px;
+  border: 1px solid var(--outline);
+  border-radius: 8px;
+  background: var(--color-surface);
 }
 
 .table {
   width: 100%;
+  min-width: 1080px;
   border-collapse: collapse;
-  min-width: 900px;
+  table-layout: fixed;
+  color: var(--text);
+  font-family: var(--font-family-ui);
 }
 
 .table th,
 .table td {
-  padding: 14px var(--space-6);
   text-align: left;
-  border-bottom: 1px solid var(--Text-field);
-  vertical-align: middle;
-  font-size: var(--type-body-md-size);
-  line-height: var(--type-body-md-line);
 }
 
 .table th {
-  background: #f8f8fc;
-  color: var(--blue);
-  font-weight: var(--font-weight-semibold);
+  height: 42px;
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-table-header);
+  color: var(--color-table-header-text);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-md-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-md-line);
+  letter-spacing: var(--type-label-md-letter);
+}
+
+.table td {
+  padding: var(--space-6);
+  border-top: 1px solid var(--outline);
+  vertical-align: top;
+  color: var(--color-text-primary);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+  word-break: break-word;
+}
+
+.table th:nth-child(1) {
+  width: 72px;
+}
+
+.table th:nth-child(2) {
+  width: 14%;
+}
+
+.table th:nth-child(3) {
+  width: 20%;
+}
+
+.table th:nth-child(4) {
+  width: 16%;
+}
+
+.table th:nth-child(5) {
+  width: 20%;
+}
+
+.table th:nth-child(6) {
+  width: auto;
+}
+
+.actionsColumn {
+  width: 58px;
+  text-align: center;
 }
 
 .table tbody tr {
@@ -96,7 +95,7 @@
 }
 
 .table tbody tr:hover {
-  background: rgba(78, 91, 146, 0.04);
+  background: var(--color-surface-hover);
 }
 
 .rowSelected {
@@ -104,22 +103,126 @@
 }
 
 .emptyCell {
+  padding: var(--space-7) var(--space-6);
   text-align: center;
   color: var(--Scrollbar);
-  padding: 28px 16px;
 }
 
 .rowActions {
+  position: relative;
   display: flex;
+  justify-content: center;
   gap: var(--space-3);
   flex-wrap: wrap;
 }
 
-.form {
+.userMenu {
+  min-width: 220px;
+}
+
+.userMenuItem {
+  min-height: var(--control-height-md);
+}
+
+.userMenuItem:disabled {
+  opacity: var(--disabled-opacity);
+}
+
+.errorBanner,
+.successBanner {
+  margin-bottom: var(--space-6);
+  padding: 14px var(--space-6);
+  border-radius: 16px;
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.errorBanner {
+  background: rgba(186, 26, 26, 0.08);
+  color: var(--color-danger);
+  border: 1px solid rgba(186, 26, 26, 0.18);
+}
+
+.successBanner {
+  background: rgba(80, 173, 118, 0.12);
+  color: var(--color-success);
+  border: 1px solid rgba(80, 173, 118, 0.24);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-7);
+  background: rgba(26, 27, 33, 0.36);
+}
+
+.modalDialog {
+  width: min(880px, 100%);
+  max-height: min(90vh, 920px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  margin-top: 20px;
+  padding: var(--space-7);
+  border: var(--app-surface-border);
+  border-radius: var(--app-surface-radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-menu);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.modalTitle {
+  margin: 0 0 8px;
+  color: var(--color-link);
+  font-family: var(--font-family-ui);
+  font-size: 24px;
+  font-weight: var(--font-weight-medium);
+  line-height: 32px;
+}
+
+.modalSubtitle {
+  margin: 0;
+  color: var(--Scrollbar);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
+}
+
+.modalCloseButton {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-link);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modalCloseButton:hover {
+  background: var(--state-primary-hover);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.formFieldWide {
+  grid-column: 1 / -1;
 }
 
 .fieldBlock {
@@ -129,21 +232,22 @@
 }
 
 .selectLabel {
-  color: var(--blue);
+  color: var(--color-link);
   font-family: var(--font-family-ui);
   font-size: var(--type-label-md-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--type-label-md-line);
+  letter-spacing: var(--type-label-md-letter);
 }
 
 .select {
   width: 100%;
   height: 56px;
   padding: 0 16px;
-  border: 1px solid var(--Text-field);
+  border: 1px solid var(--color-outline-soft);
   border-radius: 16px;
   background: var(--color-surface);
-  color: var(--blue);
+  color: var(--color-link);
   font: inherit;
   outline: none;
 }
@@ -153,107 +257,50 @@
   box-shadow: var(--shadow-focus);
 }
 
-.formActions {
+.modalActions {
   display: flex;
-  gap: var(--space-5);
-  flex-wrap: wrap;
-  margin-top: var(--space-1);
+  justify-content: flex-end;
+  gap: var(--space-4);
 }
 
-.errorBanner,
-.successBanner {
-  margin-top: 16px;
-  padding: 14px var(--space-6);
-  border-radius: 16px;
-  font-size: var(--type-body-md-size);
-  line-height: var(--type-body-md-line);
+.formFieldWide .errorBanner {
+  margin-bottom: 0;
 }
 
-.errorBanner {
-  background: rgba(186, 26, 26, 0.08);
-  color: var(--error);
-  border: 1px solid rgba(186, 26, 26, 0.18);
-}
-
-.successBanner {
-  background: rgba(80, 173, 118, 0.12);
-  color: #1d6b3b;
-  border: 1px solid rgba(80, 173, 118, 0.24);
-}
-
-.detailsCard {
-  margin-top: var(--space-7);
-  padding-top: 20px;
-  border-top: 1px solid var(--Text-field);
-}
-
-.detailsTitle {
-  margin: 0 0 16px;
-  color: var(--blue);
-  font-family: var(--font-family-ui);
-  font-size: 20px;
-  font-weight: var(--font-weight-medium);
-  line-height: 28px;
-}
-
-.detailsGrid {
-  display: grid;
-  gap: var(--space-5);
-}
-
-.detailItem {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.detailLabel {
-  color: var(--Scrollbar);
-  font-size: 13px;
-  line-height: 18px;
-}
-
-.detailValue {
-  color: var(--blue);
-  font-size: 15px;
-  line-height: 22px;
-  word-break: break-word;
-}
-
-@media (max-width: 1100px) {
-  .layout {
+@media (max-width: 900px) {
+  .formGrid {
     grid-template-columns: 1fr;
   }
 
-  .formPanel {
-    position: static;
+  .formFieldWide {
+    grid-column: auto;
   }
 }
 
 @media (max-width: 640px) {
-  .panel,
-  .formPanel {
+  .modalDialog {
     padding: 20px;
     border-radius: 20px;
   }
 
-  .title {
-    font-size: var(--type-title-lg-size);
-    line-height: var(--type-title-lg-line);
-  }
-
-  .formTitle {
-    font-size: 22px;
-    line-height: 30px;
-  }
-
-  .formActions {
+  .panelHeader,
+  .modalHeader,
+  .modalActions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .modalTitle {
+    font-size: 22px;
+    line-height: 30px;
   }
 
   .rowActions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .modalCloseButton {
+    align-self: flex-end;
   }
 }

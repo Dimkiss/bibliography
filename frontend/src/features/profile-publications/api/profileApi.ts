@@ -12,6 +12,10 @@ export type GetProfilePublicationsParams = {
   pageSize?: number;
   yearFrom?: number | null;
   yearTo?: number | null;
+  textQuery?: string;
+  publicationTypes?: string[];
+  databases?: string[];
+  originalTranslationMode?: string;
   sortBy?: ProfilePublicationsSortField;
   sortOrder?: PublicationSortOrder;
 };
@@ -45,6 +49,16 @@ export async function getProfilePublications(
   if (typeof params.pageSize === 'number') sp.set('page_size', String(params.pageSize));
   if (typeof params.yearFrom === 'number') sp.set('year_from', String(params.yearFrom));
   if (typeof params.yearTo === 'number') sp.set('year_to', String(params.yearTo));
+  if (params.textQuery?.trim()) sp.set('text_query', params.textQuery.trim());
+  params.publicationTypes?.forEach((value) => {
+    if (value.trim()) sp.append('publication_types', value.trim());
+  });
+  params.databases?.forEach((value) => {
+    if (value.trim()) sp.append('databases', value.trim());
+  });
+  if (params.originalTranslationMode?.trim()) {
+    sp.set('original_translation_mode', params.originalTranslationMode.trim());
+  }
   if (params.sortBy) sp.set('sort_by', params.sortBy);
   if (params.sortOrder) sp.set('sort_order', params.sortOrder);
 
@@ -68,10 +82,24 @@ export async function getProfilePublications(
 export async function getProfileStats(
   yearFrom?: number | null,
   yearTo?: number | null,
+  textQuery?: string,
+  publicationTypes?: string[],
+  databases?: string[],
+  originalTranslationMode?: string,
 ): Promise<ProfileStatsDto> {
   const sp = new URLSearchParams();
   if (typeof yearFrom === 'number') sp.set('year_from', String(yearFrom));
   if (typeof yearTo === 'number') sp.set('year_to', String(yearTo));
+  if (textQuery?.trim()) sp.set('text_query', textQuery.trim());
+  publicationTypes?.forEach((value) => {
+    if (value.trim()) sp.append('publication_types', value.trim());
+  });
+  databases?.forEach((value) => {
+    if (value.trim()) sp.append('databases', value.trim());
+  });
+  if (originalTranslationMode?.trim()) {
+    sp.set('original_translation_mode', originalTranslationMode.trim());
+  }
 
   const url = `${API_BASE_URL}/profile/stats?${sp.toString()}`;
 

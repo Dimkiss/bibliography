@@ -7,6 +7,7 @@ import { ProfilePage } from '@/pages/ProfilePage';
 import { PublicationsPage } from '@/pages/PublicationsPage';
 import { EditionsPage } from '@/pages/EditionsPage';
 import { EditionDetailsPage } from '@/pages/EditionDetailsPage';
+import { PeriodicalEditionFormPage } from '@/pages/PeriodicalEditionFormPage';
 import { PublicationDetailsPage } from '@/pages/PublicationDetailsPage';
 import { PublicationsCreatePage } from '@/pages/PublicationsCreatePage';
 import { UserManagementPage } from '@/pages/UserManagementPage';
@@ -35,8 +36,28 @@ function AppRoutes() {
     return /^\/articles\/\d+$/.test(pathname);
   }, [pathname]);
 
+  const publicationEditArticleId = useMemo(() => {
+    const match = pathname.match(/^\/articles\/(\d+)\/edit$/);
+    if (!match) {
+      return null;
+    }
+
+    const parsed = Number(match[1]);
+    return Number.isNaN(parsed) ? null : parsed;
+  }, [pathname]);
+
   const isEditionDetailsPage = useMemo(() => {
     return /^\/journals\/(?:periodical|nonperiodical)\/\d+$/.test(pathname);
+  }, [pathname]);
+
+  const periodicalEditionEditSourceId = useMemo(() => {
+    const match = pathname.match(/^\/journals\/periodical\/(\d+)\/edit$/);
+    if (!match) {
+      return null;
+    }
+
+    const parsed = Number(match[1]);
+    return Number.isNaN(parsed) ? null : parsed;
   }, [pathname]);
 
   const isAuthorDetailsPage = useMemo(() => {
@@ -71,12 +92,29 @@ function AppRoutes() {
     return <PublicationsCreatePage />;
   }
 
+  if (publicationEditArticleId !== null) {
+    return <PublicationsCreatePage key={locationPath} articleId={publicationEditArticleId} />;
+  }
+
   if (pathname === '/articles') {
     return <PublicationsPage key={locationPath} />;
   }
 
   if (pathname === '/journals') {
     return <EditionsPage key={locationPath} />;
+  }
+
+  if (pathname === '/journals/periodical/create') {
+    return <PeriodicalEditionFormPage key={locationPath} />;
+  }
+
+  if (periodicalEditionEditSourceId !== null) {
+    return (
+      <PeriodicalEditionFormPage
+        key={locationPath}
+        sourceId={periodicalEditionEditSourceId}
+      />
+    );
   }
 
   if (isEditionDetailsPage) {

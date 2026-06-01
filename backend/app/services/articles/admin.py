@@ -1221,15 +1221,21 @@ def get_article_for_edit(
                 a.Abstract_F43 AS abstract,
                 a.DOI AS doi,
                 a.Journal_ID_f AS journal_id,
+                COALESCE(NULLIF(jn.JournalName, ''), NULLIF(j.jname, '')) AS journal_name,
+                j.Year AS journal_year,
                 a.Edition_F15 AS edition,
                 a.WorkFormType_f AS work_form_type,
                 a.MediumDesignator_F5_f AS medium_designator_id,
+                md.MD_Name AS medium_designator_label,
                 a.Author_of_Material_F7 AS author_of_material,
                 a.Title_of_Material_F9 AS title_of_material,
                 a.DateOfMeeting_F12 AS date_of_meeting,
                 a.PlaceOfMeeting_F13_f AS place_of_meeting_id,
+                pm.PlaceName AS place_of_meeting_label,
                 a.PlaceOfPublication_F18_f AS place_of_publication_id,
+                pp.PlaceName AS place_of_publication_label,
                 a.PublisherName_F19_f AS publisher_id,
+                pn.PublisherName AS publisher_label,
                 a.PublicationDate AS publication_date,
                 a.VolumeID_F22 AS volume,
                 a.IssueID_F24 AS issue,
@@ -1249,6 +1255,12 @@ def get_article_for_edit(
                 jaa.WosExcluded AS wos_excluded,
                 jaa.ScopusExcluded AS scopus_excluded
             FROM articles a
+            LEFT JOIN journals j ON j.J_ID = a.Journal_ID_f
+            LEFT JOIN journalnames jn ON jn.JN_ID = j.JN_ID_f
+            LEFT JOIN mediumdesignators md ON md.MD_ID = a.MediumDesignator_F5_f
+            LEFT JOIN places pm ON pm.P_ID = a.PlaceOfMeeting_F13_f
+            LEFT JOIN places pp ON pp.P_ID = a.PlaceOfPublication_F18_f
+            LEFT JOIN publishernames pn ON pn.PN_ID = a.PublisherName_F19_f
             LEFT JOIN articledetails ad ON ad.Record_ID_f = a.Record_ID
             LEFT JOIN journalarticlesattributes jaa ON jaa.Record_ID_f = a.Record_ID
             WHERE a.Record_ID = :article_id
@@ -1332,15 +1344,24 @@ def get_article_for_edit(
         abstract=row.get("abstract"),
         doi=row.get("doi"),
         journal_id=row.get("journal_id"),
+        journal_label=(
+            f"{row.get('journal_name')} · {row.get('journal_year')}"
+            if row.get("journal_name") and row.get("journal_year")
+            else row.get("journal_name")
+        ),
         edition=row.get("edition"),
         work_form_type=row.get("work_form_type"),
         medium_designator_id=row.get("medium_designator_id"),
+        medium_designator_label=row.get("medium_designator_label"),
         author_of_material=row.get("author_of_material"),
         title_of_material=row.get("title_of_material"),
         date_of_meeting=row.get("date_of_meeting"),
         place_of_meeting_id=row.get("place_of_meeting_id"),
+        place_of_meeting_label=row.get("place_of_meeting_label"),
         place_of_publication_id=row.get("place_of_publication_id"),
+        place_of_publication_label=row.get("place_of_publication_label"),
         publisher_id=row.get("publisher_id"),
+        publisher_label=row.get("publisher_label"),
         publication_date=(
             row.get("publication_date").isoformat()
             if row.get("publication_date")

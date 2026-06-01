@@ -50,9 +50,14 @@ class EditionDetailMetricItem(BaseModel):
     white_list_level: str | None = None
     wos_quartile: str | None = None
     impact_factor: str | None = None
+    five_year_if: str | None = None
     scopus_quartile: str | None = None
+    wos: bool = False
+    scopus: bool = False
     rinc: bool = False
     rinc_core: bool = False
+    rsci: bool = False
+    foreign: bool = False
     vak: bool = False
 
 
@@ -106,3 +111,60 @@ class EditionFiltersResponse(BaseModel):
     year_max: int | None = None
     metric_levels: list[EditionFilterOption] = Field(default_factory=list)
     edition_types: list[EditionFilterOption] = Field(default_factory=list)
+
+
+class PeriodicalEditionMetricPayload(BaseModel):
+    j_id: int | None = Field(default=None, gt=0)
+    year: int = Field(..., ge=0, le=9999)
+    impact_factor: str | None = Field(default=None, max_length=32)
+    five_year_if: str | None = Field(default=None, max_length=32)
+    wos_quartile: str | None = Field(default=None, max_length=2)
+    scopus_quartile: str | None = Field(default=None, max_length=2)
+    white_list_level: int | None = Field(default=None, ge=0)
+    wos: bool = False
+    scopus: bool = False
+    rinc: bool = False
+    rinc_core: bool = False
+    rsci: bool = False
+    foreign: bool = False
+    vak: bool = False
+
+
+class PeriodicalEditionPayload(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    issn: str | None = Field(default=None, max_length=10)
+    is_if: bool = False
+    wos_name: str | None = Field(default=None, max_length=200)
+    elibrary_name: str | None = Field(default=None, max_length=200)
+    is_translation: bool = False
+    comment: str | None = Field(default=None, max_length=200)
+    metrics: list[PeriodicalEditionMetricPayload] = Field(default_factory=list)
+
+
+class PeriodicalEditionMetricItem(BaseModel):
+    j_id: int
+    year: int
+    impact_factor: str | None = None
+    five_year_if: str | None = None
+    wos_quartile: str | None = None
+    scopus_quartile: str | None = None
+    white_list_level: int | None = None
+    wos: bool = False
+    scopus: bool = False
+    rinc: bool = False
+    rinc_core: bool = False
+    rsci: bool = False
+    foreign: bool = False
+    vak: bool = False
+
+
+class PeriodicalEditionEditResponse(BaseModel):
+    source_id: int
+    title: str
+    issn: str | None = None
+    is_if: bool = False
+    wos_name: str | None = None
+    elibrary_name: str | None = None
+    is_translation: bool = False
+    comment: str | None = None
+    metrics: list[PeriodicalEditionMetricItem] = Field(default_factory=list)

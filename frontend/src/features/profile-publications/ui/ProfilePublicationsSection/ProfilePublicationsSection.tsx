@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import {
   getProfilePublications,
@@ -10,9 +10,14 @@ import {
 import {
   type PublicationListItemDto,
   type PublicationSortOrder,
+  getPublicationFilters,
 } from '@/entities/publication';
 import { PublicationResultsList } from '@/features/search-publications/ui/PublicationResultsList/PublicationResultsList';
 import { PublicationsPagination } from '@/features/search-publications/ui/PublicationsPagination/PublicationsPagination';
+import {
+  PublicationsFilterDropdown,
+  type PublicationsFilterOption,
+} from '@/features/search-publications';
 import { YearRangeSelect, type YearRange } from '@/shared/ui/YearRangeSelect';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import styles from './ProfilePublicationsSection.module.css';
@@ -59,8 +64,52 @@ export function ProfilePublicationsSection({ maxYear }: ProfilePublicationsSecti
 
   // Скачивание отчёта
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  // Поиск и дополнительные фильтры
+  const [publicationSearchDraft, setPublicationSearchDraft] = useState('');
+  const [publicationSearchQuery, setPublicationSearchQuery] = useState('');
+  const [publicationTypes, setPublicationTypes] = useState<string[]>([]);
+  const [databases, setDatabases] = useState<string[]>([]);
+  const [originalTranslationMode, setOriginalTranslationMode] = useState('all');
+  const [publicationTypeOptions, setPublicationTypeOptions] = useState<
+    PublicationsFilterOption[]
+  >([]);
+  const [databaseOptions, setDatabaseOptions] = useState<PublicationsFilterOption[]>([]);
+  const [originalTranslationOptions, setOriginalTranslationOptions] = useState<
+    PublicationsFilterOption[]
+  >([]);
 
   // ─── Загрузка данных ────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadFilters() {
+      try {
+        const data = await getPublicationFilters();
+        if (!isMounted) {
+          return;
+        }
+
+        setPublicationTypeOptions(data.publication_types);
+        setDatabaseOptions(data.databases);
+        setOriginalTranslationOptions(data.original_translation_modes);
+      } catch {
+        if (isMounted) {
+          setPublicationTypeOptions([]);
+          setDatabaseOptions([]);
+          setOriginalTranslationOptions([]);
+        }
+      }
+    }
+
+    void loadFilters();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const loadPublications = useCallback(async () => {
     setIsLoading(true);
@@ -71,6 +120,10 @@ export function ProfilePublicationsSection({ maxYear }: ProfilePublicationsSecti
         pageSize,
         yearFrom: activeYearFrom,
         yearTo: activeYearTo,
+        textQuery: publicationSearchQuery,
+        publicationTypes,
+        databases,
+        originalTranslationMode,
         sortBy: sortField,
         sortOrder,
       });
@@ -82,16 +135,41 @@ export function ProfilePublicationsSection({ maxYear }: ProfilePublicationsSecti
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, activeYearFrom, activeYearTo, sortField, sortOrder]);
+  }, [
+    page,
+    pageSize,
+    activeYearFrom,
+    activeYearTo,
+    publicationSearchQuery,
+    publicationTypes,
+    databases,
+    originalTranslationMode,
+    sortField,
+    sortOrder,
+  ]);
 
   const loadStats = useCallback(async () => {
     try {
-      const result = await getProfileStats(activeYearFrom, activeYearTo);
+      const result = await getProfileStats(
+        activeYearFrom,
+        activeYearTo,
+        publicationSearchQuery,
+        publicationTypes,
+        databases,
+        originalTranslationMode,
+      );
       setStats(result);
     } catch {
       // статистика не критична
     }
-  }, [activeYearFrom, activeYearTo]);
+  }, [
+    activeYearFrom,
+    activeYearTo,
+    publicationSearchQuery,
+    publicationTypes,
+    databases,
+    originalTranslationMode,
+  ]);
 
   useEffect(() => {
     void loadPublications();
@@ -105,13 +183,45 @@ export function ProfilePublicationsSection({ maxYear }: ProfilePublicationsSecti
   useEffect(() => {
     setPage(1);
     setSelectedIds([]);
-  }, [activeYearFrom, activeYearTo, sortField, sortOrder, pageSize]);
+  }, [
+    activeYearFrom,
+    activeYearTo,
+    publicationSearchQuery,
+    publicationTypes,
+    databases,
+    originalTranslationMode,
+    sortField,
+    sortOrder,
+    pageSize,
+  ]);
 
   // ─── Обработчики ────────────────────────────────────────────────────────────
 
   const handleYearRangeChange = useCallback((range: YearRange) => {
     setYearRange(range);
   }, []);
+
+  const handleApplyPublicationSearch = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      setPublicationSearchQuery(publicationSearchDraft.trim());
+    },
+    [publicationSearchDraft],
+  );
+
+  const handleResetPublicationSearch = useCallback(() => {
+    setPublicationSearchDraft('');
+    setPublicationSearchQuery('');
+  }, []);
+
+  const handleResetFilters = useCallback(() => {
+    setYearRange({ from: MIN_YEAR, to: currentYear });
+    setPublicationSearchDraft('');
+    setPublicationSearchQuery('');
+    setPublicationTypes([]);
+    setDatabases([]);
+    setOriginalTranslationMode('all');
+  }, [currentYear]);
 
   const handleToggleItemSelection = useCallback((id: number) => {
     setSelectedIds((prev) =>
@@ -132,11 +242,11 @@ export function ProfilePublicationsSection({ maxYear }: ProfilePublicationsSecti
 
   const handleDownload = useCallback(async () => {
     setIsDownloading(true);
+    setDownloadError(null);
     try {
       await downloadProfileReport(activeYearFrom, activeYearTo);
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Ошибка скачивания отчёта:', e);
+      setDownloadError(e instanceof Error ? e.message : 'Не удалось сформировать отчёт.');
     } finally {
       setIsDownloading(false);
     }
@@ -164,6 +274,12 @@ export function ProfilePublicationsSection({ maxYear }: ProfilePublicationsSecti
         },
       ]
     : [];
+  const hasActiveFilters =
+    !isAllYears ||
+    Boolean(publicationSearchQuery) ||
+    publicationTypes.length > 0 ||
+    databases.length > 0 ||
+    originalTranslationMode !== 'all';
 
   return (
     <section className={styles.section}>
@@ -179,6 +295,8 @@ export function ProfilePublicationsSection({ maxYear }: ProfilePublicationsSecti
           }}
         />
       </div>
+
+      {downloadError ? <div className={styles.errorBanner}>{downloadError}</div> : null}
 
       {/* Статистика */}
       {stats ? (
@@ -204,7 +322,57 @@ export function ProfilePublicationsSection({ maxYear }: ProfilePublicationsSecti
           ariaLabel="Диапазон годов публикаций"
           showQuickActions
         />
+        <PublicationsFilterDropdown
+          label="Тип публикации"
+          mode="multi"
+          options={publicationTypeOptions}
+          value={publicationTypes}
+          onChange={setPublicationTypes}
+        />
+        <PublicationsFilterDropdown
+          label="Оригинал/Перевод"
+          mode="single"
+          options={originalTranslationOptions}
+          value={originalTranslationMode}
+          onChange={setOriginalTranslationMode}
+        />
+        <PublicationsFilterDropdown
+          label="Базы данных"
+          mode="multi"
+          options={databaseOptions}
+          value={databases}
+          onChange={setDatabases}
+        />
+        {hasActiveFilters ? (
+          <OutlineButton
+            label="Сбросить фильтры"
+            iconName="close"
+            onClick={handleResetFilters}
+          />
+        ) : null}
       </div>
+
+      <form className={styles.searchRow} onSubmit={handleApplyPublicationSearch}>
+        <label className={styles.searchLabel} htmlFor="profile-publications-search">
+          Поиск по моим публикациям
+        </label>
+        <input
+          id="profile-publications-search"
+          className={styles.searchInput}
+          type="search"
+          value={publicationSearchDraft}
+          onChange={(event) => setPublicationSearchDraft(event.target.value)}
+          placeholder="Название, авторы, журнал, DOI или ключевые слова"
+        />
+        <OutlineButton label="Найти" iconName="search" type="submit" />
+        {publicationSearchQuery ? (
+          <OutlineButton
+            label="Сбросить"
+            iconName="close"
+            onClick={handleResetPublicationSearch}
+          />
+        ) : null}
+      </form>
 
       {/* Список публикаций */}
       <PublicationResultsList

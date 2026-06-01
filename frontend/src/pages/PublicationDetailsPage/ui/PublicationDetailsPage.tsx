@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 
 import { Footer } from '@/widgets/Footer';
 import { Header } from '@/widgets/Header';
 import { Icon } from '@/shared/ui/Icon';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
 import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
+import { ViewportMenu } from '@/shared/ui/ViewportMenu';
 import { buildEditionDetailsPath } from '@/entities/edition';
 import {
+  deleteAdminArticle,
   getBibliographicReference,
   getPublicationDetail,
   getPublicationPdfUrl,
@@ -20,6 +22,8 @@ import {
   formatRelatedPublicationTitle,
   normalizeJournalName,
 } from '@/entities/publication';
+import { useAuth } from '@/features/auth';
+import { ADMIN_ROLE_ID } from '@/entities/role';
 import { navigateTo } from '@/shared/lib/navigation';
 import styles from './PublicationDetailsPage.module.css';
 
@@ -33,14 +37,8 @@ function getArticleIdFromPathname(pathname: string): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-function downloadPublicationPdf(articleId: number) {
-  const link = document.createElement('a');
-  link.href = getPublicationPdfUrl(articleId);
-  link.download = `article-${articleId}.pdf`;
-  link.rel = 'noreferrer';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+function openPublicationPdf(articleId: number) {
+  window.open(getPublicationPdfUrl(articleId), '_blank', 'noopener,noreferrer');
 }
 
 function buildKeywordSearchPath(keyword: string): string {
@@ -236,7 +234,7 @@ function RelatedPublicationCard({
               if (!item.has_pdf) {
                 return;
               }
-              downloadPublicationPdf(item.id);
+              openPublicationPdf(item.id);
             }}
             aria-label={item.has_pdf ? 'Открыть PDF' : 'PDF недоступен'}
           />
@@ -247,15 +245,20 @@ function RelatedPublicationCard({
 }
 
 export function PublicationDetailsPage() {
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = Boolean(isAuthenticated && user?.role_id === ADMIN_ROLE_ID);
   const articleId = useMemo(
     () => getArticleIdFromPathname(window.location.pathname),
     [],
   );
 
+  const menuAnchorRef = useRef<HTMLElement | null>(null);
   const [item, setItem] = useState<PublicationDetailDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState('');
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -303,6 +306,18 @@ export function PublicationDetailsPage() {
   }, [articleId]);
 
   useEffect(() => {
+    const handleClickOutside = () => {
+      setIsActionMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!copyMessage) {
       return;
     }
@@ -341,6 +356,62 @@ export function PublicationDetailsPage() {
     setCopyMessage('Скопировано');
   };
 
+  const handleOpenPdf = () => {
+    if (!item?.has_pdf) {
+      return;
+    }
+
+    setIsActionMenuOpen(false);
+    openPublicationPdf(item.id);
+  };
+
+  const handleOpenDoi = () => {
+    const url = buildDoiUrl(item?.doi);
+    if (!url) {
+      return;
+    }
+
+    setIsActionMenuOpen(false);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopyReference = async () => {
+    setIsActionMenuOpen(false);
+    await handleCopyMain();
+  };
+
+  const handleEditPublication = () => {
+    if (!item) {
+      return;
+    }
+
+    setIsActionMenuOpen(false);
+    navigateTo(`/articles/${item.id}/edit`);
+  };
+
+  const handleRequestDelete = () => {
+    setIsActionMenuOpen(false);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!item) {
+      return;
+    }
+
+    try {
+      await deleteAdminArticle(item.id);
+      navigateTo('/articles');
+    } catch (caughtError) {
+      setIsDeleteDialogOpen(false);
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Не удалось удалить публикацию.',
+      );
+    }
+  };
+
   return (
     <div className="app-page">
       <Header title="Информация о публикации" />
@@ -375,15 +446,97 @@ export function PublicationDetailsPage() {
                     </div>
                   </div>
 
-                  <div className={styles.actions}>
+                  <div
+                    className={styles.actions}
+                    onClick={(event) => event.stopPropagation()}
+                    onMouseDown={(event) => event.stopPropagation()}
+                  >
                     <OutlineIconButton
                       iconName="more_horiz"
                       iconSize={20}
                       size="small-x"
                       className={styles.actionButton}
-                      disabled
-                      aria-label="Дополнительные действия недоступны"
+                      aria-label="Дополнительные действия"
+                      aria-expanded={isActionMenuOpen}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        menuAnchorRef.current = event.currentTarget;
+                        setIsActionMenuOpen((prev) => !prev);
+                      }}
                     />
+
+                    <ViewportMenu
+                      isOpen={isActionMenuOpen}
+                      triggerRef={menuAnchorRef}
+                      placement="left-start"
+                      offset={10}
+                      className={styles.publicationMenu}
+                      role="menu"
+                    >
+                      <button
+                        type="button"
+                        className={styles.publicationMenuItem}
+                        onClick={handleOpenPdf}
+                        disabled={!item.has_pdf}
+                        role="menuitem"
+                      >
+                        <Icon
+                          name={item.has_pdf ? 'pdf-color' : 'pdf-mono'}
+                          size={24}
+                          colored={item.has_pdf}
+                        />
+                        <span>Открыть PDF</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={styles.publicationMenuItem}
+                        onClick={handleOpenDoi}
+                        disabled={!doiUrl}
+                        role="menuitem"
+                      >
+                        <Icon name="doi" size={24} />
+                        <span>Открыть по DOI</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={styles.publicationMenuItem}
+                        onClick={() => {
+                          void handleCopyReference();
+                        }}
+                        role="menuitem"
+                      >
+                        <Icon name="copy" size={24} />
+                        <span>Копировать библ. ссылку</span>
+                      </button>
+
+                      {isAdmin ? (
+                        <>
+                          <div className={styles.publicationMenuDivider} />
+
+                          <button
+                            type="button"
+                            className={styles.publicationMenuItem}
+                            onClick={handleEditPublication}
+                            role="menuitem"
+                          >
+                            <Icon name="edit" size={24} />
+                            <span>Редактировать</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className={styles.publicationMenuItem}
+                            onClick={handleRequestDelete}
+                            role="menuitem"
+                          >
+                            <Icon name="delete" size={24} />
+                            <span>Удалить</span>
+                          </button>
+                        </>
+                      ) : null}
+                    </ViewportMenu>
 
                     <OutlineIconButton
                       iconName="copy"
@@ -403,7 +556,7 @@ export function PublicationDetailsPage() {
                         iconColored
                         size="small-x"
                         className={styles.actionButton}
-                        onClick={() => downloadPublicationPdf(item.id)}
+                        onClick={() => openPublicationPdf(item.id)}
                         aria-label="Открыть PDF"
                       />
                     ) : (
@@ -595,6 +748,48 @@ export function PublicationDetailsPage() {
               </>
             ) : null}
           </section>
+
+          {item && isDeleteDialogOpen ? (
+            <div
+              className={styles.confirmOverlay}
+              role="presentation"
+              onMouseDown={() => setIsDeleteDialogOpen(false)}
+            >
+              <div
+                className={styles.confirmDialog}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="delete-publication-title"
+                onMouseDown={(event) => event.stopPropagation()}
+              >
+                <h2 id="delete-publication-title" className={styles.confirmTitle}>
+                  Удалить публикацию?
+                </h2>
+                <p className={styles.confirmText}>
+                  Вы точно хотите удалить публикацию «{item.title || `#${item.id}`}»? Это
+                  действие нельзя отменить.
+                </p>
+                <div className={styles.confirmActions}>
+                  <button
+                    type="button"
+                    className={styles.confirmCancelButton}
+                    onClick={() => setIsDeleteDialogOpen(false)}
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.confirmDeleteButton}
+                    onClick={() => {
+                      void handleConfirmDelete();
+                    }}
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </main>
 

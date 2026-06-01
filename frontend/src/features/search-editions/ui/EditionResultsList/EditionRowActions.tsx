@@ -1,5 +1,8 @@
+import { useRef } from 'react';
+
 import { Icon } from '@/shared/ui/Icon';
 import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
+import { ViewportMenu } from '@/shared/ui/ViewportMenu';
 import { stopInteractiveEvent } from './editionResultsList.lib';
 import styles from './EditionResultsList.module.css';
 
@@ -16,6 +19,8 @@ export function EditionRowActions({
   onEdit,
   onDelete,
 }: EditionRowActionsProps) {
+  const menuAnchorRef = useRef<HTMLElement | null>(null);
+
   return (
     <div
       className={styles.rowActions}
@@ -30,12 +35,19 @@ export function EditionRowActions({
         aria-expanded={isMenuOpen}
         onClick={(event) => {
           stopInteractiveEvent(event);
+          menuAnchorRef.current = event.currentTarget;
           onToggleMenu();
         }}
       />
 
-      {isMenuOpen ? (
-        <div className={styles.editionMenu} role="menu">
+      <ViewportMenu
+        isOpen={isMenuOpen}
+        triggerRef={menuAnchorRef}
+        placement="left-start"
+        offset={10}
+        className={styles.editionMenu}
+        role="menu"
+      >
           <button
             type="button"
             className={styles.editionMenuItem}
@@ -55,8 +67,7 @@ export function EditionRowActions({
             <Icon name="delete" size={24} />
             <span>Удалить</span>
           </button>
-        </div>
-      ) : null}
+      </ViewportMenu>
     </div>
   );
 }

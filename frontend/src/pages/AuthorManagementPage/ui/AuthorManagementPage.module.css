@@ -200,19 +200,12 @@
   flex-wrap: wrap;
 }
 
-.actionsColumn,
-.table th:last-child,
-.table td:last-child {
+.actionsColumn {
   width: 58px;
   text-align: center;
 }
 
 .authorMenu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: auto;
-  right: 0;
-  z-index: 10;
   min-width: 220px;
 }
 

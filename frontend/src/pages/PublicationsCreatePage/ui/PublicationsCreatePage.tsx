@@ -7,35 +7,69 @@ import { KeywordSearchInput } from '@/features/search-publications';
 import {
   createAdminArticle,
   getAdminPublicationTypes,
+  getAdminArticleForEdit,
   getAdminAuthors,
+  getAdminWorkFormFields,
   getAdminWorkFormTypes,
   searchAdminEditionSources,
   searchAdminArticles,
   searchAdminJournals,
+  searchAdminMediumDesignators,
+  searchAdminPlaces,
   searchAdminPublishers,
+  updateAdminArticle,
   uploadAdminArticlePdf,
   type AdminOptionDto,
   type AdminEditionSourceDto,
+  type AdminArticleEditDto,
   type ArticleSearchItemDto,
   type AuthorOptionDto,
+  type CreateAdminArticlePayload,
   type PublicationTypeDto,
+  type WorkFormFieldDto,
   type WorkFormTypeDto,
 } from '@/features/create-publication';
 import { navigateTo } from '@/shared/lib/navigation';
 import { ADMIN_ROLE_ID } from '@/entities/role';
+import { getPublicationDetail } from '@/entities/publication';
 import { Button } from '@/shared/ui/Button';
 import { Checkbox } from '@/shared/ui/Checkbox';
 import { Icon } from '@/shared/ui/Icon';
 import { OutlineButton } from '@/shared/ui/OutlineButton';
+import { RadioButton } from '@/shared/ui/RadioButton';
 import { RichTextField } from '@/shared/ui/RichTextField';
 import { Select } from '@/shared/ui/Select';
 import { TextButton } from '@/shared/ui/TextButton';
 import { TextField } from '@/shared/ui/TextField';
 import styles from './PublicationsCreatePage.module.css';
 
-type FormVariant = 'article' | 'book-chapter' | 'book-monograph' | 'conference';
+type FormVariant =
+  | 'article'
+  | 'book-chapter'
+  | 'book-monograph'
+  | 'conference'
+  | 'dissertation'
+  | 'patent'
+  | 'newspaper'
+  | 'report';
+type FormScenario =
+  | 'article'
+  | 'book-chapter'
+  | 'book-monograph'
+  | 'conference-materials'
+  | 'other';
 type ArticleLanguage = 'R' | 'F' | '';
-type SelectorMode = 'journal' | 'publisher' | 'source' | 'related' | 'author' | null;
+type RelatedArticleKind = 'original' | 'translation' | '';
+type SelectorMode =
+  | 'journal'
+  | 'publisher'
+  | 'source'
+  | 'related'
+  | 'author'
+  | 'place-publication'
+  | 'place-meeting'
+  | 'medium'
+  | null;
 
 type SelectedAuthor = {
   author: AuthorOptionDto;
@@ -48,22 +82,39 @@ type ClearFieldButtonProps = {
   onClick: () => void;
 };
 
+type PublicationsCreatePageProps = {
+  articleId?: number;
+};
+
 type FormState = {
   workFormType: string;
   publicationTypeFlag: string;
+  publicationTypeFlags: string[];
   title: string;
   authorsText: string;
   sourceText: string;
+  edition: string;
   journal: AdminOptionDto | null;
   publisher: AdminOptionDto | null;
+  placeOfPublication: AdminOptionDto | null;
+  placeOfMeeting: AdminOptionDto | null;
+  mediumDesignator: AdminOptionDto | null;
+  authorRole: string;
+  authorOfMaterial: string;
+  volume: string;
+  issue: string;
+  speaker: string;
   doi: string;
   url: string;
   pages: string;
   publicationDate: string;
+  dateOfMeeting: string;
   year: string;
   abstract: string;
   keywordsInput: string;
   relatedArticle: ArticleSearchItemDto | null;
+  relatedArticleKind: RelatedArticleKind;
+  articleLanguage: ArticleLanguage;
   isbn: string;
   tirage: string;
   extentOfWork: string;
@@ -72,25 +123,35 @@ type FormState = {
   pdfFile: File | null;
 };
 
-const ENABLED_WORK_FORM_TYPES = new Set(['J', 'B', 'C']);
-const ENABLED_PUBLICATION_TYPE_FLAGS = new Set(['ST', 'GL', 'MO', 'MA']);
-
 const INITIAL_FORM: FormState = {
   workFormType: '',
   publicationTypeFlag: '',
+  publicationTypeFlags: [],
   title: '',
   authorsText: '',
   sourceText: '',
+  edition: '',
   journal: null,
   publisher: null,
+  placeOfPublication: null,
+  placeOfMeeting: null,
+  mediumDesignator: null,
+  authorRole: '',
+  authorOfMaterial: '',
+  volume: '',
+  issue: '',
+  speaker: '',
   doi: '',
   url: '',
   pages: '',
   publicationDate: '',
+  dateOfMeeting: '',
   year: '',
   abstract: '',
   keywordsInput: '',
   relatedArticle: null,
+  relatedArticleKind: '',
+  articleLanguage: '',
   isbn: '',
   tirage: '',
   extentOfWork: '',
@@ -115,6 +176,101 @@ function ClearFieldButton({ label, onClick }: ClearFieldButtonProps) {
   );
 }
 
+const FORM_SCENARIO_OPTIONS: Array<{ value: FormScenario; label: string }> = [
+  { value: 'article', label: 'Статья' },
+  { value: 'book-chapter', label: 'Книжное издание: глава' },
+  { value: 'book-monograph', label: 'Книжное издание: монография' },
+  { value: 'conference-materials', label: 'Материалы конференций: материалы конференций' },
+  { value: 'other', label: 'Другое' },
+];
+
+function isFormScenario(value: string | null): value is FormScenario {
+  return FORM_SCENARIO_OPTIONS.some((option) => option.value === value);
+}
+
+function getInitialFormScenarioFromUrl(): FormScenario {
+  const scenario = new URLSearchParams(window.location.search).get('scenario');
+  return isFormScenario(scenario) ? scenario : 'article';
+}
+
+const AGREED_SCENARIO_CONFIG: Record<
+  Exclude<FormScenario, 'other'>,
+  { workFormType: string; publicationTypeFlag: string; variant: FormVariant }
+> = {
+  article: {
+    workFormType: 'J',
+    publicationTypeFlag: 'ST',
+    variant: 'article',
+  },
+  'book-chapter': {
+    workFormType: 'B',
+    publicationTypeFlag: 'GL',
+    variant: 'book-chapter',
+  },
+  'book-monograph': {
+    workFormType: 'B',
+    publicationTypeFlag: 'MO',
+    variant: 'book-monograph',
+  },
+  'conference-materials': {
+    workFormType: 'C',
+    publicationTypeFlag: 'MA',
+    variant: 'conference',
+  },
+};
+
+const AGREED_FLAGS_BY_WORK_FORM: Record<string, string[]> = {
+  J: ['ST'],
+  B: ['GL', 'MO'],
+  C: ['MA'],
+};
+
+function getScenarioConfig(scenario: FormScenario) {
+  return scenario === 'other' ? null : AGREED_SCENARIO_CONFIG[scenario];
+}
+
+function getScenarioPublicationTypeFlags(
+  scenario: FormScenario,
+  items: PublicationTypeDto[],
+  _workFormType: string,
+): string[] {
+  const config = getScenarioConfig(scenario);
+
+  if (config) {
+    const preferredFlag = items.find((item) => item.value === config.publicationTypeFlag)?.value;
+    return preferredFlag ? [preferredFlag] : [];
+  }
+
+  return [];
+}
+
+function resolveScenarioFromArticle(
+  workFormType: string,
+  publicationTypeFlags: string[],
+): FormScenario {
+  const flags = new Set(publicationTypeFlags);
+
+  if (publicationTypeFlags.length === 1) {
+    if (workFormType === 'J' && flags.has('ST')) {
+      return 'article';
+    }
+
+    if (workFormType === 'B' && flags.has('GL')) {
+      return 'book-chapter';
+    }
+
+    if (workFormType === 'B' && flags.has('MO')) {
+      return 'book-monograph';
+    }
+
+    if (workFormType === 'C' && flags.has('MA')) {
+      return 'conference-materials';
+    }
+  }
+
+  return 'other';
+}
+
 function getWorkFormLabel(item: WorkFormTypeDto): string {
   if (item.value === 'J') {
     return 'Статья';
@@ -128,10 +284,60 @@ function getWorkFormLabel(item: WorkFormTypeDto): string {
     return 'Материалы конференции';
   }
 
+  if (item.value === 'D') {
+    return 'Диссертация';
+  }
+
+  if (item.value === 'M') {
+    return 'Патент / свидетельство';
+  }
+
+  if (item.value === 'N') {
+    return 'Газетное издание';
+  }
+
+  if (item.value === 'R') {
+    return 'Отчёт';
+  }
+
   return item.label_ru?.trim() || item.label?.trim() || item.value;
 }
 
 function getPublicationTypeLabel(item: PublicationTypeDto): string {
+  const knownLabels: Record<string, string> = {
+    AR: 'Автореферат',
+    AS: 'Авторское свидетельство',
+    AT: 'Атлас',
+    BU: 'Библиографический указатель',
+    DI: 'Диссертация',
+    DO: 'Устный доклад',
+    EJ: 'Электронный журнал',
+    GA: 'Газета',
+    GL: 'Глава',
+    JU: 'Журнал',
+    KA: 'Карта',
+    KN: 'Книга',
+    LI: 'Лицензия',
+    MA: 'Материалы конференции',
+    MO: 'Монография',
+    MP: 'Методическое пособие',
+    OT: 'Отчёт',
+    PA: 'Патент',
+    PD: 'Пленарный доклад',
+    RE: 'Реферат',
+    SB: 'Сборник',
+    SD: 'Стендовый доклад / постер',
+    SP: 'Справочник',
+    ST: 'Статья',
+    TE: 'Тезисы',
+    TR: 'Труды',
+    UC: 'Учебник',
+  };
+
+  if (knownLabels[item.value]) {
+    return knownLabels[item.value];
+  }
+
   if (item.value === 'GL') {
     return 'Глава';
   }
@@ -152,72 +358,65 @@ function getPublicationTypeLabel(item: PublicationTypeDto): string {
 }
 
 function filterEnabledWorkForms(items: WorkFormTypeDto[]): WorkFormTypeDto[] {
-  return items.filter((item) => ENABLED_WORK_FORM_TYPES.has(item.value));
+  return items.filter((item) => item.value !== 'X');
 }
 
 function filterEnabledPublicationTypes(
   items: PublicationTypeDto[],
-  workFormType: string,
+  _workFormType: string,
 ): PublicationTypeDto[] {
-  if (workFormType === 'J') {
-    return items.filter((item) => item.value === 'ST');
-  }
-
-  if (workFormType === 'B') {
-    return items.filter((item) => item.value === 'GL' || item.value === 'MO');
-  }
-
-  if (workFormType === 'C') {
-    return items.filter((item) => item.value === 'MA');
-  }
-
-  return items.filter((item) => ENABLED_PUBLICATION_TYPE_FLAGS.has(item.value));
-}
-
-function getDefaultPublicationTypeFlag(
-  items: PublicationTypeDto[],
-  workFormType: string,
-): string {
-  const enabledItems = filterEnabledPublicationTypes(items, workFormType);
-  const preferredValue =
-    workFormType === 'J'
-      ? 'ST'
-      : workFormType === 'B'
-        ? 'GL'
-        : workFormType === 'C'
-          ? 'MA'
-          : '';
-
-  return (
-    enabledItems.find((item) => item.value === preferredValue)?.value ??
-    enabledItems[0]?.value ??
-    items[0]?.value ??
-    ''
-  );
+  return items;
 }
 
 function resolveVariant(
   workForm: WorkFormTypeDto | null,
   publicationType: PublicationTypeDto | null,
 ): FormVariant {
+  const workFormValue = workForm?.value;
+  const publicationTypeValue = publicationType?.value;
   const workFormLabel = `${workForm?.label_ru ?? ''} ${workForm?.label ?? ''}`.toLowerCase();
   const publicationTypeLabel = `${publicationType?.label ?? ''}`.toLowerCase();
 
-  if (workFormLabel.includes('конферен')) {
+  if (workFormValue === 'C' || workFormLabel.includes('конферен')) {
     return 'conference';
   }
 
+  if (workFormValue === 'D') {
+    return 'dissertation';
+  }
+
+  if (workFormValue === 'M') {
+    return 'patent';
+  }
+
+  if (workFormValue === 'N') {
+    return 'newspaper';
+  }
+
+  if (workFormValue === 'R') {
+    return 'report';
+  }
+
   if (
+    workFormValue === 'B' ||
     workFormLabel.includes('книж') ||
     workFormLabel.includes('монограф') ||
     publicationTypeLabel.includes('монограф') ||
     publicationTypeLabel.includes('глава')
   ) {
-    if (publicationTypeLabel.includes('монограф')) {
+    if (
+      publicationTypeValue === 'GL' ||
+      publicationTypeLabel.includes('глава') ||
+      publicationTypeLabel.includes('очерк')
+    ) {
+      return 'book-chapter';
+    }
+
+    if (publicationTypeValue === 'MO' || publicationTypeLabel.includes('монограф')) {
       return 'book-monograph';
     }
 
-    return 'book-chapter';
+    return 'book-monograph';
   }
 
   return 'article';
@@ -371,7 +570,15 @@ function getSourceLabel(variant: FormVariant): string {
   }
 
   if (variant === 'conference') {
-    return 'Конференция';
+    return 'Мероприятие';
+  }
+
+  if (variant === 'newspaper') {
+    return 'Газета';
+  }
+
+  if (variant === 'report' || variant === 'patent') {
+    return 'Общее название';
   }
 
   return 'Издание';
@@ -390,6 +597,22 @@ function getTitlePlaceholder(variant: FormVariant): string {
     return 'Название материала';
   }
 
+  if (variant === 'dissertation') {
+    return 'Название диссертации';
+  }
+
+  if (variant === 'patent') {
+    return 'Название патента / свидетельства';
+  }
+
+  if (variant === 'newspaper') {
+    return 'Название материала';
+  }
+
+  if (variant === 'report') {
+    return 'Название отчёта';
+  }
+
   return 'Название';
 }
 
@@ -404,6 +627,14 @@ function getAuthorsPlaceholder(variant: FormVariant): string {
 
   if (variant === 'conference') {
     return 'Авторы материала';
+  }
+
+  if (variant === 'dissertation') {
+    return 'Автор диссертации';
+  }
+
+  if (variant === 'patent') {
+    return 'Авторы / правообладатели';
   }
 
   return 'Авторы';
@@ -443,19 +674,205 @@ function detectArticleLanguage(title: string): ArticleLanguage {
   return '';
 }
 
-function buildEmptyForm(workFormType: string, publicationTypeFlag: string): FormState {
+function normalizeArticleLanguage(value: string | null | undefined): ArticleLanguage {
+  return value === 'R' || value === 'F' ? value : '';
+}
+
+function getRelatedArticleKindFromLanguage(
+  articleLanguage: ArticleLanguage,
+): RelatedArticleKind {
+  if (articleLanguage === 'F') {
+    return 'original';
+  }
+
+  if (articleLanguage === 'R') {
+    return 'translation';
+  }
+
+  return '';
+}
+
+function getRelatedArticleKindFromEditArticle(
+  article: AdminArticleEditDto,
+): RelatedArticleKind {
+  if (article.original_version_id !== null) {
+    return 'original';
+  }
+
+  if (article.translation_version_id !== null) {
+    return 'translation';
+  }
+
+  return getRelatedArticleKindFromLanguage(normalizeArticleLanguage(article.article_language));
+}
+
+function toFormString(value: string | number | null | undefined): string {
+  return value === null || value === undefined ? '' : String(value);
+}
+
+function stripLegacySourcePrefix(value: string | number | null | undefined): string {
+  return toFormString(value).trimStart().replace(/^\/+\s*/, '');
+}
+
+function buildLookupOption(
+  id: number | null | undefined,
+  label: string | null | undefined,
+  fallbackLabel: string,
+): AdminOptionDto | null {
+  if (id === null || id === undefined) {
+    return null;
+  }
+
   return {
-    ...INITIAL_FORM,
-    workFormType,
-    publicationTypeFlag,
+    id,
+    label: label?.trim() || `${fallbackLabel} #${id}`,
   };
 }
 
-export function PublicationsCreatePage() {
-  const { user, isAuthenticated, isInitializing } = useAuth();
+function buildEmptyForm(workFormType: string, publicationTypeFlags: string[] | string): FormState {
+  const flags = Array.isArray(publicationTypeFlags)
+    ? publicationTypeFlags
+    : publicationTypeFlags
+      ? [publicationTypeFlags]
+      : [];
+  const selectedFlags = flags.slice(0, 1);
 
+  return {
+    ...INITIAL_FORM,
+    workFormType,
+    publicationTypeFlag: selectedFlags[0] ?? '',
+    publicationTypeFlags: selectedFlags,
+  };
+}
+
+function buildSelectedAuthorsFromEditArticle(
+  article: AdminArticleEditDto,
+  authors: AuthorOptionDto[],
+): SelectedAuthor[] {
+  const authorsById = new Map(authors.map((item) => [item.id, item]));
+
+  return article.authors.map((item) => ({
+    author:
+      authorsById.get(item.author_id) ??
+      {
+        id: item.author_id,
+        label: item.author_name,
+        source: 'employee',
+        nickname: null,
+        email: null,
+        position: null,
+        department_id: null,
+        department_name: null,
+      },
+    affiliation: String(item.affiliation || 1),
+    correspondingAuthor: item.corresponding_author,
+  }));
+}
+
+async function loadRelatedArticleForEdit(
+  article: AdminArticleEditDto,
+): Promise<ArticleSearchItemDto | null> {
+  const relatedArticleId = article.original_version_id ?? article.translation_version_id;
+
+  if (relatedArticleId === null) {
+    return null;
+  }
+
+  try {
+    const detail = await getPublicationDetail(relatedArticleId);
+
+    return {
+      id: detail.id,
+      title: detail.title,
+      authors: detail.authors,
+      journal: detail.journal,
+      year: detail.year,
+      doi: detail.doi,
+    };
+  } catch {
+    return {
+      id: relatedArticleId,
+      title: `Публикация #${relatedArticleId}`,
+      authors: null,
+      journal: null,
+      year: null,
+      doi: null,
+    };
+  }
+}
+
+function buildFormFromEditArticle(
+  article: AdminArticleEditDto,
+  workFormType: string,
+  publicationTypeFlags: string[],
+  relatedArticle: ArticleSearchItemDto | null,
+): FormState {
+  const isMonograph =
+    workFormType === 'B' && publicationTypeFlags.length === 1 && publicationTypeFlags[0] === 'MO';
+
+  return {
+    ...buildEmptyForm(workFormType, publicationTypeFlags),
+    title: isMonograph
+      ? stripLegacySourcePrefix(article.title || article.title_of_material)
+      : toFormString(article.title),
+    authorsText: toFormString(
+      isMonograph ? article.authors_text || article.author_of_material : article.authors_text,
+    ),
+    sourceText: isMonograph
+      ? stripLegacySourcePrefix(article.title_of_material)
+      : toFormString(article.title_of_material),
+    edition: toFormString(article.edition),
+    journal: buildLookupOption(article.journal_id, article.journal_label, 'Издание'),
+    publisher: buildLookupOption(article.publisher_id, article.publisher_label, 'Издательство'),
+    placeOfPublication: buildLookupOption(
+      article.place_of_publication_id,
+      article.place_of_publication_label,
+      'Место публикации',
+    ),
+    placeOfMeeting: buildLookupOption(
+      article.place_of_meeting_id,
+      article.place_of_meeting_label,
+      'Место проведения',
+    ),
+    mediumDesignator: buildLookupOption(
+      article.medium_designator_id,
+      article.medium_designator_label,
+      'Обозначение материала',
+    ),
+    authorRole: toFormString(article.author_role),
+    authorOfMaterial: toFormString(
+      isMonograph ? article.author_of_material || article.authors_text : article.author_of_material,
+    ),
+    volume: toFormString(article.volume),
+    issue: toFormString(article.issue),
+    speaker: toFormString(article.speaker),
+    doi: toFormString(article.doi),
+    url: toFormString(article.url),
+    pages: toFormString(article.pages),
+    publicationDate: toFormString(article.publication_date),
+    dateOfMeeting: toFormString(article.date_of_meeting),
+    year: toFormString(article.year),
+    abstract: toFormString(article.abstract),
+    keywordsInput: article.keywords.join(', '),
+    relatedArticle,
+    relatedArticleKind: getRelatedArticleKindFromEditArticle(article),
+    articleLanguage: normalizeArticleLanguage(article.article_language),
+    isbn: toFormString(article.isbn),
+    tirage: toFormString(article.tirage),
+    extentOfWork: toFormString(article.extent_of_work),
+    notes: toFormString(article.notes),
+  };
+}
+
+export function PublicationsCreatePage({ articleId }: PublicationsCreatePageProps) {
+  const { user, isAuthenticated, isInitializing } = useAuth();
+  const isEditMode = typeof articleId === 'number';
+  const initialFormScenario = useMemo(getInitialFormScenarioFromUrl, []);
+
+  const [formScenario, setFormScenario] = useState<FormScenario>(initialFormScenario);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [workForms, setWorkForms] = useState<WorkFormTypeDto[]>([]);
+  const [workFormFields, setWorkFormFields] = useState<WorkFormFieldDto[]>([]);
   const [publicationTypes, setPublicationTypes] = useState<PublicationTypeDto[]>([]);
   const [allAuthors, setAllAuthors] = useState<AuthorOptionDto[]>([]);
   const [selectedAuthors, setSelectedAuthors] = useState<SelectedAuthor[]>([]);
@@ -469,6 +886,8 @@ export function PublicationsCreatePage() {
   const [selectorLoading, setSelectorLoading] = useState(false);
   const [journalResults, setJournalResults] = useState<AdminOptionDto[]>([]);
   const [publisherResults, setPublisherResults] = useState<AdminOptionDto[]>([]);
+  const [placeResults, setPlaceResults] = useState<AdminOptionDto[]>([]);
+  const [mediumResults, setMediumResults] = useState<AdminOptionDto[]>([]);
   const [authorResults, setAuthorResults] = useState<AuthorOptionDto[]>([]);
   const [sourceResults, setSourceResults] = useState<AdminEditionSourceDto[]>([]);
   const [relatedResults, setRelatedResults] = useState<ArticleSearchItemDto[]>([]);
@@ -496,7 +915,11 @@ export function PublicationsCreatePage() {
       setError('');
 
       try {
-        const workFormItems = await getAdminWorkFormTypes();
+        const [workFormItems, authorsResponse, articleForEdit] = await Promise.all([
+          getAdminWorkFormTypes(),
+          getAdminAuthors({ all: true }),
+          isEditMode && articleId ? getAdminArticleForEdit(articleId) : Promise.resolve(null),
+        ]);
 
         if (!isMounted) {
           return;
@@ -505,36 +928,79 @@ export function PublicationsCreatePage() {
         const enabledWorkFormItems = filterEnabledWorkForms(workFormItems);
 
         setWorkForms(enabledWorkFormItems);
+        setAllAuthors(authorsResponse.items);
 
+        const defaultScenario = initialFormScenario;
+        const defaultScenarioConfig =
+          getScenarioConfig(defaultScenario) ?? AGREED_SCENARIO_CONFIG.article;
         const defaultWorkForm =
-          enabledWorkFormItems.find((item) => item.value === 'J') ||
+          enabledWorkFormItems.find((item) => item.value === defaultScenarioConfig.workFormType) ||
           enabledWorkFormItems[0] ||
           null;
 
         if (!defaultWorkForm) {
           setPublicationTypes([]);
+          setWorkFormFields([]);
           setForm(INITIAL_FORM);
           return;
         }
 
-        const publicationTypeItems = await getAdminPublicationTypes(defaultWorkForm.value);
+        if (articleForEdit) {
+          const editWorkFormType = articleForEdit.work_form_type || defaultWorkForm.value;
+          const editPublicationTypeFlags = articleForEdit.publication_type_flags;
+          const editScenario = resolveScenarioFromArticle(
+            editWorkFormType,
+            editPublicationTypeFlags,
+          );
+          const [publicationTypeItems, fieldItems, relatedArticle] = await Promise.all([
+            getAdminPublicationTypes(editWorkFormType),
+            getAdminWorkFormFields(editWorkFormType),
+            loadRelatedArticleForEdit(articleForEdit),
+          ]);
+
+          if (!isMounted) {
+            return;
+          }
+
+          setFormScenario(editScenario);
+          setPublicationTypes(publicationTypeItems);
+          setWorkFormFields(fieldItems);
+          setSelectedAuthors(
+            buildSelectedAuthorsFromEditArticle(articleForEdit, authorsResponse.items),
+          );
+          setForm(
+            buildFormFromEditArticle(
+              articleForEdit,
+              editWorkFormType,
+              editPublicationTypeFlags,
+              relatedArticle,
+            ),
+          );
+          return;
+        }
+
+        const [publicationTypeItems, fieldItems] = await Promise.all([
+          getAdminPublicationTypes(defaultWorkForm.value),
+          getAdminWorkFormFields(defaultWorkForm.value),
+        ]);
 
         if (!isMounted) {
           return;
         }
 
+        setFormScenario(defaultScenario);
         setPublicationTypes(publicationTypeItems);
+        setWorkFormFields(fieldItems);
         setForm(
           buildEmptyForm(
             defaultWorkForm.value,
-            getDefaultPublicationTypeFlag(publicationTypeItems, defaultWorkForm.value),
+            getScenarioPublicationTypeFlags(
+              defaultScenario,
+              publicationTypeItems,
+              defaultWorkForm.value,
+            ),
           ),
         );
-
-        const authorsResponse = await getAdminAuthors({ all: true });
-        if (isMounted) {
-          setAllAuthors(authorsResponse.items);
-        }
       } catch (caughtError) {
         if (!isMounted) {
           return;
@@ -543,7 +1009,9 @@ export function PublicationsCreatePage() {
         setError(
           caughtError instanceof Error
             ? caughtError.message
-            : 'Не удалось подготовить форму добавления публикации.',
+            : isEditMode
+              ? 'Не удалось подготовить форму редактирования публикации.'
+              : 'Не удалось подготовить форму добавления публикации.',
         );
       } finally {
         if (isMounted) {
@@ -557,16 +1025,26 @@ export function PublicationsCreatePage() {
     return () => {
       isMounted = false;
     };
-  }, [isRoleAllowed]);
+  }, [articleId, initialFormScenario, isEditMode, isRoleAllowed]);
 
   const selectedWorkForm = useMemo(
     () => workForms.find((item) => item.value === form.workFormType) ?? null,
     [form.workFormType, workForms],
   );
 
+  const selectedPublicationTypeFlags = useMemo(
+    () => {
+      const selectedFlag =
+        form.publicationTypeFlag || form.publicationTypeFlags[0] || '';
+
+      return selectedFlag ? [selectedFlag] : [];
+    },
+    [form.publicationTypeFlag, form.publicationTypeFlags],
+  );
+
   const selectedPublicationType = useMemo(
-    () => publicationTypes.find((item) => item.value === form.publicationTypeFlag) ?? null,
-    [form.publicationTypeFlag, publicationTypes],
+    () => publicationTypes.find((item) => item.value === selectedPublicationTypeFlags[0]) ?? null,
+    [publicationTypes, selectedPublicationTypeFlags],
   );
 
   const availablePublicationTypes = useMemo(
@@ -574,27 +1052,55 @@ export function PublicationsCreatePage() {
     [form.workFormType, publicationTypes],
   );
 
+  const otherPublicationTypes = useMemo(() => {
+    const hiddenFlags = new Set(AGREED_FLAGS_BY_WORK_FORM[form.workFormType] ?? []);
+    return availablePublicationTypes.filter((item) => !hiddenFlags.has(item.value));
+  }, [availablePublicationTypes, form.workFormType]);
+
   const variant = useMemo(
-    () => resolveVariant(selectedWorkForm, selectedPublicationType),
-    [selectedWorkForm, selectedPublicationType],
+    () => {
+      const config = getScenarioConfig(formScenario);
+      return config?.variant ?? resolveVariant(selectedWorkForm, selectedPublicationType);
+    },
+    [formScenario, selectedWorkForm, selectedPublicationType],
+  );
+
+  const workFormFieldNames = useMemo(
+    () =>
+      new Set(
+        workFormFields
+          .map((item) => item.article_field)
+          .filter((item): item is string => Boolean(item)),
+      ),
+    [workFormFields],
   );
 
   const sourceLabel = useMemo(() => getSourceLabel(variant), [variant]);
-  const showPublicationSubtype = variant !== 'article' && availablePublicationTypes.length > 0;
+  const isOtherScenario = formScenario === 'other';
   const resolvedYear = deriveYear(form.year, form.publicationDate);
   const detectedArticleLanguage = useMemo(
     () => detectArticleLanguage(form.title),
     [form.title],
   );
 
+  const shouldShowField = (articleField: string, scenarios: FormScenario[] = []) =>
+    isOtherScenario ? workFormFieldNames.has(articleField) : scenarios.includes(formScenario);
+  const useSourceLookup =
+    shouldShowField('Title_of_Material_F9', ['book-chapter', 'conference-materials']) &&
+    (!isOtherScenario || form.workFormType === 'B' || form.workFormType === 'C');
+  const showPlainSourceField =
+    shouldShowField('Title_of_Material_F9', ['book-chapter', 'conference-materials']) &&
+    !useSourceLookup;
+
   const isSubmitDisabled =
     isSubmitting ||
     !form.title.trim() ||
     resolvedYear === null ||
-    (variant === 'article' && !form.journal) ||
-    (variant === 'book-chapter' && !form.sourceText.trim()) ||
-    (variant === 'book-monograph' && !form.publisher) ||
-    (variant === 'conference' && (!form.sourceText.trim() || !form.publisher));
+    (isOtherScenario && selectedPublicationTypeFlags.length === 0) ||
+    (formScenario === 'article' && !form.journal) ||
+    (formScenario === 'book-chapter' && !form.sourceText.trim()) ||
+    (formScenario === 'book-monograph' && !form.publisher) ||
+    (formScenario === 'conference-materials' && (!form.sourceText.trim() || !form.publisher));
 
   useEffect(() => {
     if (!selectorMode) {
@@ -607,7 +1113,10 @@ export function PublicationsCreatePage() {
       isArticleSelector ||
       selectorMode === 'author' ||
       selectorMode === 'journal' ||
-      selectorMode === 'publisher';
+      selectorMode === 'publisher' ||
+      selectorMode === 'place-publication' ||
+      selectorMode === 'place-meeting' ||
+      selectorMode === 'medium';
     const trimmedSelectorQuery = selectorQuery.trim();
 
     if (isSearchRequiredSelector && !trimmedSelectorQuery) {
@@ -620,6 +1129,10 @@ export function PublicationsCreatePage() {
         setJournalResults([]);
       } else if (selectorMode === 'publisher') {
         setPublisherResults([]);
+      } else if (selectorMode === 'place-publication' || selectorMode === 'place-meeting') {
+        setPlaceResults([]);
+      } else if (selectorMode === 'medium') {
+        setMediumResults([]);
       } else {
         setAuthorResults([]);
       }
@@ -642,6 +1155,22 @@ export function PublicationsCreatePage() {
           const items = await searchAdminPublishers(selectorQuery);
           if (isMounted) {
             setPublisherResults(items);
+          }
+          return;
+        }
+
+        if (selectorMode === 'place-publication' || selectorMode === 'place-meeting') {
+          const items = await searchAdminPlaces(selectorQuery);
+          if (isMounted) {
+            setPlaceResults(items);
+          }
+          return;
+        }
+
+        if (selectorMode === 'medium') {
+          const items = await searchAdminMediumDesignators(selectorQuery);
+          if (isMounted) {
+            setMediumResults(items);
           }
           return;
         }
@@ -717,30 +1246,73 @@ export function PublicationsCreatePage() {
     setSelectorQuery('');
   };
 
-  const handleWorkFormChange = async (nextValue: string) => {
+  const loadWorkFormData = async (workFormType: string, scenario: FormScenario) => {
+    const [items, fieldItems] = await Promise.all([
+      getAdminPublicationTypes(workFormType),
+      getAdminWorkFormFields(workFormType),
+    ]);
+
+    setPublicationTypes(items);
+    setWorkFormFields(fieldItems);
+    setSelectedAuthors([]);
+    setForm(() =>
+      buildEmptyForm(
+        workFormType,
+        getScenarioPublicationTypeFlags(scenario, items, workFormType),
+      ),
+    );
+  };
+
+  const handleScenarioChange = async (nextValue: string) => {
+    const nextScenario = nextValue as FormScenario;
+    setError('');
+    setSuccessMessage('');
+    setSelectorMode(null);
+    setFormScenario(nextScenario);
+
+    try {
+      const scenarioConfig = getScenarioConfig(nextScenario);
+      const nextWorkFormType =
+        scenarioConfig?.workFormType ||
+        (form.workFormType && form.workFormType !== 'X' ? form.workFormType : 'J');
+
+      await loadWorkFormData(nextWorkFormType, nextScenario);
+    } catch (caughtError) {
+      setPublicationTypes([]);
+      setWorkFormFields([]);
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Не удалось загрузить поля формы публикации.',
+      );
+    }
+  };
+
+  const handleOtherWorkFormChange = async (nextValue: string) => {
     setError('');
     setSuccessMessage('');
     setSelectorMode(null);
 
     try {
-      const items = await getAdminPublicationTypes(nextValue);
-      setPublicationTypes(items);
-      setSelectedAuthors([]);
-      setForm(() => buildEmptyForm(nextValue, getDefaultPublicationTypeFlag(items, nextValue)));
+      await loadWorkFormData(nextValue, 'other');
     } catch (caughtError) {
       setPublicationTypes([]);
+      setWorkFormFields([]);
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : 'Не удалось загрузить типы публикаций.',
+          : 'Не удалось загрузить поля формы публикации.',
       );
     }
   };
 
-  const handlePublicationTypeChange = (nextValue: string) => {
+  const selectPublicationTypeFlag = (flag: string) => {
     setSelectorMode(null);
-    setSelectedAuthors([]);
-    setForm((prev) => buildEmptyForm(prev.workFormType, nextValue));
+    setForm((prev) => ({
+      ...prev,
+      publicationTypeFlag: flag,
+      publicationTypeFlags: [flag],
+    }));
   };
 
   const openPublicationDatePicker = () => {
@@ -769,6 +1341,12 @@ export function PublicationsCreatePage() {
       setSelectorQuery(form.journal?.label ?? '');
     } else if (mode === 'publisher') {
       setSelectorQuery(form.publisher?.label ?? '');
+    } else if (mode === 'place-publication') {
+      setSelectorQuery(form.placeOfPublication?.label ?? '');
+    } else if (mode === 'place-meeting') {
+      setSelectorQuery(form.placeOfMeeting?.label ?? '');
+    } else if (mode === 'medium') {
+      setSelectorQuery(form.mediumDesignator?.label ?? '');
     } else if (mode === 'author') {
       setSelectorQuery('');
     } else {
@@ -852,15 +1430,27 @@ export function PublicationsCreatePage() {
       return;
     }
 
-    if (variant === 'article' && !form.journal) {
+    if (isOtherScenario && selectedPublicationTypeFlags.length === 0) {
+      setError('Выбери тип публикации.');
+      return;
+    }
+
+    if (formScenario === 'article' && !form.journal) {
       setError('Для статьи выбери издание.');
       return;
     }
 
-    const payloadBase = {
-      title: form.title.trim(),
+    const nextArticleLanguage = detectedArticleLanguage || form.articleLanguage;
+    const nextRelatedArticleKind =
+      form.relatedArticleKind || getRelatedArticleKindFromLanguage(nextArticleLanguage);
+    const titleValue = form.title.trim();
+    const authorsTextValue = form.authorsText.trim();
+    const authorOfMaterialValue = form.authorOfMaterial.trim();
+
+    const payloadBase: CreateAdminArticlePayload = {
+      title: titleValue,
       year: resolvedYear,
-      authors_text: form.authorsText.trim() || null,
+      authors_text: authorsTextValue || null,
       authors: selectedAuthors
         .filter((item) => item.author.id !== null)
         .map((item) => ({
@@ -871,79 +1461,216 @@ export function PublicationsCreatePage() {
       abstract: form.abstract.trim() || null,
       doi: form.doi.trim() || null,
       work_form_type: form.workFormType || null,
-      publication_type_flags: form.publicationTypeFlag ? [form.publicationTypeFlag] : [],
+      author_role: form.authorRole.trim() || null,
+      author_of_material: authorOfMaterialValue || null,
+      publication_type_flags: selectedPublicationTypeFlags,
       keywords: normalizeKeywords(form.keywordsInput),
-      article_language: detectedArticleLanguage || null,
+      article_language: nextArticleLanguage || null,
       original_version_id:
-        form.relatedArticle && detectedArticleLanguage === 'F' ? form.relatedArticle.id : null,
+        form.relatedArticle && nextRelatedArticleKind === 'original'
+          ? form.relatedArticle.id
+          : null,
       translation_version_id:
-        form.relatedArticle && detectedArticleLanguage === 'R' ? form.relatedArticle.id : null,
+        form.relatedArticle && nextRelatedArticleKind === 'translation'
+          ? form.relatedArticle.id
+          : null,
     };
 
-    const payload =
-      variant === 'article'
-        ? {
-            ...payloadBase,
-            journal_id: form.journal?.id ?? null,
-            pages: form.pages.trim() || null,
-            publication_date: form.publicationDate || null,
-          }
-        : variant === 'book-chapter'
-          ? {
-              ...payloadBase,
-              edition: form.sourceText.trim() || null,
-              url: form.url.trim() || null,
-              pages: form.pages.trim() || null,
-              publication_date: form.publicationDate || null,
-            }
-          : variant === 'book-monograph'
-            ? {
-                ...payloadBase,
-                publisher_id: form.publisher?.id ?? null,
-                isbn: form.isbn.trim() || null,
-                notes: form.notes.trim() || null,
-                tirage: form.tirage.trim() || null,
-                extent_of_work: form.extentOfWork.trim() || null,
-              }
-            : {
-                ...payloadBase,
-                edition: form.sourceText.trim() || null,
-                publisher_id: form.publisher?.id ?? null,
-                url: form.url.trim() || null,
-                pages: form.pages.trim() || null,
-                publication_date: form.publicationDate || null,
-                date_of_meeting: form.publicationDate || null,
-              };
+    const sharedDetails = {
+      publisher_id: form.publisher?.id ?? null,
+      place_of_publication_id: form.placeOfPublication?.id ?? null,
+      place_of_meeting_id: form.placeOfMeeting?.id ?? null,
+      medium_designator_id: form.mediumDesignator?.id ?? null,
+      title_of_material: form.sourceText.trim() || null,
+      edition: form.edition.trim() || null,
+      volume: form.volume.trim() || null,
+      issue: form.issue.trim() || null,
+      pages: form.pages.trim() || null,
+      extent_of_work: form.extentOfWork.trim() || null,
+      url: form.url.trim() || null,
+      isbn: form.isbn.trim() || null,
+      notes: form.notes.trim() || null,
+      speaker: form.speaker.trim() || null,
+      tirage: form.tirage.trim() || null,
+    } satisfies Partial<CreateAdminArticlePayload>;
+
+    const payloadByVariant: Record<FormVariant, CreateAdminArticlePayload> = {
+      article: {
+        ...payloadBase,
+        journal_id: form.journal?.id ?? null,
+        pages: sharedDetails.pages,
+        publication_date: form.publicationDate || null,
+        volume: sharedDetails.volume,
+        issue: sharedDetails.issue,
+      },
+      'book-chapter': {
+        ...payloadBase,
+        ...sharedDetails,
+      },
+      'book-monograph': {
+        ...payloadBase,
+        ...sharedDetails,
+        title_of_material: titleValue || sharedDetails.title_of_material,
+        author_of_material: authorsTextValue || authorOfMaterialValue || null,
+      },
+      conference: {
+        ...payloadBase,
+        ...sharedDetails,
+        journal_id: form.journal?.id ?? null,
+        date_of_meeting: form.dateOfMeeting.trim() || null,
+      },
+      dissertation: {
+        ...payloadBase,
+        ...sharedDetails,
+      },
+      patent: {
+        ...payloadBase,
+        ...sharedDetails,
+      },
+      newspaper: {
+        ...payloadBase,
+        ...sharedDetails,
+      },
+      report: {
+        ...payloadBase,
+        ...sharedDetails,
+      },
+    };
+
+    const payload = payloadByVariant[variant];
 
     setIsSubmitting(true);
 
     try {
-      const createdArticle = await createAdminArticle(payload);
+      const savedArticle =
+        isEditMode && articleId
+          ? await updateAdminArticle(articleId, payload)
+          : await createAdminArticle(payload);
+      const savedArticleId = savedArticle.id;
 
       if (form.pdfFile) {
-        await uploadAdminArticlePdf(createdArticle.id, form.pdfFile);
+        await uploadAdminArticlePdf(savedArticleId, form.pdfFile);
       }
-      setSuccessMessage(`Публикация успешно добавлена. ID: ${createdArticle.id}`);
+      setSuccessMessage(
+        isEditMode
+          ? `Публикация успешно сохранена. ID: ${savedArticleId}`
+          : `Публикация успешно добавлена. ID: ${savedArticleId}`,
+      );
       setSelectorMode(null);
-      setSelectedAuthors([]);
-      setForm((prev) => buildEmptyForm(prev.workFormType, prev.publicationTypeFlag));
+      if (!isEditMode) {
+        setSelectedAuthors([]);
+        setForm((prev) =>
+          buildEmptyForm(
+            prev.workFormType,
+            getScenarioPublicationTypeFlags(formScenario, publicationTypes, prev.workFormType),
+          ),
+        );
+      }
       if (pdfInputRef.current) {
         pdfInputRef.current.value = '';
       }
 
       window.setTimeout(() => {
-        navigateTo('/articles');
+        navigateTo(isEditMode ? `/articles/${savedArticleId}` : '/articles');
       }, 900);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : 'Не удалось создать публикацию.',
+          : isEditMode
+            ? 'Не удалось сохранить публикацию.'
+            : 'Не удалось создать публикацию.',
       );
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const renderLookupField = (
+    label: string,
+    value: string,
+    mode: Exclude<SelectorMode, null>,
+    clearLabel: string,
+    onClear: () => void,
+  ) => (
+    <div className={styles.lookupRow}>
+      <TextField
+        label={label}
+        height={40}
+        radius={4}
+        rootClassName={styles.fullWidthField}
+        fieldClassName={[styles.formTextField, styles.lookupTextField].join(' ')}
+        inputClassName={styles.formTextFieldInput}
+        value={value}
+        readOnly
+        endContent={value ? <ClearFieldButton label={clearLabel} onClick={onClear} /> : null}
+      />
+      <Button
+        label="Выбрать"
+        className={styles.sideButton}
+        onClick={() => openSelector(mode)}
+      />
+    </div>
+  );
+
+  const renderPublicationDateField = (label = 'Дата') => (
+    <TextField
+      ref={publicationDateInputRef}
+      label={label}
+      height={40}
+      radius={4}
+      rootClassName={styles.fullWidthField}
+      fieldClassName={styles.formTextField}
+      inputClassName={[styles.formTextFieldInput, styles.dateFieldInput].join(' ')}
+      trailingIcon="calendar_month"
+      onTrailingIconClick={openPublicationDatePicker}
+      type="date"
+      value={form.publicationDate}
+      onChange={(event) =>
+        setForm((prev) => ({
+          ...prev,
+          publicationDate: event.target.value,
+        }))
+      }
+    />
+  );
+
+  const renderDateOfMeetingField = () => (
+    <TextField
+      label="Дата проведения"
+      height={40}
+      radius={4}
+      rootClassName={styles.fullWidthField}
+      fieldClassName={styles.formTextField}
+      inputClassName={styles.formTextFieldInput}
+      value={form.dateOfMeeting}
+      onChange={(event) =>
+        setForm((prev) => ({
+          ...prev,
+          dateOfMeeting: event.target.value,
+        }))
+      }
+    />
+  );
+
+  const renderYearField = () => (
+    <TextField
+      label="Год"
+      height={40}
+      radius={4}
+      rootClassName={styles.fullWidthField}
+      fieldClassName={styles.formTextField}
+      inputClassName={styles.formTextFieldInput}
+      type="number"
+      value={form.year}
+      onChange={(event) =>
+        setForm((prev) => ({
+          ...prev,
+          year: event.target.value,
+        }))
+      }
+    />
+  );
 
   const renderSelectorPanel = () => {
     if (!selectorMode) {
@@ -1036,6 +1763,108 @@ export function PublicationsCreatePage() {
                   setForm((prev) => ({
                     ...prev,
                     publisher: item,
+                  }));
+                  closeSelector();
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (selectorMode === 'place-publication' || selectorMode === 'place-meeting') {
+      const isMeetingPlace = selectorMode === 'place-meeting';
+
+      return (
+        <div className={styles.selectorPanel}>
+          <div className={styles.selectorHeader}>
+            <div className={styles.selectorTitle}>
+              {isMeetingPlace ? 'Выбор места проведения' : 'Выбор места публикации'}
+            </div>
+            <button type="button" className={styles.selectorClose} onClick={closeSelector}>
+              ×
+            </button>
+          </div>
+          <TextField
+            variant="plain"
+            height={40}
+            radius={4}
+            rootClassName={styles.selectorSearchField}
+            fieldClassName={styles.formTextField}
+            inputClassName={styles.formTextFieldInput}
+            value={selectorQuery}
+            onChange={(event) => setSelectorQuery(event.target.value)}
+            placeholder="Поиск места"
+          />
+          <div className={styles.selectorResults}>
+            {selectorLoading ? <div className={styles.selectorHint}>Загрузка…</div> : null}
+            {!selectorLoading && !selectorQuery.trim() ? (
+              <div className={styles.selectorHint}>Введите название или ID места.</div>
+            ) : null}
+            {!selectorLoading && selectorQuery.trim() && placeResults.length === 0 ? (
+              <div className={styles.selectorHint}>Совпадения не найдены.</div>
+            ) : null}
+            {placeResults.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={styles.selectorItem}
+                onClick={() => {
+                  setForm((prev) => ({
+                    ...prev,
+                    [isMeetingPlace ? 'placeOfMeeting' : 'placeOfPublication']: item,
+                  }));
+                  closeSelector();
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (selectorMode === 'medium') {
+      return (
+        <div className={styles.selectorPanel}>
+          <div className={styles.selectorHeader}>
+            <div className={styles.selectorTitle}>Выбор обозначения материала</div>
+            <button type="button" className={styles.selectorClose} onClick={closeSelector}>
+              ×
+            </button>
+          </div>
+          <TextField
+            variant="plain"
+            height={40}
+            radius={4}
+            rootClassName={styles.selectorSearchField}
+            fieldClassName={styles.formTextField}
+            inputClassName={styles.formTextFieldInput}
+            value={selectorQuery}
+            onChange={(event) => setSelectorQuery(event.target.value)}
+            placeholder="Поиск обозначения"
+          />
+          <div className={styles.selectorResults}>
+            {selectorLoading ? <div className={styles.selectorHint}>Загрузка…</div> : null}
+            {!selectorLoading && !selectorQuery.trim() ? (
+              <div className={styles.selectorHint}>Введите название или ID обозначения.</div>
+            ) : null}
+            {!selectorLoading && selectorQuery.trim() && mediumResults.length === 0 ? (
+              <div className={styles.selectorHint}>Совпадения не найдены.</div>
+            ) : null}
+            {mediumResults.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={styles.selectorItem}
+                onClick={() => {
+                  setForm((prev) => ({
+                    ...prev,
+                    mediumDesignator: item,
                   }));
                   closeSelector();
                 }}
@@ -1196,13 +2025,17 @@ export function PublicationsCreatePage() {
               key={item.id}
               type="button"
               className={styles.selectorItem}
-              onClick={() => {
-                setForm((prev) => ({
-                  ...prev,
-                  relatedArticle: item,
-                }));
-                closeSelector();
-              }}
+                onClick={() => {
+                  setForm((prev) => ({
+                    ...prev,
+                    relatedArticle: item,
+                    relatedArticleKind: getRelatedArticleKindFromLanguage(
+                      detectedArticleLanguage,
+                    ),
+                    articleLanguage: detectedArticleLanguage || prev.articleLanguage,
+                  }));
+                  closeSelector();
+                }}
             >
               <div className={styles.selectorItemTitle}>{getSourceItemTitle(item)}</div>
               <div className={styles.selectorItemMeta}>{formatArticleMeta(item)}</div>
@@ -1213,13 +2046,19 @@ export function PublicationsCreatePage() {
     );
   };
 
+  const pageTitle = isEditMode ? 'Редактировать публикацию' : 'Добавить публикацию';
+  const accessDeniedText = isEditMode
+    ? 'Доступ к странице редактирования публикаций разрешён только администратору.'
+    : 'Доступ к странице добавления публикаций разрешён только администратору.';
+  const loadingText = isEditMode ? 'Загрузка публикации…' : 'Загрузка формы…';
+
   if (isInitializing || (isRoleAllowed && isBootLoading)) {
     return (
       <div className={`app-page ${styles.page}`}>
-        <Header title="Добавить публикацию" />
+        <Header title={pageTitle} />
         <main className="app-main">
           <div className="container app-block-group">
-            <div className={styles.statusBox}>Загрузка формы…</div>
+            <div className={styles.statusBox}>{loadingText}</div>
           </div>
         </main>
         <Footer />
@@ -1230,12 +2069,10 @@ export function PublicationsCreatePage() {
   if (!isRoleAllowed) {
     return (
       <div className={`app-page ${styles.page}`}>
-        <Header title="Добавить публикацию" />
+        <Header title={pageTitle} />
         <main className="app-main">
           <div className="container app-block-group">
-            <div className={styles.statusBox}>
-              Доступ к странице добавления публикаций разрешён только пользователям с ролью 5.
-            </div>
+            <div className={styles.statusBox}>{accessDeniedText}</div>
           </div>
         </main>
         <Footer />
@@ -1245,7 +2082,7 @@ export function PublicationsCreatePage() {
 
   return (
     <div className={`app-page ${styles.page}`}>
-      <Header title="Добавить публикацию" />
+      <Header title={pageTitle} />
 
       <main className="app-main">
         <div className="container app-block-group">
@@ -1258,33 +2095,69 @@ export function PublicationsCreatePage() {
 
               <Select
                 className={styles.primarySelect}
-                width={191}
-                menuWidth={220}
+                width={280}
+                menuWidth={360}
                 ariaLabel="Тип публикации"
-                options={workForms.map((item) => ({
+                options={FORM_SCENARIO_OPTIONS.map((item) => ({
                   value: item.value,
-                  label: getWorkFormLabel(item),
+                  label: item.label,
                 }))}
-                value={form.workFormType}
-                onChange={(nextValue) => void handleWorkFormChange(nextValue)}
+                value={formScenario}
+                onChange={(nextValue) => void handleScenarioChange(nextValue)}
               />
 
-              {showPublicationSubtype ? (
+              {isOtherScenario ? (
                 <Select
                   className={styles.secondarySelect}
                   variant="outlined"
-                  width={191}
-                  menuWidth={220}
-                  ariaLabel="Подтип публикации"
-                  options={availablePublicationTypes.map((item) => ({
+                  width={220}
+                  menuWidth={280}
+                  ariaLabel="Форма публикации"
+                  options={workForms.map((item) => ({
                     value: item.value,
-                    label: getPublicationTypeLabel(item),
+                    label: getWorkFormLabel(item),
                   }))}
-                  value={form.publicationTypeFlag}
-                  onChange={handlePublicationTypeChange}
+                  value={form.workFormType}
+                  onChange={(nextValue) => void handleOtherWorkFormChange(nextValue)}
                 />
               ) : null}
             </div>
+
+            {isOtherScenario ? (
+              <div className={styles.otherTypesPanel}>
+                <div className={styles.otherTypesLabel}>Классификация</div>
+                <div className={styles.otherTypesGrid} role="radiogroup">
+                  {otherPublicationTypes.length > 0 ? (
+                    otherPublicationTypes.map((item) => {
+                      const isChecked = selectedPublicationTypeFlags.includes(item.value);
+
+                      return (
+                        <button
+                          key={item.value}
+                          type="button"
+                          className={[
+                            styles.otherTypeButton,
+                            isChecked ? styles.otherTypeButtonSelected : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                          onClick={() => selectPublicationTypeFlag(item.value)}
+                          role="radio"
+                          aria-checked={isChecked}
+                        >
+                          <RadioButton checked={isChecked} />
+                          <span>{getPublicationTypeLabel(item)}</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className={styles.selectorHint}>
+                      Для выбранной формы нет дополнительных типов.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
 
             <div className={styles.formBody}>
               <TextField
@@ -1384,7 +2257,9 @@ export function PublicationsCreatePage() {
 
               {selectorMode === 'author' ? renderSelectorPanel() : null}
 
-              {variant === 'article' ? (
+              <div className={styles.rowTwoLeft}>{renderYearField()}</div>
+
+              {shouldShowField('Journal_ID_f', ['article']) ? (
                 <div className={styles.lookupRow}>
                   <TextField
                     label="Издание"
@@ -1417,7 +2292,7 @@ export function PublicationsCreatePage() {
                 </div>
               ) : null}
 
-              {variant === 'book-chapter' || variant === 'conference' ? (
+              {useSourceLookup ? (
                 <div className={styles.lookupRow}>
                   <TextField
                     label={sourceLabel}
@@ -1442,7 +2317,79 @@ export function PublicationsCreatePage() {
                 </div>
               ) : null}
 
-              {variant === 'book-monograph' ? (
+              {showPlainSourceField ? (
+                <TextField
+                  label={sourceLabel}
+                  height={40}
+                  radius={4}
+                  rootClassName={styles.fullWidthField}
+                  fieldClassName={styles.formTextField}
+                  inputClassName={styles.formTextFieldInput}
+                  value={form.sourceText}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      sourceText: event.target.value,
+                    }))
+                  }
+                />
+              ) : null}
+
+              {shouldShowField('Author_of_Material_F7', ['book-chapter', 'conference-materials']) ? (
+                <TextField
+                  label={variant === 'conference' ? 'Редактор' : 'Автор монографии'}
+                  height={40}
+                  radius={4}
+                  rootClassName={styles.fullWidthField}
+                  fieldClassName={styles.formTextField}
+                  inputClassName={styles.formTextFieldInput}
+                  value={form.authorOfMaterial}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      authorOfMaterial: event.target.value,
+                    }))
+                  }
+                />
+              ) : null}
+
+              {shouldShowField('AuthorRole_F2') ? (
+                <TextField
+                  label="Роль автора"
+                  height={40}
+                  radius={4}
+                  rootClassName={styles.fullWidthField}
+                  fieldClassName={styles.formTextField}
+                  inputClassName={styles.formTextFieldInput}
+                  value={form.authorRole}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      authorRole: event.target.value,
+                    }))
+                  }
+                />
+              ) : null}
+
+              {shouldShowField('Speaker', ['conference-materials']) ? (
+                <TextField
+                  label="Докладчик"
+                  height={40}
+                  radius={4}
+                  rootClassName={styles.fullWidthField}
+                  fieldClassName={styles.formTextField}
+                  inputClassName={styles.formTextFieldInput}
+                  value={form.speaker}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      speaker: event.target.value,
+                    }))
+                  }
+                />
+              ) : null}
+
+              {shouldShowField('Edition_F15', ['book-chapter', 'book-monograph']) ? (
                 <TextField
                   label="Редакция"
                   height={40}
@@ -1450,20 +2397,24 @@ export function PublicationsCreatePage() {
                   rootClassName={styles.fullWidthField}
                   fieldClassName={styles.formTextField}
                   inputClassName={styles.formTextFieldInput}
-                  value={form.notes}
+                  value={form.edition}
                   onChange={(event) =>
                     setForm((prev) => ({
                       ...prev,
-                      notes: event.target.value,
+                      edition: event.target.value,
                     }))
                   }
                 />
               ) : null}
 
-              {variant === 'book-monograph' || variant === 'conference' ? (
+              {shouldShowField('PublisherName_F19_f', [
+                'book-chapter',
+                'book-monograph',
+                'conference-materials',
+              ]) ? (
                 <div className={styles.lookupRow}>
                   <TextField
-                    label="Издательство"
+                    label={variant === 'dissertation' ? 'Университет' : 'Издательство'}
                     height={40}
                     radius={4}
                     rootClassName={styles.fullWidthField}
@@ -1493,70 +2444,139 @@ export function PublicationsCreatePage() {
                 </div>
               ) : null}
 
+              {shouldShowField('PlaceOfPublication_F18_f', [
+                'book-chapter',
+                'book-monograph',
+                'conference-materials',
+              ]) ? (
+                renderLookupField(
+                  variant === 'dissertation' ? 'Место защиты' : 'Место публикации',
+                  form.placeOfPublication?.label ?? '',
+                  'place-publication',
+                  'Очистить место публикации',
+                  () =>
+                    setForm((prev) => ({
+                      ...prev,
+                      placeOfPublication: null,
+                    })),
+                )
+              ) : null}
+
+              {shouldShowField('PlaceOfMeeting_F13_f', ['conference-materials'])
+                ? renderLookupField(
+                    'Место проведения',
+                    form.placeOfMeeting?.label ?? '',
+                    'place-meeting',
+                    'Очистить место проведения',
+                    () =>
+                      setForm((prev) => ({
+                        ...prev,
+                        placeOfMeeting: null,
+                      })),
+                  )
+                : null}
+
+              {shouldShowField('MediumDesignator_F5_f') ? (
+                renderLookupField(
+                  'Обозначение материала',
+                  form.mediumDesignator?.label ?? '',
+                  'medium',
+                  'Очистить обозначение материала',
+                  () =>
+                    setForm((prev) => ({
+                      ...prev,
+                      mediumDesignator: null,
+                    })),
+                )
+              ) : null}
+
               {selectorMode === 'journal' ||
               selectorMode === 'publisher' ||
-              selectorMode === 'source'
+              selectorMode === 'source' ||
+              selectorMode === 'place-publication' ||
+              selectorMode === 'place-meeting' ||
+              selectorMode === 'medium'
                 ? renderSelectorPanel()
                 : null}
 
-              {variant === 'article' ? (
-                <div className={styles.rowThreeArticle}>
-                  <TextField
-                    label="DOI"
-                    height={40}
-                    radius={4}
-                    rootClassName={styles.fullWidthField}
-                    fieldClassName={styles.formTextField}
-                    inputClassName={styles.formTextFieldInput}
-                    value={form.doi}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        doi: event.target.value,
-                      }))
-                    }
-                  />
-                  <TextField
-                    label="Страницы"
-                    height={40}
-                    radius={4}
-                    rootClassName={styles.fullWidthField}
-                    fieldClassName={styles.formTextField}
-                    inputClassName={styles.formTextFieldInput}
-                    value={form.pages}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        pages: event.target.value,
-                      }))
-                    }
-                  />
-                  <TextField
-                    ref={publicationDateInputRef}
-                    label="Дата"
-                    height={40}
-                    radius={4}
-                    rootClassName={styles.fullWidthField}
-                    fieldClassName={styles.formTextField}
-                    inputClassName={[
-                      styles.formTextFieldInput,
-                      styles.dateFieldInput,
-                    ].join(' ')}
-                    trailingIcon="calendar_month"
-                    onTrailingIconClick={openPublicationDatePicker}
-                    type="date"
-                    value={form.publicationDate}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        publicationDate: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
+              {shouldShowField('DOI', ['article']) ||
+              shouldShowField('Pages_F25', ['article']) ||
+              shouldShowField('PublicationDate', ['article']) ||
+              shouldShowField('VolumeID_F22', ['article']) ||
+              shouldShowField('IssueID_F24', ['article']) ? (
+                <>
+                  <div className={styles.rowThreeArticle}>
+                    <TextField
+                      label="DOI"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
+                      value={form.doi}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          doi: event.target.value,
+                        }))
+                      }
+                    />
+                    <TextField
+                      label="Страницы"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
+                      value={form.pages}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          pages: event.target.value,
+                        }))
+                      }
+                    />
+                    {renderPublicationDateField()}
+                  </div>
+                  <div className={styles.rowTwoLeft}>
+                    <TextField
+                      label="Том"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
+                      value={form.volume}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          volume: event.target.value,
+                        }))
+                      }
+                    />
+                    <TextField
+                      label="Выпуск"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
+                      value={form.issue}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          issue: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </>
               ) : null}
 
-              {variant === 'book-chapter' || variant === 'conference' ? (
+              {shouldShowField('DOI', ['book-chapter', 'conference-materials']) ||
+              shouldShowField('URL_F38', ['book-chapter', 'conference-materials']) ||
+              shouldShowField('Pages_F25', ['book-chapter', 'conference-materials']) ||
+              shouldShowField('DateOfMeeting_F12', ['conference-materials']) ? (
                 <>
                   <div className={styles.rowTwo}>
                     <TextField
@@ -1607,33 +2627,119 @@ export function PublicationsCreatePage() {
                         }))
                       }
                     />
-                    <TextField
-                      ref={publicationDateInputRef}
-                      label="Дата"
-                      height={40}
-                      radius={4}
-                      rootClassName={styles.fullWidthField}
-                      fieldClassName={styles.formTextField}
-                      inputClassName={[
-                        styles.formTextFieldInput,
-                        styles.dateFieldInput,
-                      ].join(' ')}
-                      trailingIcon="calendar_month"
-                      onTrailingIconClick={openPublicationDatePicker}
-                      type="date"
-                      value={form.publicationDate}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          publicationDate: event.target.value,
-                        }))
-                      }
-                    />
+                    {shouldShowField('DateOfMeeting_F12', ['conference-materials'])
+                      ? renderDateOfMeetingField()
+                      : null}
                   </div>
                 </>
               ) : null}
 
-              {variant === 'book-monograph' ? (
+              {shouldShowField('ISBN_F41', ['book-chapter']) ||
+              shouldShowField('ExtentOfWork_F26', ['book-chapter']) ||
+              shouldShowField('Tirage', ['book-chapter']) ? (
+                <div className={styles.rowThree}>
+                  <TextField
+                    label="ISBN"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={styles.formTextField}
+                    inputClassName={styles.formTextFieldInput}
+                    value={form.isbn}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        isbn: event.target.value,
+                      }))
+                    }
+                  />
+                  <TextField
+                    label="Объем работы"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={styles.formTextField}
+                    inputClassName={styles.formTextFieldInput}
+                    value={form.extentOfWork}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        extentOfWork: event.target.value,
+                      }))
+                    }
+                  />
+                  <TextField
+                    label="Тираж"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={styles.formTextField}
+                    inputClassName={styles.formTextFieldInput}
+                    value={form.tirage}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        tirage: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              ) : null}
+
+              {shouldShowField('VolumeID_F22', ['conference-materials']) ||
+              shouldShowField('Notes_F42', ['conference-materials']) ? (
+                <div className={styles.rowThree}>
+                  <TextField
+                    label="Том"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={styles.formTextField}
+                    inputClassName={styles.formTextFieldInput}
+                    value={form.volume}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        volume: event.target.value,
+                      }))
+                    }
+                  />
+                  {shouldShowField('IssueID_F24') ? (
+                    <TextField
+                      label="Выпуск"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
+                      value={form.issue}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          issue: event.target.value,
+                        }))
+                      }
+                    />
+                  ) : null}
+                  <TextField
+                    label="Примечания"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={styles.formTextField}
+                    inputClassName={styles.formTextFieldInput}
+                    value={form.notes}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        notes: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              ) : null}
+
+              {formScenario === 'book-monograph' ? (
                 <>
                   <div className={styles.rowTwo}>
                     <TextField
@@ -1670,22 +2776,6 @@ export function PublicationsCreatePage() {
 
                   <div className={styles.rowThree}>
                     <TextField
-                      label="Год"
-                      height={40}
-                      radius={4}
-                      rootClassName={styles.fullWidthField}
-                      fieldClassName={styles.formTextField}
-                      inputClassName={styles.formTextFieldInput}
-                      type="number"
-                      value={form.year}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          year: event.target.value,
-                        }))
-                      }
-                    />
-                    <TextField
                       label="Тираж"
                       height={40}
                       radius={4}
@@ -1719,17 +2809,132 @@ export function PublicationsCreatePage() {
                 </>
               ) : null}
 
-              <RichTextField
-                label="Аннотация"
-                placeholder="Аннотация"
-                value={form.abstract}
-                onChange={(nextValue) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    abstract: nextValue,
-                  }))
-                }
-              />
+              {shouldShowField('ExtentOfWork_F26') && form.workFormType !== 'B' ? (
+                <div className={styles.rowTwoLeft}>
+                  <TextField
+                    label="Объем работы"
+                    height={40}
+                    radius={4}
+                    rootClassName={styles.fullWidthField}
+                    fieldClassName={styles.formTextField}
+                    inputClassName={styles.formTextFieldInput}
+                    value={form.extentOfWork}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        extentOfWork: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              ) : null}
+
+              {isOtherScenario &&
+              !['J', 'B', 'C', 'D'].includes(form.workFormType) &&
+              (shouldShowField('VolumeID_F22') ||
+                shouldShowField('IssueID_F24') ||
+                shouldShowField('Pages_F25') ||
+                shouldShowField('URL_F38')) ? (
+                <>
+                  <div className={styles.rowThree}>
+                    {shouldShowField('IssueID_F24') || shouldShowField('VolumeID_F22') ? (
+                      <TextField
+                        label={shouldShowField('IssueID_F24') ? 'Выпуск' : 'Том'}
+                        height={40}
+                        radius={4}
+                        rootClassName={styles.fullWidthField}
+                        fieldClassName={styles.formTextField}
+                        inputClassName={styles.formTextFieldInput}
+                        value={shouldShowField('IssueID_F24') ? form.issue : form.volume}
+                        onChange={(event) =>
+                          setForm((prev) =>
+                            shouldShowField('IssueID_F24')
+                              ? {
+                                  ...prev,
+                                  issue: event.target.value,
+                                }
+                              : {
+                                  ...prev,
+                                  volume: event.target.value,
+                                },
+                          )
+                        }
+                      />
+                    ) : null}
+                    <TextField
+                      label="Страницы"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
+                      value={form.pages}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          pages: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  {shouldShowField('URL_F38') ? (
+                    <TextField
+                      label="URL"
+                      height={40}
+                      radius={4}
+                      rootClassName={styles.fullWidthField}
+                      fieldClassName={styles.formTextField}
+                      inputClassName={styles.formTextFieldInput}
+                      value={form.url}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          url: event.target.value,
+                        }))
+                      }
+                    />
+                  ) : null}
+                </>
+              ) : null}
+
+              {shouldShowField('Notes_F42', ['book-chapter', 'book-monograph']) &&
+              form.workFormType !== 'C' ? (
+                <TextField
+                  label="Примечания"
+                  height={40}
+                  radius={4}
+                  rootClassName={styles.fullWidthField}
+                  fieldClassName={styles.formTextField}
+                  inputClassName={styles.formTextFieldInput}
+                  value={form.notes}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      notes: event.target.value,
+                    }))
+                  }
+                />
+              ) : null}
+
+              {shouldShowField('Abstract_F43', [
+                'article',
+                'book-chapter',
+                'book-monograph',
+                'conference-materials',
+              ]) ? (
+                <RichTextField
+                  label="Аннотация"
+                  placeholder="Аннотация"
+                  value={form.abstract}
+                  onChange={(nextValue) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      abstract: nextValue,
+                    }))
+                  }
+                />
+              ) : null}
 
               <div className={styles.keywordsField}>
                 {form.keywordsInput.trim() ? (
@@ -1796,7 +3001,8 @@ export function PublicationsCreatePage() {
                 />
               </div>
 
-              {variant === 'article' ? (
+              {shouldShowField('OriginalVer_ID_f', ['article']) ||
+              shouldShowField('PerVer_ID_f', ['article']) ? (
                 <>
                   {!form.relatedArticle ? (
                     <div className={styles.lookupRow}>
@@ -1854,6 +3060,7 @@ export function PublicationsCreatePage() {
                             setForm((prev) => ({
                               ...prev,
                               relatedArticle: null,
+                              relatedArticleKind: '',
                             }))
                           }
                           aria-label="Отвязать связанную статью"
@@ -1872,11 +3079,19 @@ export function PublicationsCreatePage() {
                 <OutlineButton
                   label="Отмена"
                   className={styles.cancelButton}
-                  onClick={() => navigateTo('/articles')}
+                  onClick={() => navigateTo(isEditMode && articleId ? `/articles/${articleId}` : '/articles')}
                 />
                 <Button
-                  label={isSubmitting ? 'Добавление...' : 'Добавить'}
-                  iconName="add_notes"
+                  label={
+                    isSubmitting
+                      ? isEditMode
+                        ? 'Сохранение...'
+                        : 'Добавление...'
+                      : isEditMode
+                        ? 'Сохранить'
+                        : 'Добавить'
+                  }
+                  iconName={isEditMode ? 'save' : 'add_notes'}
                   className={styles.submitButton}
                   disabled={isSubmitDisabled}
                   onClick={() => void handleSubmit()}

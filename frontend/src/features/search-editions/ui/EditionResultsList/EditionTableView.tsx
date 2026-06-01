@@ -25,6 +25,7 @@ type EditionTableViewProps = {
   pageIds: string[];
   isAllPageSelected: boolean;
   isPageSelectionIndeterminate: boolean;
+  isAdmin: boolean;
   openActionMenuId: string | null;
   sortField: EditionsSortFieldValue;
   sortOrder: EditionSortOrder;
@@ -38,8 +39,8 @@ type EditionTableViewProps = {
   onToggleActionMenu: (id: string) => void;
   onSortFieldChange: (value: EditionsSortFieldValue) => void;
   onSortOrderChange: (value: EditionSortOrder) => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: (item: EditionListItemDto) => void;
+  onDelete: (item: EditionListItemDto) => void;
 };
 
 export function EditionTableView({
@@ -49,6 +50,7 @@ export function EditionTableView({
   pageIds,
   isAllPageSelected,
   isPageSelectionIndeterminate,
+  isAdmin,
   openActionMenuId,
   sortField,
   sortOrder,
@@ -127,11 +129,11 @@ export function EditionTableView({
               </th>
               <th>{renderTableHeaderButton('title', 'Название')}</th>
               <th>{renderTableHeaderButton('issn', 'ISSN')}</th>
-              <th>{renderTableHeaderButton('white_list', 'БС')}</th>
-              <th>{renderTableHeaderButton('wos', 'WoS')}</th>
-              <th>{renderTableHeaderButton('scopus', 'Scopus')}</th>
+              <th>{renderTableHeaderButton('white_list', 'УБС')}</th>
+              <th>{renderTableHeaderButton('wos', 'Q WoS')}</th>
+              <th>{renderTableHeaderButton('scopus', 'Q Scopus')}</th>
               <th>{renderTableHeaderButton('rinc', 'РИНЦ')}</th>
-              <th>{renderTableHeaderButton('vak', 'Вак')}</th>
+              <th>{renderTableHeaderButton('vak', 'ВАК')}</th>
               <th className={styles.actionsColumn} aria-label="Действия" />
             </tr>
           ) : (
@@ -226,12 +228,14 @@ export function EditionTableView({
                 )}
 
                 <td className={styles.actionsCell}>
-                  <EditionRowActions
-                    isMenuOpen={openActionMenuId === item.id}
-                    onToggleMenu={() => onToggleActionMenu(item.id)}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                  />
+                  {isAdmin ? (
+                    <EditionRowActions
+                      isMenuOpen={openActionMenuId === item.id}
+                      onToggleMenu={() => onToggleActionMenu(item.id)}
+                      onEdit={() => onEdit(item)}
+                      onDelete={() => onDelete(item)}
+                    />
+                  ) : null}
                 </td>
               </tr>
             );

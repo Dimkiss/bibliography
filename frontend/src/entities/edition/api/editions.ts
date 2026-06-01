@@ -37,9 +37,14 @@ export type EditionDetailMetricDto = {
   white_list_level: string | null;
   wos_quartile: string | null;
   impact_factor: string | null;
+  five_year_if: string | null;
   scopus_quartile: string | null;
+  wos: boolean;
+  scopus: boolean;
   rinc: boolean;
   rinc_core: boolean;
+  rsci: boolean;
+  foreign: boolean;
   vak: boolean;
 };
 

@@ -139,9 +139,9 @@ export function PublicationResultsList({
     setActionMessage('Библиографическая ссылка скопирована.');
   };
 
-  const handleEditPublication = () => {
+  const handleEditPublication = (item: PublicationListItemDto) => {
     setOpenActionMenuId(null);
-    setActionMessage('Редактирование будет доступно после обновления формы публикации.');
+    navigateTo(`/articles/${item.id}/edit`);
   };
 
   const handleRequestDeletePublication = (item: PublicationListItemDto) => {

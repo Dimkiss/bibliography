@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.dependencies.auth import require_admin
+from app.dependencies.auth import require_admin, require_authors_page_access
 from app.models import User
 from app.services.user_service import list_roles, list_departments, list_authors
 
@@ -19,7 +19,7 @@ def admin_list_roles(
 
 @router.get("/departments")
 def admin_list_departments(
-    _: User = Depends(require_admin),
+    _: User = Depends(require_authors_page_access),
     db: Session = Depends(get_db),
 ):
     return list_departments(db)

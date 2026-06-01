@@ -1,6 +1,9 @@
+import { useRef } from 'react';
+
 import { buildDoiUrl, type PublicationListItemDto } from '@/entities/publication';
 import { Icon } from '@/shared/ui/Icon';
 import { OutlineIconButton } from '@/shared/ui/OutlineIconButton';
+import { ViewportMenu } from '@/shared/ui/ViewportMenu';
 import { stopInteractiveEvent } from './publicationResultsList.lib';
 import styles from './PublicationResultsList.module.css';
 
@@ -28,6 +31,7 @@ export function PublicationRowActions({
   onDelete,
 }: PublicationRowActionsProps) {
   const hasDoiUrl = Boolean(buildDoiUrl(item.doi));
+  const menuAnchorRef = useRef<HTMLElement | null>(null);
 
   return (
     <div
@@ -43,12 +47,19 @@ export function PublicationRowActions({
         aria-expanded={isMenuOpen}
         onClick={(event) => {
           stopInteractiveEvent(event);
+          menuAnchorRef.current = event.currentTarget;
           onToggleMenu();
         }}
       />
 
-      {isMenuOpen ? (
-        <div className={styles.publicationMenu} role="menu">
+      <ViewportMenu
+        isOpen={isMenuOpen}
+        triggerRef={menuAnchorRef}
+        placement="left-start"
+        offset={10}
+        className={styles.publicationMenu}
+        role="menu"
+      >
           <button
             type="button"
             className={styles.publicationMenuItem}
@@ -110,8 +121,7 @@ export function PublicationRowActions({
               </button>
             </>
           ) : null}
-        </div>
-      ) : null}
+      </ViewportMenu>
 
       <OutlineIconButton
         iconName="copy"

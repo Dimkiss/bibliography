@@ -1,0 +1,218 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  padding: 28px 40px 24px;
+  border: 1px solid var(--outline);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.state,
+.errorMessage,
+.successMessage,
+.emptyMetrics {
+  padding: var(--space-4);
+  border: 1px solid var(--Text-field);
+  border-radius: var(--radius);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.errorMessage {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.successMessage {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.formGrid,
+.metricsSection,
+.metricList,
+.metricCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGrid {
+  gap: var(--space-5);
+}
+
+.rowTwo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+.toggleRow,
+.metricToggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.toggleButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-outline-soft);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-line);
+  letter-spacing: var(--type-body-md-letter);
+}
+
+.toggleButton:hover,
+.toggleButtonChecked {
+  border-color: var(--color-primary);
+  background: var(--state-primary-hover);
+}
+
+.metricsSection {
+  gap: var(--space-4);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: 0.15px;
+}
+
+.metricList {
+  gap: var(--space-4);
+}
+
+.metricCard {
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-outline-soft);
+  border-radius: var(--radius);
+  background: var(--color-surface-menu);
+}
+
+.metricHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.yearField {
+  width: 144px;
+}
+
+.metricId {
+  color: var(--color-text-muted);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-body-sm-line);
+  letter-spacing: var(--type-body-sm-letter);
+}
+
+.removeMetricButton {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-outline-soft);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.removeMetricButton:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.metricSelect {
+  min-width: 0;
+}
+
+.selectField {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-label-sm-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-sm-line);
+  letter-spacing: var(--type-label-sm-letter);
+}
+
+.footerActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+.cancelButton,
+.submitButton {
+  min-width: 160px;
+}
+
+@media (max-width: 980px) {
+  .card {
+    padding: 24px;
+  }
+
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .card {
+    padding: 20px;
+  }
+
+  .rowTwo,
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionHeader,
+  .footerActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .yearField,
+  .cancelButton,
+  .submitButton {
+    width: 100%;
+  }
+}

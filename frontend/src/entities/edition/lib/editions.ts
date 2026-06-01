@@ -38,9 +38,9 @@ export const PERIODICAL_SORT_FIELD_OPTIONS: Array<{
 }> = [
   { value: 'title', label: 'Название' },
   { value: 'issn', label: 'ISSN' },
-  { value: 'white_list', label: 'БС' },
-  { value: 'wos', label: 'Квартиль WoS' },
-  { value: 'scopus', label: 'Квартиль Scopus' },
+  { value: 'white_list', label: 'УБС' },
+  { value: 'wos', label: 'Q WoS' },
+  { value: 'scopus', label: 'Q Scopus' },
   { value: 'rinc', label: 'Наличие в РИНЦ' },
   { value: 'vak', label: 'Наличие в ВАК' },
 ];
@@ -150,4 +150,16 @@ export function formatWhiteListLevel(value?: string | null): string {
 
 export function buildEditionDetailsPath(kind: EditionKind, sourceId: number): string {
   return `/journals/${kind}/${sourceId}`;
+}
+
+export function buildNonperiodicalEditionEditPath(sourceId: number): string {
+  return `/articles/${sourceId}/edit`;
+}
+
+export function buildPeriodicalEditionCreatePath(): string {
+  return '/journals/periodical/create';
+}
+
+export function buildPeriodicalEditionEditPath(sourceId: number): string {
+  return `/journals/periodical/${sourceId}/edit`;
 }

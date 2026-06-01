@@ -27,7 +27,7 @@ type PublicationListViewProps = {
   onOpenPdf: (item: PublicationListItemDto) => void;
   onOpenDoi: (item: PublicationListItemDto) => void;
   onCopyReference: (item: PublicationListItemDto) => void;
-  onEdit: () => void;
+  onEdit: (item: PublicationListItemDto) => void;
   onRequestDelete: (item: PublicationListItemDto) => void;
 };
 
@@ -140,7 +140,7 @@ export function PublicationListView({
               onOpenPdf={() => onOpenPdf(item)}
               onOpenDoi={() => onOpenDoi(item)}
               onCopyReference={() => onCopyReference(item)}
-              onEdit={onEdit}
+              onEdit={() => onEdit(item)}
               onDelete={() => onRequestDelete(item)}
             />
           </article>
