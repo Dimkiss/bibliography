@@ -192,12 +192,6 @@ export function ProfilePage() {
                 <span className={styles.infoLabel}>Внешний ID</span>
                 <span className={styles.infoValue}>{formatValue(user.external_id)}</span>
               </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>ID ПУ</span>
-                <span className={styles.infoValue}>
-                  {user.snils_last4 ? `•••• ${user.snils_last4}` : '—'}
-                </span>
-              </div>
             </div>
           </div>
 

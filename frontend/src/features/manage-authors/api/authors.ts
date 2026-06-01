@@ -36,6 +36,13 @@ export type CreateAuthorPayload = {
   degree?: string | null;
   rank?: string | null;
   email?: string | null;
+  type?: string | null;
+  birthdate?: string | null;
+  birth_year?: number | null;
+  nickname?: string | null;
+  status?: number | null;
+  search_pattern?: string | null;
+  external_id?: number | null;
   WOS_ID?: string | null;
   Scopus_ID?: string | null;
   ORCID?: string | null;
@@ -48,6 +55,13 @@ export type UpdateAuthorPayload = {
   degree?: string | null;
   rank?: string | null;
   email?: string | null;
+  type?: string | null;
+  birthdate?: string | null;
+  birth_year?: number | null;
+  nickname?: string | null;
+  status?: number | null;
+  search_pattern?: string | null;
+  external_id?: number | null;
   WOS_ID?: string | null;
   Scopus_ID?: string | null;
   ORCID?: string | null;

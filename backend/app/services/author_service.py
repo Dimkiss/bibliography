@@ -10,7 +10,16 @@ def _format_date(value) -> str | None:
     return value.isoformat() if value else None
 
 
-def serialize_author_full(author: Author) -> dict:
+def _payload_has_field(payload, field_name: str) -> bool:
+    fields_set = (
+        payload.model_fields_set
+        if hasattr(payload, "model_fields_set")
+        else getattr(payload, "__fields_set__", set())
+    )
+    return field_name in fields_set
+
+
+def serialize_author_full(author: Author, *, include_sensitive_fields: bool = True) -> dict:
     linked_user = author.users[0] if author.users else None
     return {
         "id": author.authorID,
@@ -25,25 +34,33 @@ def serialize_author_full(author: Author) -> dict:
         "nickname": author.nickname,
         "status": author.status,
         "search_pattern": author.Pattern,
-        "external_id": author.ID,
-        "snils_last4": author.snils[-4:] if author.snils else None,
+        "external_id": author.ID if include_sensitive_fields else None,
+        "snils_last4": author.snils[-4:] if author.snils and include_sensitive_fields else None,
         "wos_id": author.WOS_ID,
         "scopus_id": author.Scopus_ID,
         "orcid": author.ORCID,
         "department_id": author.DepartmentCode,
         "department_name": author.department.DepartmentName if author.department else None,
-        "linked_user_id": linked_user.id if linked_user else None,
-        "linked_user_login": linked_user.login if linked_user else None,
+        "linked_user_id": linked_user.id if linked_user and include_sensitive_fields else None,
+        "linked_user_login": linked_user.login if linked_user and include_sensitive_fields else None,
         "is_available": linked_user is None,
     }
 
 
-def list_authors_full(db: Session, department_id: int | None = None) -> list[dict]:
+def list_authors_full(
+    db: Session,
+    department_id: int | None = None,
+    *,
+    include_sensitive_fields: bool = True,
+) -> list[dict]:
     query = db.query(Author)
     if department_id is not None:
         query = query.filter(Author.DepartmentCode == department_id)
     authors = query.order_by(Author.authorName.asc()).all()
-    return [serialize_author_full(a) for a in authors]
+    return [
+        serialize_author_full(a, include_sensitive_fields=include_sensitive_fields)
+        for a in authors
+    ]
 
 
 def get_author_by_id(db: Session, author_id: int) -> Author:
@@ -64,6 +81,13 @@ def create_author(db: Session, payload: AuthorCreate) -> dict:
         Scopus_ID=payload.Scopus_ID,
         ORCID=payload.ORCID,
         DepartmentCode=payload.DepartmentCode,
+        type=payload.type or "О",
+        birthdate=payload.birthdate,
+        year=payload.birth_year,
+        nickname=payload.nickname,
+        status=payload.status if payload.status is not None else 1,
+        Pattern=payload.search_pattern,
+        ID=payload.external_id,
     )
     if payload.DepartmentCode is not None:
         dept = db.query(Department).filter(
@@ -82,23 +106,37 @@ def update_author(db: Session, author_id: int, payload: AuthorUpdate) -> dict:
 
     if payload.authorName is not None:
         author.authorName = payload.authorName
-    if payload.position is not None:
+    if _payload_has_field(payload, "position"):
         author.position = payload.position
-    if payload.degree is not None:
+    if _payload_has_field(payload, "degree"):
         author.degree = payload.degree
-    if payload.rank is not None:
+    if _payload_has_field(payload, "rank"):
         author.rank = payload.rank
-    if payload.email is not None:
+    if _payload_has_field(payload, "email"):
         author.email = payload.email
-    if payload.WOS_ID is not None:
+    if _payload_has_field(payload, "WOS_ID"):
         author.WOS_ID = payload.WOS_ID
-    if payload.Scopus_ID is not None:
+    if _payload_has_field(payload, "Scopus_ID"):
         author.Scopus_ID = payload.Scopus_ID
-    if payload.ORCID is not None:
+    if _payload_has_field(payload, "ORCID"):
         author.ORCID = payload.ORCID
+    if _payload_has_field(payload, "type") and payload.type is not None:
+        author.type = payload.type
+    if _payload_has_field(payload, "birthdate"):
+        author.birthdate = payload.birthdate
+    if _payload_has_field(payload, "birth_year"):
+        author.year = payload.birth_year
+    if _payload_has_field(payload, "nickname"):
+        author.nickname = payload.nickname
+    if _payload_has_field(payload, "status") and payload.status is not None:
+        author.status = payload.status
+    if _payload_has_field(payload, "search_pattern"):
+        author.Pattern = payload.search_pattern
+    if _payload_has_field(payload, "external_id"):
+        author.ID = payload.external_id
 
     # DepartmentCode можно явно сбросить в None
-    if "DepartmentCode" in (payload.model_fields_set if hasattr(payload, "model_fields_set") else getattr(payload, "__fields_set__", set())):
+    if _payload_has_field(payload, "DepartmentCode"):
         if payload.DepartmentCode is not None:
             dept = db.query(Department).filter(
                 Department.DepartmentCode == payload.DepartmentCode

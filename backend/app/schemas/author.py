@@ -1,4 +1,6 @@
+from datetime import date
 from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -12,6 +14,13 @@ class AuthorCreate(BaseModel):
     Scopus_ID: Optional[str] = Field(default=None, max_length=20)
     ORCID: Optional[str] = Field(default=None, max_length=100)
     DepartmentCode: Optional[int] = None
+    type: Optional[str] = Field(default=None, max_length=4)
+    birthdate: Optional[date] = None
+    birth_year: Optional[int] = Field(default=None, ge=1900, le=2100)
+    nickname: Optional[str] = Field(default=None, max_length=200)
+    status: Optional[int] = Field(default=None, ge=0, le=2)
+    search_pattern: Optional[str] = Field(default=None, max_length=50)
+    external_id: Optional[int] = None
 
 
 class AuthorUpdate(BaseModel):
@@ -24,3 +33,10 @@ class AuthorUpdate(BaseModel):
     Scopus_ID: Optional[str] = Field(default=None, max_length=20)
     ORCID: Optional[str] = Field(default=None, max_length=100)
     DepartmentCode: Optional[int] = None
+    type: Optional[str] = Field(default=None, max_length=4)
+    birthdate: Optional[date] = None
+    birth_year: Optional[int] = Field(default=None, ge=1900, le=2100)
+    nickname: Optional[str] = Field(default=None, max_length=200)
+    status: Optional[int] = Field(default=None, ge=0, le=2)
+    search_pattern: Optional[str] = Field(default=None, max_length=50)
+    external_id: Optional[int] = None

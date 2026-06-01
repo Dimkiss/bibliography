@@ -734,13 +734,6 @@ def generate_authors_export_report(
         ("nickname", "au.nickname AS nickname", "Псевдоним", 24, "nickname"),
         ("Pattern", "au.Pattern AS search_pattern", "Шаблон поиска", 24, "search_pattern"),
         ("ID", "au.ID AS external_id", "Внешний ID", 12, "external_id"),
-        (
-            "snils",
-            "RIGHT(au.snils, 4) AS snils_last4",
-            "ID ПУ",
-            10,
-            "snils_last4",
-        ),
     ]
     for column_name, select_sql, header, width, result_key in optional_map:
         if column_name in existing_columns:

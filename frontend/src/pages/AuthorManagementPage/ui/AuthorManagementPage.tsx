@@ -36,6 +36,13 @@ type FormState = {
   degree: string;
   rank: string;
   email: string;
+  type: string;
+  birthdate: string;
+  birth_year: string;
+  nickname: string;
+  status: string;
+  search_pattern: string;
+  external_id: string;
   orcid: string;
   scopus_id: string;
   wos_id: string;
@@ -48,6 +55,13 @@ const initialFormState: FormState = {
   degree: '',
   rank: '',
   email: '',
+  type: 'О',
+  birthdate: '',
+  birth_year: '',
+  nickname: '',
+  status: '1',
+  search_pattern: '',
+  external_id: '',
   orcid: '',
   scopus_id: '',
   wos_id: '',
@@ -77,6 +91,15 @@ function formatAuthorsCountLabel(count: number): string {
   }
 
   return 'авторов';
+}
+
+function toNullableNumber(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return Number(trimmed);
 }
 
 export function AuthorManagementPage() {
@@ -346,6 +369,13 @@ export function AuthorManagementPage() {
       degree: target.degree ?? '',
       rank: target.rank ?? '',
       email: target.email ?? '',
+      type: target.type ?? 'О',
+      birthdate: target.birthdate ?? '',
+      birth_year: target.birth_year !== null ? String(target.birth_year) : '',
+      nickname: target.nickname ?? '',
+      status: target.status !== null ? String(target.status) : '1',
+      search_pattern: target.search_pattern ?? '',
+      external_id: target.external_id !== null ? String(target.external_id) : '',
       orcid: target.orcid ?? '',
       scopus_id: target.scopus_id ?? '',
       wos_id: target.wos_id ?? '',
@@ -377,12 +407,33 @@ export function AuthorManagementPage() {
 
     try {
       const departmentCode = form.department_id ? Number(form.department_id) : null;
+      const birthYear = toNullableNumber(form.birth_year);
+      const externalId = toNullableNumber(form.external_id);
+
+      if (
+        (form.birth_year.trim() &&
+          (birthYear === null || !Number.isInteger(birthYear))) ||
+        (form.external_id.trim() &&
+          (externalId === null || !Number.isInteger(externalId)))
+      ) {
+        setFormError('Год рождения и внешний ID должны быть целыми числами.');
+        setIsFormSubmitting(false);
+        return;
+      }
+
       const payload = {
         authorName: form.name.trim(),
         position: form.position.trim() || null,
         degree: form.degree.trim() || null,
         rank: form.rank.trim() || null,
         email: form.email.trim() || null,
+        type: form.type || 'О',
+        birthdate: form.birthdate || null,
+        birth_year: birthYear,
+        nickname: form.nickname.trim() || null,
+        status: form.status ? Number(form.status) : 1,
+        search_pattern: form.search_pattern.trim() || null,
+        external_id: externalId,
         ORCID: form.orcid.trim() || null,
         Scopus_ID: form.scopus_id.trim() || null,
         WOS_ID: form.wos_id.trim() || null,
@@ -951,6 +1002,67 @@ export function AuthorManagementPage() {
                 label="Email"
                 value={form.email}
                 onChange={(event) => handleFormChange('email', event.target.value)}
+              />
+              <div className={styles.fieldBlock}>
+                <label className={styles.selectLabel} htmlFor="author_type">
+                  Тип
+                </label>
+                <select
+                  id="author_type"
+                  className={styles.select}
+                  value={form.type}
+                  onChange={(event) => handleFormChange('type', event.target.value)}
+                >
+                  <option value="О">Штатный сотрудник</option>
+                  <option value="В">Внештатный</option>
+                </select>
+              </div>
+              <div className={styles.fieldBlock}>
+                <label className={styles.selectLabel} htmlFor="author_status">
+                  Статус
+                </label>
+                <select
+                  id="author_status"
+                  className={styles.select}
+                  value={form.status}
+                  onChange={(event) => handleFormChange('status', event.target.value)}
+                >
+                  <option value="1">Работает</option>
+                  <option value="2">Временно не работает</option>
+                  <option value="0">Уволен</option>
+                </select>
+              </div>
+              <TextField
+                label="Дата рождения"
+                type="date"
+                value={form.birthdate}
+                onChange={(event) => handleFormChange('birthdate', event.target.value)}
+              />
+              <TextField
+                label="Год рождения"
+                type="number"
+                min={1900}
+                max={2100}
+                value={form.birth_year}
+                onChange={(event) => handleFormChange('birth_year', event.target.value)}
+              />
+              <TextField
+                label="Псевдоним"
+                value={form.nickname}
+                onChange={(event) => handleFormChange('nickname', event.target.value)}
+              />
+              <TextField
+                label="Шаблон поиска"
+                value={form.search_pattern}
+                onChange={(event) =>
+                  handleFormChange('search_pattern', event.target.value)
+                }
+              />
+              <TextField
+                label="Внешний ID"
+                type="number"
+                value={form.external_id}
+                onChange={(event) => handleFormChange('external_id', event.target.value)}
               />
               <TextField
                 label="ORCID"

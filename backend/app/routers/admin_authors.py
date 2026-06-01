@@ -26,12 +26,22 @@ def admin_list_authors(
     current_user: User = Depends(require_authors_page_access),
     db: Session = Depends(get_db),
 ):
+    include_sensitive_fields = current_user.role_id == ADMIN_ROLE_ID
+
     # Руководитель подразделения видит только своё подразделение
     if current_user.role_id == DEPARTMENT_HEAD_ROLE_ID:
-        return list_authors_full(db, department_id=current_user.department_id)
+        return list_authors_full(
+            db,
+            department_id=current_user.department_id,
+            include_sensitive_fields=include_sensitive_fields,
+        )
 
     # Администратор и администрация могут фильтровать по department_id
-    return list_authors_full(db, department_id=department_id)
+    return list_authors_full(
+        db,
+        department_id=department_id,
+        include_sensitive_fields=include_sensitive_fields,
+    )
 
 
 @router.get("/{author_id}")
@@ -46,7 +56,10 @@ def admin_get_author(
         if author.DepartmentCode != current_user.department_id:
             from fastapi import HTTPException, status
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    return serialize_author_full(author)
+    return serialize_author_full(
+        author,
+        include_sensitive_fields=current_user.role_id == ADMIN_ROLE_ID,
+    )
 
 
 @router.get("/{author_id}/publications")

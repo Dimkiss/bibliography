@@ -512,11 +512,13 @@ export function AuthorDetailsPage() {
                   <div>
                     <h1 className={styles.name}>{author.name}</h1>
                     <div className={styles.metaRow}>
-                      <span className={styles.metaChip}>
-                        <span className={styles.metaChipLabel}>ID</span>
-                        <span className={styles.metaChipSep}>·</span>
-                        <span className={styles.metaChipValue}>{author.id}</span>
-                      </span>
+                      {isAdmin ? (
+                        <span className={styles.metaChip}>
+                          <span className={styles.metaChipLabel}>ID</span>
+                          <span className={styles.metaChipSep}>·</span>
+                          <span className={styles.metaChipValue}>{author.id}</span>
+                        </span>
+                      ) : null}
                       <span className={styles.metaChip}>
                         <span className={styles.metaChipLabel}>Подразделение</span>
                         <span className={styles.metaChipSep}>·</span>
@@ -524,13 +526,15 @@ export function AuthorDetailsPage() {
                           {formatValue(author.department_name)}
                         </span>
                       </span>
-                      <span className={styles.metaChip}>
-                        <span className={styles.metaChipLabel}>Пользователь</span>
-                        <span className={styles.metaChipSep}>·</span>
-                        <span className={styles.metaChipValue}>
-                          {formatValue(author.linked_user_login)}
+                      {isAdmin ? (
+                        <span className={styles.metaChip}>
+                          <span className={styles.metaChipLabel}>Пользователь</span>
+                          <span className={styles.metaChipSep}>·</span>
+                          <span className={styles.metaChipValue}>
+                            {formatValue(author.linked_user_login)}
+                          </span>
                         </span>
-                      </span>
+                      ) : null}
                     </div>
                   </div>
 
@@ -572,12 +576,6 @@ export function AuthorDetailsPage() {
                     <span className={styles.infoValue}>{formatValue(author.wos_id)}</span>
                   </div>
                   <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>Подразделение</span>
-                    <span className={styles.infoValue}>
-                      {formatValue(author.department_name)}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>Тип</span>
                     <span className={styles.infoValue}>{formatAuthorType(author.type)}</span>
                   </div>
@@ -611,18 +609,14 @@ export function AuthorDetailsPage() {
                       {formatValue(author.search_pattern)}
                     </span>
                   </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>Внешний ID</span>
-                    <span className={styles.infoValue}>
-                      {formatValue(author.external_id)}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>ID ПУ</span>
-                    <span className={styles.infoValue}>
-                      {author.snils_last4 ? `•••• ${author.snils_last4}` : '—'}
-                    </span>
-                  </div>
+                  {isAdmin ? (
+                    <div className={styles.infoItem}>
+                      <span className={styles.infoLabel}>Внешний ID</span>
+                      <span className={styles.infoValue}>
+                        {formatValue(author.external_id)}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               </>
             ) : null}
