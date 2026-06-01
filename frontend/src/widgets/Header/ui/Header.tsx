@@ -54,7 +54,7 @@ const authorManagementNavItem = {
   path: '/author-management',
 } as const;
 
-type HeaderActionVariant = 'default' | 'hidden' | 'logout';
+type HeaderActionVariant = 'default' | 'hidden' | 'logout' | 'back';
 
 type HeaderProps = {
   title: string;
@@ -67,7 +67,7 @@ function getActiveNavItem(
     id: string;
     path: string;
   }>,
-): string {
+): string | null {
   if (pathname === '/') {
     return 'home';
   }
@@ -80,7 +80,7 @@ function getActiveNavItem(
     return pathname === item.path || pathname.startsWith(`${item.path}/`);
   });
 
-  return matchedItem?.id ?? 'home';
+  return matchedItem?.id ?? null;
 }
 
 export function Header({
@@ -127,9 +127,30 @@ export function Header({
     navigateTo('/');
   };
 
+  const handleBack = () => {
+    if (window.history.state !== null && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    navigateTo('/');
+  };
+
   const renderAuthAction = () => {
     if (isInitializing || authActionVariant === 'hidden') {
       return null;
+    }
+
+    if (authActionVariant === 'back') {
+      return (
+        <OutlineButton
+          className={styles.headerAuthButton}
+          size="normal"
+          iconName="arrow_back"
+          label="Назад"
+          onClick={handleBack}
+        />
+      );
     }
 
     if (authActionVariant === 'logout') {

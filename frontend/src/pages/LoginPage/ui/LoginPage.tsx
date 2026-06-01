@@ -54,7 +54,7 @@ export function LoginPage() {
 
   return (
     <div className="app-page">
-      <Header title="Авторизация" authActionVariant="hidden" />
+      <Header title="Авторизация" authActionVariant="back" />
 
       <main className="app-main">
         <div className="container app-block-group">
