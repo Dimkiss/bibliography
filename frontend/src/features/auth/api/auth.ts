@@ -7,6 +7,10 @@ async function parseErrorMessage(response: Response): Promise<string> {
     const data = await response.json();
 
     if (typeof data?.detail === 'string') {
+      if (data.detail === 'Invalid login or password') {
+        return 'Неверный логин или пароль.';
+      }
+
       return data.detail;
     }
   } catch {

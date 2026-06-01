@@ -41,7 +41,7 @@ def login_user(db: Session, username: str, password: str) -> dict:
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid login or password",
+            detail="Неверный логин или пароль.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
