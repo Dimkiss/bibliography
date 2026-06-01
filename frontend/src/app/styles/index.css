@@ -257,6 +257,53 @@ a {
   color: inherit;
 }
 
+.app-search-field-dropdown-wrap {
+  width: 240px;
+}
+
+.app-search-field-selector-button {
+  gap: 2px;
+}
+
+.app-search-field-menu {
+  width: 238px;
+  min-width: 112px;
+  max-width: min(280px, calc(100vw - 48px));
+  padding: var(--space-3) 0;
+  border: none;
+  border-radius: var(--radius-menu);
+  background: var(--color-surface-menu);
+  box-shadow: var(--shadow-menu-md);
+}
+
+.app-search-field-options-list {
+  gap: 0;
+}
+
+.app-search-field-option-button {
+  min-height: var(--menu-option-height);
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  border-radius: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--type-body-lg-line);
+  letter-spacing: var(--type-body-lg-letter);
+}
+
+.app-search-field-option-button:hover {
+  background: var(--state-text-hover);
+}
+
+.app-search-field-option-icon {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  color: var(--color-text-muted);
+}
+
 .app-year-inputs {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);

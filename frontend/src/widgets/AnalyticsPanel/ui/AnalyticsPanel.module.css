@@ -81,6 +81,14 @@
   gap: var(--space-4);
 }
 
+.lwlCardTitle {
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+  text-overflow: clip;
+  pointer-events: none;
+}
+
 .typesChartArea {
   display: flex;
   flex-direction: column;

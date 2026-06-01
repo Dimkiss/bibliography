@@ -31,7 +31,9 @@ export function AnalyticsLwlCard({
   return (
     <article className={`${styles.card} ${styles.lwlCard}`}>
       <div className={styles.cardHeader}>
-        <h3 className={styles.cardTitle}>Распределение по уровням БС</h3>
+        <h3 className={`${styles.cardTitle} ${styles.lwlCardTitle}`}>
+          Распределение по уровням БС
+        </h3>
 
         <YearSelect
           value={year}

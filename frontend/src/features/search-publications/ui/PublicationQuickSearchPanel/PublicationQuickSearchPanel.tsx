@@ -142,33 +142,34 @@ export function PublicationQuickSearchPanel() {
 
         <div
           ref={fieldDropdownRef}
-          className={`app-search-dropdown-wrap ${styles.dropdownWrap}`}
+          className={`app-search-dropdown-wrap app-search-field-dropdown-wrap ${styles.dropdownWrap}`}
         >
           <DropdownButton
             label={formatSearchFieldLabel(field)}
-            icon={<Icon name={getSearchFieldIconName(field)} size={18} />}
+            icon={<Icon name={getSearchFieldIconName(field)} size={20} />}
             size="normal"
             variant="tonal"
-            width={248}
+            width={240}
+            className="app-search-field-selector-button"
             isOpen={isFieldOpen}
             onClick={() => setIsFieldOpen((prev) => !prev)}
           />
 
           {isFieldOpen ? (
-            <div className="app-search-menu">
-              <div className="app-search-options-list">
+            <div className="app-search-menu app-search-field-menu">
+              <div className="app-search-options-list app-search-field-options-list">
                 {SEARCH_FIELD_OPTIONS.map((option) => (
                   <button
                     key={option.key}
                     type="button"
-                    className="app-search-option-button"
+                    className="app-search-option-button app-search-field-option-button"
                     onClick={() => {
                       setField(option.key);
                       setIsFieldOpen(false);
                     }}
                   >
-                    <span className="app-search-option-icon">
-                      <Icon name={getSearchFieldIconName(option.key)} size={18} />
+                    <span className="app-search-option-icon app-search-field-option-icon">
+                      <Icon name={getSearchFieldIconName(option.key)} size={24} />
                     </span>
                     <span>{option.label}</span>
                   </button>
