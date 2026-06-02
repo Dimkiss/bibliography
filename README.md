@@ -5,7 +5,7 @@
 ## Стек
 
 - Backend: FastAPI, SQLAlchemy, PyMySQL, JWT
-- AI service: FastAPI, Ollama, скрипты подготовки PDF-текста
+- AI service: FastAPI, Qdrant, FastEmbed, скрипты подготовки PDF-текста
 - Database: MySQL 5.7
 - Frontend: React 19, TypeScript, Vite, CSS Modules
 - Charts: Recharts
@@ -92,13 +92,28 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 
 ### AI-сервис и PDF-индекс
 
-AI-поиск работает отдельным сервисом `ai-agent` и использует Ollama.
+AI-поиск работает отдельным сервисом `ai-agent`. В текущей конфигурации
+`AI_LLM_ENABLED=false`, поэтому для обычного запуска `Ollama` не нужен.
 
-Первый запуск модели:
+RAG-поиск по PDF использует `Qdrant` и embedding-модель
+`intfloat/multilingual-e5-large`. При первом старте модель может скачаться в
+Docker volume `ai-model-cache`.
+
+Обычный запуск AI-части:
 
 ```powershell
-docker compose up -d --build ai-agent ollama
-docker compose exec ollama ollama pull qwen2.5:3b-instruct
+docker compose up -d --build qdrant ai-agent
+```
+
+Если готовый дамп `Qdrant` уже лежит в корне проекта как
+`qdrant-data.tar.gz`, восстанови volume перед запуском:
+
+```powershell
+docker compose down
+docker volume rm bibliography_qdrant-data
+docker volume create bibliography_qdrant-data
+docker run --rm --entrypoint tar -v bibliography_qdrant-data:/qdrant/storage -v "${PWD}:/backup" qdrant/qdrant:v1.15.5 -xzf /backup/qdrant-data.tar.gz -C /qdrant/storage
+docker compose up -d --build qdrant ai-agent
 ```
 
 Скрипты подготовки PDF-текста находятся в `backend-ai/scripts`.
@@ -116,15 +131,15 @@ docker compose exec ai-agent python scripts/audit_pdf_text_layers.py --pdf-dir /
 docker compose exec ai-agent python scripts/index_pdf_texts.py --pdf-dir /app/db/pdf --output-dir /app/db/pdf_text_index --article-ids-file /app/db/pdf_text_index/has_text_article_ids.txt --overwrite
 ```
 
-Импорт готового индекса в MySQL:
+Индексация готовых чанков в Qdrant:
 
 ```powershell
-docker compose exec ai-agent python scripts/import_pdf_text_index.py --index-dir /app/db/pdf_text_index --overwrite
+docker compose exec ai-agent python scripts/index_qdrant_pdf_chunks.py --index-dir /app/db/pdf_text_index --qdrant-url http://qdrant:6333 --collection publication_pdf_chunks --recreate --batch-size 128
 ```
 
-Если `chunks.jsonl` и `status.jsonl` уже подготовлены на другом компьютере,
-повторно резать PDF не нужно: достаточно перенести каталог `db/pdf_text_index`
-и выполнить только импорт.
+Если `db/pdf_text_index/status.jsonl` и `db/pdf_text_index/chunks.jsonl` уже
+подготовлены на другом компьютере, повторно резать PDF не нужно: достаточно
+перенести каталог `db/pdf_text_index` и выполнить только индексацию в Qdrant.
 
 ## Проверки
 
@@ -152,7 +167,7 @@ backend/
 
 backend-ai/
   app/              # AI API и планировщик поиска
-  scripts/          # аудит PDF, нарезка PDF-текста, импорт индекса в MySQL
+  scripts/          # аудит PDF, нарезка PDF-текста, индексация в Qdrant
   requirements.txt
 
 frontend/
